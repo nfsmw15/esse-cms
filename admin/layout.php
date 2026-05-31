@@ -119,8 +119,7 @@
 
         <?php
         // Plugin-registered nav items
-        $pluginNavItems = [];
-        \Esse\Hooks::fire('admin.nav', $pluginNavItems);
+        $pluginNavItems = \Esse\Hooks::filter('admin.nav', []);
         if ($pluginNavItems):
         ?>
         <div class="nav-section">Plugins</div>

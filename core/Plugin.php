@@ -51,16 +51,17 @@ abstract class Plugin
     final protected function addAdminNav(
         string $label,
         string $url,
-        string $icon      = 'bi-puzzle',
+        string $icon       = 'bi-puzzle',
         string $activeSlug = ''
     ): void {
-        Hooks::on('admin.nav', function (array &$items) use ($label, $url, $icon, $activeSlug) {
+        Hooks::on('admin.nav', function (array $items) use ($label, $url, $icon, $activeSlug) {
             $items[] = [
                 'label'  => $label,
                 'url'    => $url,
                 'icon'   => $icon,
                 'active' => $activeSlug ?: ltrim($url, '/'),
             ];
+            return $items;
         });
     }
 
