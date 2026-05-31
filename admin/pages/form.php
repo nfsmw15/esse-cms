@@ -59,6 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $isEdit ? [$slug, $page['id']] : [$slug]
             );
             if ($existing) $errors[] = "Slug '{$slug}' ist bereits vergeben.";
+            if (\Esse\Plugin::isPluginSlug($slug)) {
+                $errors[] = "Slug '{$slug}' wird bereits von einem Plugin verwendet. Bitte einen anderen Slug wählen.";
+            }
         }
 
         // Handle PHP file upload

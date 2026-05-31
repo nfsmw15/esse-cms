@@ -8,6 +8,9 @@ abstract class Plugin
 {
     protected array $meta = [];
 
+    // Virtual pages registered by plugins: [slug => [label, icon, plugin_name]]
+    private static array $registeredPages = [];
+
     final public function __construct()
     {
         $jsonFile = $this->basePath() . '/plugin.json';
@@ -48,6 +51,32 @@ abstract class Plugin
     }
 
     // Register a link in the admin sidebar under "Plugins"
+    // Register a frontend page so it appears in the pages list and menu dropdown
+    final protected function registerPage(
+        string $slug,
+        string $label,
+        string $icon = 'bi-puzzle'
+    ): void {
+        self::$registeredPages[ltrim($slug, '/')] = [
+            'slug'        => ltrim($slug, '/'),
+            'title'       => $label,
+            'icon'        => $icon,
+            'plugin_name' => $this->meta['name'] ?? basename($this->basePath()),
+        ];
+    }
+
+    // Returns all plugin-registered pages
+    public static function getRegisteredPages(): array
+    {
+        return self::$registeredPages;
+    }
+
+    // Returns true if the given slug is claimed by a plugin
+    public static function isPluginSlug(string $slug): bool
+    {
+        return isset(self::$registeredPages[ltrim($slug, '/')]);
+    }
+
     final protected function addAdminNav(
         string $label,
         string $url,

@@ -148,7 +148,8 @@ foreach ($topItems as &$top) {
 }
 unset($top);
 
-$pages     = DB::fetchAll("SELECT slug, title FROM `{$tp}` WHERE status = 'published' ORDER BY title ASC");
+$pages       = DB::fetchAll("SELECT slug, title FROM `{$tp}` WHERE status = 'published' ORDER BY title ASC");
+$pluginPages = \Esse\Plugin::getRegisteredPages();
 
 function itemButtons(array $item, int $menuId): string
 {
@@ -181,10 +182,24 @@ function itemEditForm(array $item, int $menuId, array $pages): string
     $url   = htmlspecialchars($item['url'] ?? '');
 
     $pageOpts = "<option value=''>— wählen —</option>";
-    foreach ($pages as $p) {
-        $sel = $item['page_slug'] === $p['slug'] ? ' selected' : '';
-        $pageOpts .= "<option value='" . htmlspecialchars($p['slug']) . "'{$sel}>"
-                   . htmlspecialchars($p['title']) . "</option>";
+    if ($pages) {
+        $pageOpts .= "<optgroup label='CMS-Seiten'>";
+        foreach ($pages as $p) {
+            $sel = $item['page_slug'] === $p['slug'] ? ' selected' : '';
+            $pageOpts .= "<option value='" . htmlspecialchars($p['slug']) . "'{$sel}>"
+                       . htmlspecialchars($p['title']) . "</option>";
+        }
+        $pageOpts .= "</optgroup>";
+    }
+    $pluginPages = \Esse\Plugin::getRegisteredPages();
+    if ($pluginPages) {
+        $pageOpts .= "<optgroup label='Plugin-Seiten'>";
+        foreach ($pluginPages as $pp) {
+            $sel = $item['page_slug'] === $pp['slug'] ? ' selected' : '';
+            $pageOpts .= "<option value='" . htmlspecialchars($pp['slug']) . "'{$sel}>"
+                       . htmlspecialchars($pp['title']) . " (" . htmlspecialchars($pp['plugin_name']) . ")</option>";
+        }
+        $pageOpts .= "</optgroup>";
     }
 
     $blankChecked = $item['target'] === '_blank' ? ' checked' : '';
@@ -351,11 +366,24 @@ ob_start();
                         <label class="form-label">Seite</label>
                         <select name="page_slug" class="form-select form-select-sm">
                             <option value="">— wählen —</option>
+                            <?php if ($pages): ?>
+                            <optgroup label="CMS-Seiten">
                             <?php foreach ($pages as $p): ?>
                             <option value="<?= htmlspecialchars($p['slug']) ?>">
                                 <?= htmlspecialchars($p['title']) ?>
                             </option>
                             <?php endforeach ?>
+                            </optgroup>
+                            <?php endif ?>
+                            <?php if ($pluginPages): ?>
+                            <optgroup label="Plugin-Seiten">
+                            <?php foreach ($pluginPages as $pp): ?>
+                            <option value="<?= htmlspecialchars($pp['slug']) ?>">
+                                <?= htmlspecialchars($pp['title']) ?> (<?= htmlspecialchars($pp['plugin_name']) ?>)
+                            </option>
+                            <?php endforeach ?>
+                            </optgroup>
+                            <?php endif ?>
                         </select>
                     </div>
                     <div class="mb-2" id="field-url" style="display:none">

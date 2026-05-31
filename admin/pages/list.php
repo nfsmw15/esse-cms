@@ -126,6 +126,48 @@ ob_start();
         <?php endif ?>
     </div>
 </div>
+
+<?php
+// Plugin-registered pages
+$pluginPages = \Esse\Plugin::getRegisteredPages();
+if ($pluginPages):
+?>
+<div class="card mt-4">
+    <div class="card-header py-2 d-flex align-items-center gap-2">
+        <i class="bi bi-puzzle text-secondary"></i>
+        <strong>Plugin-Seiten</strong>
+        <small class="text-secondary ms-1">— registriert durch Plugins, nicht editierbar</small>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr>
+                <th>Titel</th>
+                <th>URL</th>
+                <th>Plugin</th>
+                <th></th>
+            </tr></thead>
+            <tbody>
+            <?php foreach ($pluginPages as $pp): ?>
+            <tr class="align-middle">
+                <td>
+                    <i class="bi <?= htmlspecialchars($pp['icon']) ?> text-secondary me-1"></i>
+                    <?= htmlspecialchars($pp['title']) ?>
+                </td>
+                <td><code class="text-secondary small">/<?= htmlspecialchars($pp['slug']) ?></code></td>
+                <td><span class="badge bg-secondary"><?= htmlspecialchars($pp['plugin_name']) ?></span></td>
+                <td class="text-end">
+                    <a href="/<?= htmlspecialchars($pp['slug']) ?>" target="_blank"
+                       class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                </td>
+            </tr>
+            <?php endforeach ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+<?php endif ?>
 <?php
 $content = ob_get_clean();
 require dirname(__DIR__) . '/layout.php';
