@@ -1,0 +1,10 @@
+Options -Indexes
+
+RewriteEngine On
+
+# Static files (public assets) are served directly
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Everything else goes through index.php
+RewriteRule ^ index.php [L]
