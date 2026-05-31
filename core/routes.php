@@ -11,7 +11,7 @@ Router::get('/', fn() => print('Homepage — Theme-Rendering folgt'), [
     'auth' => 'public',
 ]);
 
-Router::get('/page/{slug}', fn(string $slug) => print("Seite: {$slug}"), [
+Router::get('/page/{slug}', fn(string $slug) => \Esse\PageRenderer::render($slug), [
     'name' => 'page.show',
     'auth' => 'public',
 ]);

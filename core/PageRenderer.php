@@ -1,0 +1,84 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Esse;
+
+class PageRenderer
+{
+    public static function render(string $slug): void
+    {
+        $t    = DB::table('pages');
+        $page = DB::fetch(
+            "SELECT * FROM `{$t}` WHERE slug = ? AND status = 'published'",
+            [$slug]
+        );
+
+        if (!$page) {
+            Router::abort(404);
+            return;
+        }
+
+        // Visibility check
+        $vis = $page['visibility'];
+        if ($vis === 'members' && !Auth::check()) {
+            header('Location: /admin/login');
+            exit;
+        }
+        if ($vis === 'admin' && !Auth::meetsRole('admin')) {
+            Router::abort(403);
+            return;
+        }
+
+        if ($page['type'] === 'php') {
+            self::renderPhp($page);
+        } else {
+            self::renderStandard($page);
+        }
+    }
+
+    private static function renderStandard(array $page): void
+    {
+        // Hooks allow themes to wrap the output later
+        $content = Hooks::filter('page.content', $page['content'], $page);
+
+        if (Hooks::has('page.render')) {
+            Hooks::fire('page.render', $page, $content);
+            return;
+        }
+
+        // No theme active — bare output
+        header('Content-Type: text/html; charset=utf-8');
+        echo $content;
+    }
+
+    private static function renderPhp(array $page): void
+    {
+        if (!$page['file_path']) {
+            Router::abort(404);
+            return;
+        }
+
+        $file = ESSE_ROOT . '/pages/' . $page['file_path'];
+
+        if (!file_exists($file)) {
+            Router::abort(404);
+            return;
+        }
+
+        // Make $page and $esse_* available inside the included file
+        $esse_page = $page;
+        $esse_user = Auth::user();
+
+        if (Hooks::has('page.render')) {
+            ob_start();
+            require $file;
+            $content = ob_get_clean();
+            Hooks::fire('page.render', $page, $content);
+            return;
+        }
+
+        // No theme — include directly
+        require $file;
+    }
+}
