@@ -1,0 +1,155 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Esse;
+
+class Router
+{
+    private static array $routes = [];
+    private static array $named  = [];
+
+    // -- Route registration --
+
+    public static function get(string $pattern, callable|array|string $handler, array $options = []): void
+    {
+        self::add('GET', $pattern, $handler, $options);
+    }
+
+    public static function post(string $pattern, callable|array|string $handler, array $options = []): void
+    {
+        self::add('POST', $pattern, $handler, $options);
+    }
+
+    public static function put(string $pattern, callable|array|string $handler, array $options = []): void
+    {
+        self::add('PUT', $pattern, $handler, $options);
+    }
+
+    public static function delete(string $pattern, callable|array|string $handler, array $options = []): void
+    {
+        self::add('DELETE', $pattern, $handler, $options);
+    }
+
+    private static function add(string $method, string $pattern, callable|array|string $handler, array $options): void
+    {
+        $route = [
+            'method'  => $method,
+            'pattern' => $pattern,
+            'handler' => $handler,
+            'auth'    => $options['auth'] ?? 'public',
+            'name'    => $options['name'] ?? null,
+        ];
+
+        self::$routes[] = $route;
+
+        if ($route['name']) {
+            self::$named[$route['name']] = $pattern;
+        }
+    }
+
+    // -- Dispatch --
+
+    public static function dispatch(): void
+    {
+        $method = strtoupper($_SERVER['REQUEST_METHOD']);
+
+        // HTML forms only support GET/POST; allow _method override for PUT/DELETE
+        if ($method === 'POST' && isset($_POST['_method'])) {
+            $override = strtoupper($_POST['_method']);
+            if (in_array($override, ['PUT', 'DELETE', 'PATCH'], true)) {
+                $method = $override;
+            }
+        }
+
+        $uri = self::currentUri();
+
+        foreach (self::$routes as $route) {
+            if ($route['method'] !== $method) continue;
+
+            $params = self::match($route['pattern'], $uri);
+            if ($params === null) continue;
+
+            if (!self::checkAuth($route['auth'])) {
+                self::abort(403);
+                return;
+            }
+
+            self::invoke($route['handler'], $params);
+            return;
+        }
+
+        self::abort(404);
+    }
+
+    // -- URL generation --
+
+    public static function url(string $name, array $params = []): string
+    {
+        if (!isset(self::$named[$name])) {
+            throw new \RuntimeException("No route named '{$name}'");
+        }
+
+        $url = self::$named[$name];
+        foreach ($params as $key => $value) {
+            $url = str_replace('{' . $key . '}', rawurlencode((string) $value), $url);
+        }
+        return $url;
+    }
+
+    // -- Internals --
+
+    private static function currentUri(): string
+    {
+        $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        return '/' . trim($uri ?? '/', '/');
+    }
+
+    private static function match(string $pattern, string $uri): ?array
+    {
+        // {param} becomes a named capture group; {param?} is optional
+        $regex = preg_replace('/\{([a-zA-Z_][a-zA-Z0-9_]*)\?\}/', '(?P<$1>[^/]*)', $pattern);
+        $regex = preg_replace('/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/',  '(?P<$1>[^/]+)', $regex);
+        $regex = '#^' . $regex . '$#';
+
+        if (!preg_match($regex, $uri, $matches)) {
+            return null;
+        }
+
+        return array_filter($matches, fn($k) => !is_int($k), ARRAY_FILTER_USE_KEY);
+    }
+
+    private static function checkAuth(string $required): bool
+    {
+        if ($required === 'public') return true;
+        // Auth::check() will be wired in once Auth class is built
+        return false;
+    }
+
+    private static function invoke(callable|array|string $handler, array $params): void
+    {
+        if (is_callable($handler)) {
+            $handler(...array_values($params));
+            return;
+        }
+
+        // 'Controller@method' string
+        if (is_string($handler) && str_contains($handler, '@')) {
+            [$class, $method] = explode('@', $handler, 2);
+            $fqcn = str_contains($class, '\\') ? $class : 'Esse\\Controllers\\' . $class;
+            (new $fqcn())->$method(...array_values($params));
+            return;
+        }
+    }
+
+    public static function abort(int $code): void
+    {
+        http_response_code($code);
+        // Error views will be rendered here once the Theme class is built
+        echo match ($code) {
+            403 => '403 Forbidden',
+            404 => '404 Not Found',
+            default => (string) $code,
+        };
+    }
+}
