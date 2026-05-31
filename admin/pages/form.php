@@ -245,7 +245,7 @@ ob_start();
 
             <?php if ($isEdit): ?>
             <div class="card border-danger">
-                <div class="card-header py-2 text-danger"><small>Gefahrenzone</small></div>
+                <div class="card-header py-2 text-danger"><small>Seite löschen</small></div>
                 <div class="card-body">
                     <form method="post" action="/admin/pages/delete/<?= htmlspecialchars($page['slug']) ?>"
                           onsubmit="return confirm('Seite wirklich löschen?')">
@@ -320,12 +320,12 @@ $extraHead  = '<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="st
 .ql-snow .ql-active .ql-fill { fill:#6ea8fe; }
 .ql-snow .ql-active { color:#6ea8fe; }
 </style>';
-$extraScripts = '<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"><\/script>
+$extraScripts = '<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
-const textarea   = document.getElementById("content");
-const editorDiv  = document.getElementById("quill-editor");
-const btnVisual  = document.getElementById("btn-visual");
-const btnHtml    = document.getElementById("btn-html");
+const textarea  = document.getElementById("content");
+const editorDiv = document.getElementById("quill-editor");
+const btnVisual = document.getElementById("btn-visual");
+const btnHtml   = document.getElementById("btn-html");
 
 const quill = new Quill("#quill-editor", {
     theme: "snow",
@@ -344,28 +344,23 @@ const quill = new Quill("#quill-editor", {
     }
 });
 
-// Load existing content into Quill
 if (textarea.value.trim()) {
     quill.root.innerHTML = textarea.value;
 }
 
-// Sync Quill → textarea before any form submit
-document.querySelector("form").addEventListener("submit", () => {
-    if (!editorDiv.classList.contains("d-none")) {
-        textarea.value = quill.root.innerHTML;
-    }
+// Sync on every change — avoids wrong-form-selector problems
+quill.on("text-change", () => {
+    textarea.value = quill.root.innerHTML;
 });
 
 function setEditorMode(mode) {
     if (mode === "visual") {
-        // HTML → Quill
         quill.root.innerHTML = textarea.value;
         editorDiv.classList.remove("d-none");
         textarea.classList.add("d-none");
         btnVisual.classList.add("active");
         btnHtml.classList.remove("active");
     } else {
-        // Quill → HTML textarea
         textarea.value = quill.root.innerHTML;
         textarea.classList.remove("d-none");
         editorDiv.classList.add("d-none");
@@ -373,5 +368,5 @@ function setEditorMode(mode) {
         btnVisual.classList.remove("active");
     }
 }
-<\/script>';
+</script>';
 require dirname(__DIR__) . '/layout.php';
