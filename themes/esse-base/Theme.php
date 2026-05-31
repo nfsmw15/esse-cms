@@ -24,8 +24,13 @@ class Theme extends \Esse\Theme
     public function renderPage(array $page, string $content): void
     {
         $siteName = $this->settings['site_name'] ?? 'ESSE CMS';
-        $mainMenu = Menu::get('main');
-        $footMenu = Menu::get('footer');
+
+        // Resolve menu positions from settings (set in admin → settings)
+        $mainSlug = $this->settings['theme_esse-base_menu_main']   ?? 'main';
+        $footSlug = $this->settings['theme_esse-base_menu_footer']  ?? 'footer';
+
+        $mainMenu = Menu::get($mainSlug);
+        $footMenu = $footSlug ? Menu::get($footSlug) : [];
         $theme    = $this;
 
         require $this->basePath('templates/layout.php');

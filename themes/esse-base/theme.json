@@ -3,5 +3,9 @@
     "version": "1.0.0",
     "description": "Bootstrap 5 theme with dark navbar, responsive menu and content layout.",
     "author": "ESSE CMS",
-    "class": "EsseBase\\Theme"
+    "class": "EsseBase\\Theme",
+    "menus": {
+        "main":   "Hauptnavigation",
+        "footer": "Footer-Links"
+    }
 }
