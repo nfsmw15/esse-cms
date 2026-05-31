@@ -34,17 +34,22 @@
                 <?php foreach ($mainMenu as $item): ?>
                 <?php $url = \Esse\Menu::itemUrl($item); ?>
                 <?php if (!empty($item['children'])): ?>
-                <li class="nav-item dropdown d-flex align-items-center">
-                    <a class="nav-link <?= $url === '/' . ltrim($page['slug'], '/') ? 'active' : '' ?>"
-                       href="<?= htmlspecialchars($url) ?>"
-                       <?= $item['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                         <?= htmlspecialchars($item['label']) ?>
                     </a>
-                    <a class="nav-link px-1 dropdown-toggle dropdown-toggle-split"
-                       href="#" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span class="visually-hidden">Untermenü öffnen</span>
-                    </a>
                     <ul class="dropdown-menu dropdown-menu-dark">
+                        <?php if ($item['type'] !== 'header' && $url !== '#'): ?>
+                        <li>
+                            <a class="dropdown-item"
+                               href="<?= htmlspecialchars($url) ?>"
+                               <?= $item['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
+                                <i class="bi bi-arrow-right-circle me-1 text-secondary"></i>
+                                <?= htmlspecialchars($item['label']) ?>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <?php endif ?>
                         <?php foreach ($item['children'] as $child): ?>
                         <?php if ($child['type'] === 'header'): ?>
                             <li><h6 class="dropdown-header"><?= htmlspecialchars($child['label']) ?></h6></li>
