@@ -117,6 +117,22 @@
             <i class="bi bi-list-nested"></i> Menüs
         </a>
 
+        <?php
+        // Plugin-registered nav items
+        $pluginNavItems = [];
+        \Esse\Hooks::fire('admin.nav', $pluginNavItems);
+        if ($pluginNavItems):
+        ?>
+        <div class="nav-section">Plugins</div>
+        <?php foreach ($pluginNavItems as $navItem): ?>
+        <a href="<?= htmlspecialchars($navItem['url']) ?>"
+           class="<?= ($activeNav ?? '') === ($navItem['active'] ?? '') ? 'active' : '' ?>">
+            <i class="bi <?= htmlspecialchars($navItem['icon'] ?? 'bi-puzzle') ?>"></i>
+            <?= htmlspecialchars($navItem['label']) ?>
+        </a>
+        <?php endforeach ?>
+        <?php endif ?>
+
         <div class="nav-section">System</div>
         <a href="/admin/users" class="<?= ($activeNav ?? '') === 'users' ? 'active' : '' ?>">
             <i class="bi bi-people"></i> Benutzer

@@ -47,6 +47,23 @@ abstract class Plugin
         return $base . '/plugins/' . $name . '/public/' . ltrim($path, '/');
     }
 
+    // Register a link in the admin sidebar under "Plugins"
+    final protected function addAdminNav(
+        string $label,
+        string $url,
+        string $icon      = 'bi-puzzle',
+        string $activeSlug = ''
+    ): void {
+        Hooks::on('admin.nav', function (array &$items) use ($label, $url, $icon, $activeSlug) {
+            $items[] = [
+                'label'  => $label,
+                'url'    => $url,
+                'icon'   => $icon,
+                'active' => $activeSlug ?: ltrim($url, '/'),
+            ];
+        });
+    }
+
     // Convenience: register a hook from within the plugin
     final protected function on(string $event, callable $callback, int $priority = 10): void
     {
