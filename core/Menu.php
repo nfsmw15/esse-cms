@@ -47,7 +47,12 @@ class Menu
         // Non-page items (URL, header) are always shown
         if ($item['type'] !== 'page') return true;
 
-        // Page not found or not published → hide
+        $slug = $item['page_slug'] ?? '';
+
+        // Plugin-registered pages are not in the DB — always show them
+        if (Plugin::isPluginSlug($slug)) return true;
+
+        // Page not found in DB or not published → hide
         if (empty($item['page_visibility']) || ($item['page_status'] ?? '') !== 'published') {
             return false;
         }
