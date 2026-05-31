@@ -152,8 +152,13 @@
                     if ($current['header'] !== null || !empty($current['links'])) {
                         $groups[] = $current;
                     }
-                    $current = ['header' => $item['label'], 'links' => []];
+                    // Children of the header count as its links
+                    $current = [
+                        'header' => $item['label'],
+                        'links'  => $item['children'] ?? [],
+                    ];
                 } else {
+                    // Top-level non-header items → add to current group's links
                     $current['links'][] = $item;
                 }
             }

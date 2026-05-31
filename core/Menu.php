@@ -49,14 +49,16 @@ class Menu
 
         $slug = $item['page_slug'] ?? '';
 
-        // Plugin-registered pages are not in the DB — always show them
+        // Plugin-registered pages are not in the DB — always show
         if (Plugin::isPluginSlug($slug)) return true;
 
-        // Page not found in DB or not published → hide
-        if (empty($item['page_visibility']) || ($item['page_status'] ?? '') !== 'published') {
-            return false;
-        }
+        // Page not found in DB → show anyway (clicking may 404, admin's responsibility)
+        if (empty($item['page_visibility'])) return true;
 
+        // Draft pages → hide from menu
+        if (($item['page_status'] ?? '') !== 'published') return false;
+
+        // Check visibility for published pages
         return match ($item['page_visibility']) {
             'public'  => true,
             'members' => Auth::check(),
