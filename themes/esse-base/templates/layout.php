@@ -134,24 +134,51 @@
 
 <!-- Footer -->
 <?php if ($footMenu || !empty($siteName)): ?>
-<footer class="border-top border-secondary py-4 mt-4">
+<footer class="border-top border-secondary mt-5 pt-4 pb-3">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-6">
+        <div class="row g-4">
+            <!-- Copyright -->
+            <div class="col-md-6 d-flex align-items-end">
                 <span class="text-secondary small">&copy; <?= date('Y') ?> <?= htmlspecialchars($siteName) ?></span>
             </div>
+
             <?php if ($footMenu): ?>
-            <div class="col-md-6 text-md-end">
-                <?php foreach ($footMenu as $item): ?>
-                <?php if ($item['type'] !== 'header'): ?>
-                <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($item)) ?>"
-                   class="text-secondary text-decoration-none small ms-3"
-                   <?= $item['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
-                    <?= htmlspecialchars($item['label']) ?>
-                </a>
+            <!-- Footer menu columns — each header starts a new column -->
+            <?php
+            // Split items into groups: each header starts a new group
+            $groups = [];
+            $current = ['header' => null, 'links' => []];
+            foreach ($footMenu as $item) {
+                if ($item['type'] === 'header') {
+                    if ($current['header'] !== null || !empty($current['links'])) {
+                        $groups[] = $current;
+                    }
+                    $current = ['header' => $item['label'], 'links' => []];
+                } else {
+                    $current['links'][] = $item;
+                }
+            }
+            if ($current['header'] !== null || !empty($current['links'])) {
+                $groups[] = $current;
+            }
+            ?>
+            <?php foreach ($groups as $group): ?>
+            <div class="col-6 col-md-3">
+                <?php if ($group['header'] !== null): ?>
+                <p class="text-white small fw-semibold mb-1"><?= htmlspecialchars($group['header']) ?></p>
+                <hr class="border-secondary mt-0 mb-2">
                 <?php endif ?>
+                <?php foreach ($group['links'] as $link): ?>
+                <div>
+                    <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($link)) ?>"
+                       class="text-secondary text-decoration-none small"
+                       <?= $link['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
+                        <?= htmlspecialchars($link['label']) ?>
+                    </a>
+                </div>
                 <?php endforeach ?>
             </div>
+            <?php endforeach ?>
             <?php endif ?>
         </div>
     </div>
