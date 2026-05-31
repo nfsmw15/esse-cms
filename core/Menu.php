@@ -18,13 +18,16 @@ class Menu
         if (!$menu) return [];
 
         $rows = DB::fetchAll(
-            "SELECT i.*, p.title AS page_title
+            "SELECT i.*, p.title AS page_title, p.visibility AS page_visibility, p.status AS page_status
                FROM `{$ti}` i
           LEFT JOIN `{$tp}` p ON p.slug = i.page_slug
               WHERE i.menu_id = ?
            ORDER BY i.parent_id IS NOT NULL, i.sort_order ASC",
             [$menu['id']]
         );
+
+        // Filter out items the current user cannot see
+        $rows = array_values(array_filter($rows, [self::class, 'isVisible']));
 
         return self::buildTree($rows);
     }
@@ -36,6 +39,24 @@ class Menu
             'page'   => '/' . ltrim($item['page_slug'] ?? '', '/'),
             'url'    => $item['url'] ?? '#',
             default  => '#',
+        };
+    }
+
+    private static function isVisible(array $item): bool
+    {
+        // Non-page items (URL, header) are always shown
+        if ($item['type'] !== 'page') return true;
+
+        // Page not found or not published → hide
+        if (empty($item['page_visibility']) || ($item['page_status'] ?? '') !== 'published') {
+            return false;
+        }
+
+        return match ($item['page_visibility']) {
+            'public'  => true,
+            'members' => Auth::check(),
+            'admin'   => Auth::meetsRole('admin'),
+            default   => Auth::meetsRole($item['page_visibility']),
         };
     }
 
