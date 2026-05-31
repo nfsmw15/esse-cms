@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     runSetup($_SESSION['esse_install'], $username, $email, $password);
                     unset($_SESSION['esse_install']);
-                    header('Location: /admin');
+                    header('Location: /admin/login');
                     exit;
                 } catch (\Throwable $e) {
                     $errors[] = 'Setup fehlgeschlagen: ' . htmlspecialchars($e->getMessage());

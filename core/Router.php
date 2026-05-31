@@ -71,6 +71,11 @@ class Router
             if ($params === null) continue;
 
             if (!self::checkAuth($route['auth'])) {
+                // Not logged in → redirect to login; logged in but wrong role → 403
+                if (!Auth::check()) {
+                    header('Location: /admin/login');
+                    exit;
+                }
                 self::abort(403);
                 return;
             }
