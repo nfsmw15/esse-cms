@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 use Esse\Auth;
 
-// Already logged in → redirect
+// Already logged in → go to intended destination or homepage
 if (Auth::check()) {
-    header('Location: /admin');
+    $redirect = $_GET['redirect'] ?? '/';
+    header('Location: ' . $redirect);
     exit;
 }
 
@@ -20,7 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'] ?? '';
 
         if (Auth::attempt($login, $password)) {
-            header('Location: /admin');
+            $redirect = $_POST['redirect'] ?? $_GET['redirect'] ?? '/';
+            header('Location: ' . $redirect);
             exit;
         }
         $error = 'Benutzername/E-Mail oder Passwort falsch.';
@@ -57,7 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="card">
         <div class="card-body p-4">
             <form method="post" action="/admin/login">
-                <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
+                <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
+                <input type="hidden" name="redirect" value="<?= htmlspecialchars($_GET['redirect'] ?? '/') ?>">
                 <div class="mb-3">
                     <label class="form-label">E-Mail</label>
                     <input type="email" name="login" class="form-control" autocomplete="email" autofocus required>

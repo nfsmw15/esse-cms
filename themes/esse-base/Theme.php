@@ -25,13 +25,18 @@ class Theme extends \Esse\Theme
     {
         $siteName = $this->settings['site_name'] ?? 'ESSE CMS';
 
-        // Resolve menu positions from settings (set in admin → settings)
-        $mainSlug = $this->settings['theme_esse-base_menu_main']   ?? 'main';
-        $footSlug = $this->settings['theme_esse-base_menu_footer']  ?? 'footer';
+        $mainSlug = $this->settings['theme_esse-base_menu_main']  ?? 'main';
+        $footSlug = $this->settings['theme_esse-base_menu_footer'] ?? 'footer';
 
         $mainMenu = Menu::get($mainSlug);
         $footMenu = $footSlug ? Menu::get($footSlug) : [];
         $theme    = $this;
+
+        // Error pages use a dedicated template
+        if (!empty($page['error_code'])) {
+            require $this->basePath('templates/error.php');
+            return;
+        }
 
         require $this->basePath('templates/layout.php');
     }

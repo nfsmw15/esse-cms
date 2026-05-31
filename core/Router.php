@@ -71,9 +71,10 @@ class Router
             if ($params === null) continue;
 
             if (!self::checkAuth($route['auth'])) {
-                // Not logged in → redirect to login; logged in but wrong role → 403
                 if (!Auth::check()) {
-                    header('Location: /admin/login');
+                    // Not logged in → send to login with redirect back
+                    $redirect = urlencode($_SERVER['REQUEST_URI'] ?? '/');
+                    header('Location: /admin/login?redirect=' . $redirect);
                     exit;
                 }
                 self::abort(403);
@@ -156,11 +157,50 @@ class Router
     public static function abort(int $code): void
     {
         http_response_code($code);
-        // Error views will be rendered here once the Theme class is built
-        echo match ($code) {
-            403 => '403 Forbidden',
-            404 => '404 Not Found',
-            default => (string) $code,
-        };
+
+        $titles = [
+            403 => 'Zugriff verweigert',
+            404 => 'Seite nicht gefunden',
+            500 => 'Serverfehler',
+        ];
+        $messages = [
+            403 => 'Du hast keine Berechtigung diese Seite aufzurufen.',
+            404 => 'Die aufgerufene Seite existiert nicht oder wurde verschoben.',
+            500 => 'Ein interner Fehler ist aufgetreten.',
+        ];
+
+        $title   = $titles[$code]   ?? (string) $code;
+        $message = $messages[$code] ?? '';
+
+        // Let the active theme render the error page
+        if (Hooks::has('page.render')) {
+            $fakePage = [
+                'slug'          => '',
+                'title'         => $code . ' — ' . $title,
+                'content'       => '',
+                'type'          => 'standard',
+                'visibility'    => 'public',
+                'status'        => 'published',
+                'error_code'    => $code,
+                'error_title'   => $title,
+                'error_message' => $message,
+            ];
+            Hooks::fire('page.render', $fakePage, '');
+            return;
+        }
+
+        // Fallback: minimal HTML without theme
+        $siteUrl = defined('ESSE_URL') ? \ESSE_URL : '/';
+        echo '<!DOCTYPE html><html lang="de" data-bs-theme="dark"><head>'
+           . '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+           . '<title>' . $code . ' — ' . htmlspecialchars($title) . '</title>'
+           . '<link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css">'
+           . '</head><body class="d-flex align-items-center justify-content-center vh-100 bg-dark text-white">'
+           . '<div class="text-center">'
+           . '<h1 class="display-1 fw-bold text-secondary">' . $code . '</h1>'
+           . '<h2 class="h4 mb-3">' . htmlspecialchars($title) . '</h2>'
+           . '<p class="text-secondary mb-4">' . htmlspecialchars($message) . '</p>'
+           . '<a href="' . htmlspecialchars($siteUrl) . '" class="btn btn-outline-light">Startseite</a>'
+           . '</div></body></html>';
     }
 }
