@@ -54,7 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = packageInstallZip($_FILES['theme_zip']['tmp_name'], 'theme');
         $_SESSION['flash'] = is_string($result)
             ? ['type' => 'danger',  'message' => $result]
-            : ['type' => 'success', 'message' => "Theme '{$result['name']}' installiert."];
+            : ['type' => 'success', 'message' => empty($result['_updated'])
+                ? "Theme '{$result['name']}' v{$result['version']} installiert."
+                : "Theme '{$result['name']}' auf v{$result['version']}' aktualisiert."];
         header('Location: /admin/themes');
         exit;
     }

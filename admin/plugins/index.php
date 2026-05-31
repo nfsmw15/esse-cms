@@ -75,7 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = packageInstallZip($_FILES['plugin_zip']['tmp_name'], 'plugin');
         $_SESSION['flash'] = is_string($result)
             ? ['type' => 'danger',  'message' => $result]
-            : ['type' => 'success', 'message' => "Plugin '{$result['name']}' installiert."];
+            : ['type' => 'success', 'message' => empty($result['_updated'])
+                ? "Plugin '{$result['name']}' v{$result['version']} installiert."
+                : "Plugin '{$result['name']}' auf v{$result['version']} aktualisiert."];
         header('Location: /admin/plugins');
         exit;
     }

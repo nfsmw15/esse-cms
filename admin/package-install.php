@@ -45,17 +45,30 @@ function packageInstallZip(string $tmpFile, string $type): array|string
 
     $slug   = preg_replace('/[^a-z0-9\-]/', '', strtolower($metaJson['name']));
     $target = ESSE_ROOT . '/' . ($type === 'plugin' ? 'plugins' : 'themes') . '/' . $slug;
+    $isUpdate = is_dir($target);
+
+    // Extract to a temp directory first — safer than overwriting live files directly
+    $tmp = $target . '_tmp_' . bin2hex(random_bytes(4));
+    mkdir($tmp, 0755, true);
 
     for ($i = 0; $i < $zip->numFiles; $i++) {
         $name = $zip->getNameIndex($i);
         $rel  = $rootDir ? preg_replace('#^' . preg_quote($rootDir, '#') . '/?#', '', $name) : $name;
         if ($rel === '' || str_ends_with($rel, '/') || str_contains($rel, '..')) continue;
 
-        $dest = $target . '/' . $rel;
+        $dest = $tmp . '/' . $rel;
         if (!is_dir(dirname($dest))) mkdir(dirname($dest), 0755, true);
         file_put_contents($dest, $zip->getFromIndex($i));
     }
 
     $zip->close();
+
+    // Swap: remove old directory, move temp into place
+    if ($isUpdate) {
+        packageDeleteDir($target);
+    }
+    rename($tmp, $target);
+
+    $metaJson['_updated'] = $isUpdate;
     return $metaJson;
 }
