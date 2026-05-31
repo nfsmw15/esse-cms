@@ -302,7 +302,7 @@ updateType();
 </script>
 <?php
 $content    = ob_get_clean();
-$extraHead  = '<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+$extraHead  = '<link href="/public/vendor/quill/quill.snow.css" rel="stylesheet">
 <style>
 .ql-toolbar.ql-snow { background:#1e1e1e; border-color:#333; border-radius:.375rem .375rem 0 0; }
 .ql-container.ql-snow { background:#111; border-color:#333; border-radius:0 0 .375rem .375rem; color:#e0e0e0; font-size:1rem; }
@@ -320,7 +320,7 @@ $extraHead  = '<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="st
 .ql-snow .ql-active .ql-fill { fill:#6ea8fe; }
 .ql-snow .ql-active { color:#6ea8fe; }
 </style>';
-$extraScripts = '<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+$extraScripts = '<script src="/public/vendor/quill/quill.min.js"></script>
 <script>
 const textarea  = document.getElementById("content");
 const editorDiv = document.getElementById("quill-editor");

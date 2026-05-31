@@ -6,7 +6,7 @@ declare(strict_types=1);
 if (file_exists(__DIR__ . '/installed.lock')) {
     http_response_code(403);
     echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>ESSE CMS</title>'
-        . '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3/dist/css/bootstrap.min.css"></head>'
+        . '<link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css"></head>'
         . '<body class="d-flex align-items-center justify-content-center vh-100 bg-dark text-white">'
         . '<div class="text-center"><h1 class="display-4">Already installed.</h1>'
         . '<p class="text-secondary">Delete <code>install/installed.lock</code> to reinstall.</p></div></body></html>';
@@ -324,7 +324,7 @@ $stepLabels = ['Systemprüfung', 'Datenbank', 'Website', 'Forge-Account'];
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ESSE CMS — Installation</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css">
     <style>
         body { background: #0d0d0d; color: #e0e0e0; }
         .card { background: #1a1a1a; border: 1px solid #2d2d2d; }
