@@ -59,6 +59,27 @@ if (file_exists($configFile)) {
     }
 }
 
+// Load enabled plugins
+if (file_exists($configFile)) {
+    $ts      = \Esse\DB::table('settings');
+    $enabled = json_decode(
+        \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'enabled_plugins'") ?? '[]',
+        true
+    ) ?: [];
+    foreach ($enabled as $slug) {
+        $slug       = basename((string) $slug); // no path traversal
+        $pluginFile = ESSE_ROOT . '/plugins/' . $slug . '/Plugin.php';
+        $metaFile   = ESSE_ROOT . '/plugins/' . $slug . '/plugin.json';
+        if (!file_exists($pluginFile) || !file_exists($metaFile)) continue;
+        require_once $pluginFile;
+        $meta  = json_decode(file_get_contents($metaFile), true);
+        $class = $meta['class'] ?? null;
+        if ($class && class_exists($class)) {
+            (new $class())->boot();
+        }
+    }
+}
+
 // Plugins register their routes here before dispatch
 Hooks::fire('router.boot');
 

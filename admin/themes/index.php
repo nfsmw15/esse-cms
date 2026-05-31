@@ -5,6 +5,8 @@ declare(strict_types=1);
 use Esse\Auth;
 use Esse\DB;
 
+require_once dirname(__DIR__) . '/package-install.php';
+
 $ts = DB::table('settings');
 $tm = DB::table('menus');
 
@@ -44,6 +46,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $_SESSION['flash'] = ['type' => 'success', 'message' => "Theme '{$name}' aktiviert."];
         }
+        header('Location: /admin/themes');
+        exit;
+    }
+
+    if ($action === 'upload_theme' && !empty($_FILES['theme_zip']['tmp_name'])) {
+        $result = packageInstallZip($_FILES['theme_zip']['tmp_name'], 'theme');
+        $_SESSION['flash'] = is_string($result)
+            ? ['type' => 'danger',  'message' => $result]
+            : ['type' => 'success', 'message' => "Theme '{$result['name']}' installiert."];
         header('Location: /admin/themes');
         exit;
     }
@@ -143,6 +154,24 @@ ob_start();
     </div>
 </div>
 <?php endforeach ?>
+</div>
+<!-- Theme ZIP Upload -->
+<div class="card mt-4">
+    <div class="card-header py-2"><small class="text-secondary">Theme installieren</small></div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-end"
+              action="/admin/themes">
+            <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+            <input type="hidden" name="_action" value="upload_theme">
+            <div class="flex-grow-1">
+                <input type="file" name="theme_zip" class="form-control" accept=".zip" required>
+                <div class="form-text">ZIP mit <code>theme.json</code> und <code>Theme.php</code></div>
+            </div>
+            <button class="btn btn-primary">
+                <i class="bi bi-upload"></i> Installieren
+            </button>
+        </form>
+    </div>
 </div>
 <?php
 $content = ob_get_clean();

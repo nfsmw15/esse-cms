@@ -130,8 +130,13 @@ Router::post('/admin/users/edit/{id}', function (string $id) {
     require ESSE_ROOT . '/admin/users/form.php';
 }, ['name' => 'admin.users.edit.post', 'auth' => 'admin']);
 
-Router::get('/admin/plugins', fn() => print('Admin: Plugins — folgt'), [
+Router::get('/admin/plugins', fn() => require ESSE_ROOT . '/admin/plugins/index.php', [
     'name' => 'admin.plugins',
+    'auth' => 'admin',
+]);
+
+Router::post('/admin/plugins', fn() => require ESSE_ROOT . '/admin/plugins/index.php', [
+    'name' => 'admin.plugins.post',
     'auth' => 'admin',
 ]);
 
