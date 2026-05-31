@@ -18,32 +18,48 @@ Router::get('/page/{slug}', fn(string $slug) => print("Seite: {$slug}"), [
 
 // -- Admin --
 
-Router::get('/admin', fn() => print('Admin Dashboard'), [
+Router::get('/admin/login', fn() => require ESSE_ROOT . '/admin/login.php', [
+    'name' => 'admin.login',
+    'auth' => 'public',
+]);
+
+Router::post('/admin/login', fn() => require ESSE_ROOT . '/admin/login.php', [
+    'name' => 'admin.login.post',
+    'auth' => 'public',
+]);
+
+Router::get('/admin/logout', function () {
+    \Esse\Auth::logout();
+    header('Location: /admin/login');
+    exit;
+}, ['name' => 'admin.logout', 'auth' => 'public']);
+
+Router::get('/admin', fn() => require ESSE_ROOT . '/admin/dashboard.php', [
     'name' => 'admin.dashboard',
     'auth' => 'admin',
 ]);
 
-Router::get('/admin/pages', fn() => print('Admin: Seiten'), [
+Router::get('/admin/pages', fn() => print('Admin: Seiten — folgt'), [
     'name' => 'admin.pages',
     'auth' => 'admin',
 ]);
 
-Router::get('/admin/users', fn() => print('Admin: Benutzer'), [
+Router::get('/admin/users', fn() => print('Admin: Benutzer — folgt'), [
     'name' => 'admin.users',
     'auth' => 'admin',
 ]);
 
-Router::get('/admin/plugins', fn() => print('Admin: Plugins'), [
+Router::get('/admin/plugins', fn() => print('Admin: Plugins — folgt'), [
     'name' => 'admin.plugins',
     'auth' => 'admin',
 ]);
 
-Router::get('/admin/themes', fn() => print('Admin: Themes'), [
+Router::get('/admin/themes', fn() => print('Admin: Themes — folgt'), [
     'name' => 'admin.themes',
     'auth' => 'admin',
 ]);
 
-Router::get('/admin/settings', fn() => print('Admin: Einstellungen'), [
+Router::get('/admin/settings', fn() => print('Admin: Einstellungen — folgt'), [
     'name' => 'admin.settings',
     'auth' => 'admin',
 ]);
