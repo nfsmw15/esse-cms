@@ -4,13 +4,13 @@
 
 A lightweight PHP 8 CMS for secure pages, roles and plugins.
 
-ESSE CMS is a fresh-start CMS for demanding admins who want more control than WordPress offers — without building everything from scratch. Fully free and open source (AGPL-3.0).
+ESSE CMS is a fresh-start CMS for demanding admins who want more control than a click-and-play system offers — without building everything from scratch. Fully free and open source (AGPL-3.0).
 
 ---
 
 ## Why ESSE?
 
-Most capable CMS platforms charge for commercial use (Craft, Statamic, Kirby). ESSE is different: fully FOSS, no license fees, no SaaS lock-in. The AGPL-3.0 license ensures that anyone running a modified version as a web service must publish their changes.
+Most capable CMS platforms require a commercial license for non-personal use. ESSE is different: fully FOSS, no license fees, no SaaS lock-in. The AGPL-3.0 license ensures that anyone running a modified version as a web service must publish their changes.
 
 **The name:** *Esse* is German for the hearth of a forge — and Latin for "to be." The claim: *forge your web.*
 
@@ -25,7 +25,7 @@ Most capable CMS platforms charge for commercial use (Craft, Statamic, Kirby). E
 - **Custom PHP pages** — upload your own PHP files as first-class pages (admin permission required)
 - **Role system** — Forge / Admin / Editor / Author / Member / Guest + custom roles
 - **Granular permissions** — e.g. `php_upload` is a separate right, not automatic for admins
-- **SSE-based updater** — live terminal output during updates (ported from Easy 2)
+- **SSE-based updater** — live terminal output during updates
 - **Web installer** — sets up DB connection and first Forge account
 
 ---
@@ -84,12 +84,30 @@ Sensitive directories (`core`, `config`, `storage`, `pages`, `plugins`) are prot
 
 ## Security
 
+Security is a first-class design goal in ESSE — not an afterthought.
+
+**Architecture:**
 - All requests are routed through `index.php` — no direct file access to PHP logic
-- Custom PHP pages are never accessed directly; they are included by the router after auth checks
-- `config/` holds no web-accessible files
-- Uploaded files (non-PHP) are served through a controller, not directly
-- PHP upload is a separate, explicitly granted permission
-- Installer is locked after first run
+- Custom PHP pages are never accessed directly; they are included by the router after auth and permission checks
+- Sensitive directories (`core`, `config`, `storage`, `pages`, `plugins`) are protected via `.htaccess`
+- Uploaded files (non-PHP) are served through a controller, not directly from disk
+
+**Private path (recommended for VPS / HestiaCP):**
+The installer optionally stores `config/` and `storage/` outside the webroot entirely — in a directory like `~/private/esse/` that is never reachable via HTTP. No `.htaccess` misconfiguration can expose DB credentials or uploads.
+
+```
+/home/user/
+├── public_html/        ← webroot (HTTP-accessible)
+│   └── index.php
+└── private/esse/       ← never reachable via HTTP
+    ├── config/
+    └── storage/
+```
+
+**Permissions:**
+- PHP upload is a separate, explicitly granted permission — not automatic for admins
+- Promoting a user to Forge role requires confirming a risk dialog
+- Installer is locked after first run (`install/installed.lock`)
 
 ---
 
