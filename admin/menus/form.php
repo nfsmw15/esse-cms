@@ -75,6 +75,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: /admin/menus/edit/{$menuId}");
             exit;
 
+        case 'edit_item':
+            $itemId   = (int) ($_POST['item_id'] ?? 0);
+            $type     = $_POST['type']       ?? 'page';
+            $label    = trim($_POST['label'] ?? '');
+            $pageSlug = trim($_POST['page_slug'] ?? '');
+            $url      = trim($_POST['url']    ?? '');
+            $target   = $_POST['target']      ?? '_self';
+
+            if (!in_array($type,   ['page','url','header'], true)) $type   = 'page';
+            if (!in_array($target, ['_self','_blank'],       true)) $target = '_self';
+
+            if ($itemId && $label) {
+                DB::update($ti, [
+                    'type'      => $type,
+                    'label'     => $label,
+                    'page_slug' => $type === 'page' ? $pageSlug : null,
+                    'url'       => $type === 'url'  ? $url      : null,
+                    'target'    => $target,
+                ], ['id' => $itemId, 'menu_id' => $menuId]);
+            }
+            header("Location: /admin/menus/edit/{$menuId}");
+            exit;
+
         case 'delete_item':
             $itemId = (int) ($_POST['item_id'] ?? 0);
             if ($itemId) DB::delete($ti, ['id' => $itemId]);
@@ -126,6 +149,72 @@ foreach ($topItems as &$top) {
 unset($top);
 
 $pages     = DB::fetchAll("SELECT slug, title FROM `{$tp}` WHERE status = 'published' ORDER BY title ASC");
+
+function itemButtons(array $item, int $menuId): string
+{
+    $csrf = \Esse\Auth::csrfToken();
+    $id   = $item['id'];
+    $out  = '';
+    foreach (['move_up' => '↑', 'move_down' => '↓'] as $mv => $lbl) {
+        $out .= "<form method='post' action='/admin/menus/edit/{$menuId}' class='d-inline'>"
+              . "<input type='hidden' name='_csrf' value='{$csrf}'>"
+              . "<input type='hidden' name='_action' value='{$mv}'>"
+              . "<input type='hidden' name='item_id' value='{$id}'>"
+              . "<button class='btn btn-sm btn-outline-secondary py-0 px-1'>{$lbl}</button></form>";
+    }
+    $out .= "<form method='post' action='/admin/menus/edit/{$menuId}' class='d-inline'"
+          . " onsubmit='return confirm(\"Eintrag löschen?\")'>"
+          . "<input type='hidden' name='_csrf' value='{$csrf}'>"
+          . "<input type='hidden' name='_action' value='delete_item'>"
+          . "<input type='hidden' name='item_id' value='{$id}'>"
+          . "<button class='btn btn-sm btn-outline-danger py-0 px-1'><i class='bi bi-trash'></i></button></form>";
+    return $out;
+}
+
+function itemEditForm(array $item, int $menuId, array $pages): string
+{
+    $csrf  = \Esse\Auth::csrfToken();
+    $id    = $item['id'];
+    $type  = htmlspecialchars($item['type']);
+    $label = htmlspecialchars($item['label']);
+    $pSlug = htmlspecialchars($item['page_slug'] ?? '');
+    $url   = htmlspecialchars($item['url'] ?? '');
+
+    $pageOpts = "<option value=''>— wählen —</option>";
+    foreach ($pages as $p) {
+        $sel = $item['page_slug'] === $p['slug'] ? ' selected' : '';
+        $pageOpts .= "<option value='" . htmlspecialchars($p['slug']) . "'{$sel}>"
+                   . htmlspecialchars($p['title']) . "</option>";
+    }
+
+    $blankChecked = $item['target'] === '_blank' ? ' checked' : '';
+
+    return "<form method='post' action='/admin/menus/edit/{$menuId}' class='border rounded p-2 bg-dark'>"
+         . "<input type='hidden' name='_csrf' value='{$csrf}'>"
+         . "<input type='hidden' name='_action' value='edit_item'>"
+         . "<input type='hidden' name='item_id' value='{$id}'>"
+         . "<div class='row g-2 align-items-end'>"
+         . "<div class='col-sm-3'><label class='form-label small'>Typ</label>"
+         . "<select name='type' class='form-select form-select-sm item-type-sel'>"
+         . "<option value='page'" . ($type === 'page' ? ' selected' : '') . ">Seite</option>"
+         . "<option value='url'"  . ($type === 'url'  ? ' selected' : '') . ">URL</option>"
+         . "<option value='header'" . ($type === 'header' ? ' selected' : '') . ">Trenner</option>"
+         . "</select></div>"
+         . "<div class='col-sm-4'><label class='form-label small'>Label</label>"
+         . "<input type='text' name='label' class='form-control form-control-sm' value='{$label}' required></div>"
+         . "<div class='col-sm-4 field-page" . ($type !== 'page' ? ' d-none' : '') . "'>"
+         . "<label class='form-label small'>Seite</label>"
+         . "<select name='page_slug' class='form-select form-select-sm'>{$pageOpts}</select></div>"
+         . "<div class='col-sm-4 field-url" . ($type !== 'url' ? ' d-none' : '') . "'>"
+         . "<label class='form-label small'>URL</label>"
+         . "<input type='text' name='url' class='form-control form-control-sm' value='{$url}'></div>"
+         . "<div class='col-sm-2'><div class='form-check mt-3'>"
+         . "<input class='form-check-input' type='checkbox' name='target' value='_blank' id='t{$id}'{$blankChecked}>"
+         . "<label class='form-check-label small' for='t{$id}'>Neuer Tab</label></div></div>"
+         . "<div class='col-sm-1'><button class='btn btn-primary btn-sm w-100'>✓</button></div>"
+         . "</div></form>";
+}
+
 $pageTitle = 'Menü: ' . htmlspecialchars($menu['name']);
 $activeNav = 'menus';
 
@@ -153,84 +242,58 @@ ob_start();
             </div>
             <div class="card-body p-0">
                 <?php if ($topItems): ?>
-                <table class="table table-sm mb-0">
-                    <tbody>
-                    <?php foreach ($topItems as $item): ?>
-                    <tr class="align-middle">
-                        <td style="width:2rem" class="ps-3 text-secondary">
-                            <?php if ($item['type'] === 'header'): ?>
-                                <i class="bi bi-dash-lg"></i>
-                            <?php elseif ($item['target'] === '_blank'): ?>
-                                <i class="bi bi-box-arrow-up-right"></i>
-                            <?php else: ?>
-                                <i class="bi bi-link-45deg"></i>
-                            <?php endif ?>
-                        </td>
-                        <td>
-                            <span class="fw-semibold"><?= htmlspecialchars($item['label']) ?></span>
-                            <?php if ($item['type'] === 'page' && $item['page_slug']): ?>
-                                <small class="text-secondary ms-1">/<?= htmlspecialchars($item['page_slug']) ?></small>
-                            <?php elseif ($item['type'] === 'url' && $item['url']): ?>
-                                <small class="text-secondary ms-1"><?= htmlspecialchars($item['url']) ?></small>
-                            <?php endif ?>
-                            <?php if (!empty($item['children'])): ?>
-                            <div class="mt-1 ps-3">
-                                <?php foreach ($item['children'] as $child): ?>
-                                <div class="d-flex align-items-center gap-2 py-1 border-start border-secondary ps-2 ms-1">
-                                    <i class="bi bi-arrow-return-right text-secondary small"></i>
-                                    <span class="small"><?= htmlspecialchars($child['label']) ?></span>
-                                    <?php if ($child['page_slug']): ?>
-                                        <small class="text-secondary">/<?= htmlspecialchars($child['page_slug']) ?></small>
-                                    <?php endif ?>
-                                    <div class="ms-auto d-flex gap-1">
-                                        <?php foreach (['move_up' => '↑', 'move_down' => '↓'] as $mv => $lbl): ?>
-                                        <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline">
-                                            <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
-                                            <input type="hidden" name="_action"  value="<?= $mv ?>">
-                                            <input type="hidden" name="item_id"  value="<?= $child['id'] ?>">
-                                            <button class="btn btn-sm btn-outline-secondary py-0 px-1"><?= $lbl ?></button>
-                                        </form>
-                                        <?php endforeach ?>
-                                        <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline"
-                                              onsubmit="return confirm('Eintrag löschen?')">
-                                            <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
-                                            <input type="hidden" name="_action" value="delete_item">
-                                            <input type="hidden" name="item_id" value="<?= $child['id'] ?>">
-                                            <button class="btn btn-sm btn-outline-danger py-0 px-1">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                                <?php endforeach ?>
-                            </div>
-                            <?php endif ?>
-                        </td>
-                        <td class="text-end pe-3">
-                            <div class="d-flex gap-1 justify-content-end">
-                                <?php foreach (['move_up' => '↑', 'move_down' => '↓'] as $mv => $lbl): ?>
-                                <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline">
-                                    <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
-                                    <input type="hidden" name="_action" value="<?= $mv ?>">
-                                    <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-                                    <button class="btn btn-sm btn-outline-secondary py-0 px-2"><?= $lbl ?></button>
-                                </form>
-                                <?php endforeach ?>
-                                <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline"
-                                      onsubmit="return confirm('Eintrag löschen?')">
-                                    <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
-                                    <input type="hidden" name="_action" value="delete_item">
-                                    <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-                                    <button class="btn btn-sm btn-outline-danger">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach ?>
-                    </tbody>
-                </table>
+                <div class="list-group list-group-flush">
+                <?php foreach ($topItems as $item):
+                    $editId = 'edit-' . $item['id']; ?>
+
+                    <?php /* --- Top-level row --- */ ?>
+                    <div class="list-group-item px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-<?= $item['type'] === 'header' ? 'dash-lg' : 'link-45deg' ?> text-secondary"></i>
+                            <span class="fw-semibold flex-grow-1"><?= htmlspecialchars($item['label']) ?>
+                                <?php if ($item['type'] === 'page' && $item['page_slug']): ?>
+                                    <small class="text-secondary fw-normal">/<?= htmlspecialchars($item['page_slug']) ?></small>
+                                <?php elseif ($item['type'] === 'url' && $item['url']): ?>
+                                    <small class="text-secondary fw-normal"><?= htmlspecialchars($item['url']) ?></small>
+                                <?php endif ?>
+                            </span>
+                            <?php echo itemButtons($item, $menuId); ?>
+                            <button class="btn btn-sm btn-outline-primary"
+                                    data-bs-toggle="collapse" data-bs-target="#<?= $editId ?>">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </div>
+
+                        <?php /* --- Inline edit form --- */ ?>
+                        <div class="collapse mt-2" id="<?= $editId ?>">
+                            <?php echo itemEditForm($item, $menuId, $pages); ?>
+                        </div>
+
+                        <?php /* --- Children --- */ ?>
+                        <?php foreach ($item['children'] as $child):
+                            $childEditId = 'edit-' . $child['id']; ?>
+                        <div class="d-flex align-items-center gap-2 mt-2 ps-3 border-start border-secondary">
+                            <i class="bi bi-arrow-return-right text-secondary small"></i>
+                            <span class="small flex-grow-1"><?= htmlspecialchars($child['label']) ?>
+                                <?php if ($child['page_slug']): ?>
+                                    <small class="text-secondary">/<?= htmlspecialchars($child['page_slug']) ?></small>
+                                <?php elseif ($child['url']): ?>
+                                    <small class="text-secondary"><?= htmlspecialchars($child['url']) ?></small>
+                                <?php endif ?>
+                            </span>
+                            <?php echo itemButtons($child, $menuId); ?>
+                            <button class="btn btn-sm btn-outline-primary py-0"
+                                    data-bs-toggle="collapse" data-bs-target="#<?= $childEditId ?>">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </div>
+                        <div class="collapse ps-3 mt-1" id="<?= $childEditId ?>">
+                            <?php echo itemEditForm($child, $menuId, $pages); ?>
+                        </div>
+                        <?php endforeach ?>
+                    </div>
+                <?php endforeach ?>
+                </div>
                 <?php else: ?>
                 <div class="p-4 text-center text-secondary">Noch keine Einträge.</div>
                 <?php endif ?>
@@ -345,6 +408,14 @@ function updateFields() {
 }
 typeEl?.addEventListener('change', updateFields);
 updateFields();
+
+// Handle type switcher in inline edit forms
+document.addEventListener('change', e => {
+    if (!e.target.classList.contains('item-type-sel')) return;
+    const form = e.target.closest('form');
+    form.querySelector('.field-page')?.classList.toggle('d-none', e.target.value !== 'page');
+    form.querySelector('.field-url')?.classList.toggle('d-none',  e.target.value !== 'url');
+});
 </script>
 <?php
 $content = ob_get_clean();
