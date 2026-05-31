@@ -34,7 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'site_name'        => trim($_POST['site_name']        ?? ''),
         'site_url'         => rtrim(trim($_POST['site_url']   ?? ''), '/'),
         'homepage_slug'    => trim($_POST['homepage_slug']    ?? ''),
-        'admin_email'      => trim($_POST['admin_email']      ?? ''),
+        'admin_email'           => trim($_POST['admin_email']           ?? ''),
+        'registration_enabled'  => isset($_POST['registration_enabled']) ? '1' : '0',
         'smtp_host'        => trim($_POST['smtp_host']        ?? ''),
         'smtp_port'        => trim($_POST['smtp_port']        ?? '587'),
         'smtp_user'        => trim($_POST['smtp_user']        ?? ''),
@@ -170,6 +171,23 @@ ob_start();
                             <input type="text" name="smtp_from_name" class="form-control"
                                    value="<?= htmlspecialchars($settings['smtp_from_name'] ?? '') ?>">
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header py-2"><small class="text-secondary">Benutzer</small></div>
+                <div class="card-body">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="registration_enabled"
+                               value="1" id="reg-enabled"
+                               <?= ($settings['registration_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="reg-enabled">
+                            Öffentliche Registrierung erlauben
+                        </label>
+                    </div>
+                    <div class="form-text">
+                        Wenn aktiviert, können sich Besucher unter <code>/registrieren</code> einen Member-Account erstellen.
                     </div>
                 </div>
             </div>

@@ -18,6 +18,38 @@ Router::get('/', function () {
 }, ['name' => 'home', 'auth' => 'public']);
 
 
+// Frontend: profile (all logged-in users)
+Router::get('/profil', function () {
+    if (!\Esse\Auth::check()) {
+        header('Location: /admin/login?redirect=/profil'); exit;
+    }
+    \Esse\PageRenderer::renderFile(ESSE_ROOT . '/pages/profil.php', 'Mein Profil');
+}, ['name' => 'profil', 'auth' => 'public']);
+
+Router::post('/profil', function () {
+    if (!\Esse\Auth::check()) {
+        header('Location: /admin/login?redirect=/profil'); exit;
+    }
+    \Esse\PageRenderer::renderFile(ESSE_ROOT . '/pages/profil.php', 'Mein Profil');
+}, ['name' => 'profil.post', 'auth' => 'public']);
+
+// Frontend: registration
+Router::get('/registrieren', function () {
+    \Esse\PageRenderer::renderFile(ESSE_ROOT . '/pages/registrieren.php', 'Registrieren');
+}, ['name' => 'register', 'auth' => 'public']);
+
+Router::post('/registrieren', function () {
+    \Esse\PageRenderer::renderFile(ESSE_ROOT . '/pages/registrieren.php', 'Registrieren');
+}, ['name' => 'register.post', 'auth' => 'public']);
+
+// Frontend: logout (all users)
+Router::post('/abmelden', function () {
+    if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); exit; }
+    \Esse\Auth::logout();
+    header('Location: /');
+    exit;
+}, ['name' => 'logout', 'auth' => 'public']);
+
 // -- Admin --
 
 Router::get('/admin/login', fn() => require ESSE_ROOT . '/admin/login.php', [

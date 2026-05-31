@@ -80,6 +80,47 @@
                 <?php endif ?>
                 <?php endforeach ?>
             </ul>
+
+            <!-- User menu (right side of navbar) -->
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <?php if (\Esse\Auth::check()): ?>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <?= htmlspecialchars(\Esse\Auth::user()['display_name'] ?? '') ?>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="/profil">
+                                <i class="bi bi-person me-2"></i>Mein Profil
+                            </a>
+                        </li>
+                        <?php if (\Esse\Auth::meetsRole('author')): ?>
+                        <li>
+                            <a class="dropdown-item" href="/admin">
+                                <i class="bi bi-speedometer2 me-2"></i>Admin
+                            </a>
+                        </li>
+                        <?php endif ?>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="post" action="/abmelden" class="d-inline w-100">
+                                <input type="hidden" name="_csrf" value="<?= \Esse\Auth::csrfToken() ?>">
+                                <button class="dropdown-item text-danger">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Abmelden
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+                <?php else: ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="/admin/login">
+                        <i class="bi bi-person me-1"></i>Anmelden
+                    </a>
+                </li>
+                <?php endif ?>
+            </ul>
         </div>
     </div>
 </nav>

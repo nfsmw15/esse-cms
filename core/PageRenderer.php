@@ -52,6 +52,39 @@ class PageRenderer
         echo '<div class="esse-content">' . $content . '</div>';
     }
 
+    // Render a PHP file (not from DB) wrapped in the active theme
+    public static function renderFile(string $file, string $title = ''): void
+    {
+        if (!file_exists($file)) {
+            Router::abort(404);
+            return;
+        }
+
+        $fakePage = [
+            'slug'       => ltrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/', '/'),
+            'title'      => $title,
+            'content'    => '',
+            'type'       => 'standard',
+            'visibility' => 'public',
+            'status'     => 'published',
+        ];
+
+        $esse_page = $fakePage;
+        $esse_user = Auth::user();
+
+        ob_start();
+        require $file;
+        $content = ob_get_clean();
+
+        if (Hooks::has('page.render')) {
+            Hooks::fire('page.render', $fakePage, $content);
+            return;
+        }
+
+        header('Content-Type: text/html; charset=utf-8');
+        echo '<div class="esse-content">' . $content . '</div>';
+    }
+
     private static function renderPhp(array $page): void
     {
         if (!$page['file_path']) {

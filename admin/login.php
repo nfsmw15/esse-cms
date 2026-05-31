@@ -73,8 +73,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
         </div>
     </div>
-    <div class="text-center mt-3">
+    <div class="text-center mt-3 d-flex justify-content-center gap-3">
         <a href="/admin/forgot-password" class="text-secondary small">Passwort vergessen?</a>
+        <?php
+        // Show register link only if registration is enabled
+        if (defined('ESSE_DB_NAME')) {
+            $ts  = \Esse\DB::table('settings');
+            $reg = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'registration_enabled'");
+            if ($reg === '1') {
+                echo '<a href="/registrieren" class="text-secondary small">Registrieren</a>';
+            }
+        }
+        ?>
     </div>
 </div>
 </body>
