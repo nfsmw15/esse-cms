@@ -44,7 +44,7 @@ ob_start();
     <div class="card-body p-0">
         <?php
         $recent = DB::fetchAll(
-            "SELECT p.slug, p.title, p.status, p.updated_at, u.username
+            "SELECT p.slug, p.title, p.status, p.updated_at, u.display_name
                FROM `{$t}` p
           LEFT JOIN `{$tu}` u ON u.id = p.author_id
            ORDER BY p.updated_at DESC
@@ -74,7 +74,7 @@ ob_start();
                         <span class="badge bg-secondary">Entwurf</span>
                     <?php endif ?>
                 </td>
-                <td class="text-secondary"><?= htmlspecialchars($row['username'] ?? '—') ?></td>
+                <td class="text-secondary"><?= htmlspecialchars($row['display_name'] ?? '—') ?></td>
                 <td class="text-secondary"><?= date('d.m.Y H:i', strtotime($row['updated_at'])) ?></td>
             </tr>
             <?php endforeach ?>
