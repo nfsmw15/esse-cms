@@ -59,7 +59,7 @@ class PageRenderer
             return;
         }
 
-        $file = ESSE_ROOT . '/pages/' . $page['file_path'];
+        $file = \ESSE_ROOT . '/pages/' . $page['file_path'];
 
         if (!file_exists($file)) {
             Router::abort(404);

@@ -13,12 +13,13 @@ class DB
         if (self::$connection !== null) return;
 
         $dsn = sprintf(
-            'mysql:host=%s;dbname=%s;charset=utf8mb4',
-            defined('ESSE_DB_HOST') ? ESSE_DB_HOST : 'localhost',
-            ESSE_DB_NAME
+            'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
+            defined('ESSE_DB_HOST') ? \ESSE_DB_HOST : 'localhost',
+            defined('ESSE_DB_PORT') ? \ESSE_DB_PORT : 3306,
+            \ESSE_DB_NAME
         );
 
-        self::$connection = new \PDO($dsn, ESSE_DB_USER, ESSE_DB_PASS, [
+        self::$connection = new \PDO($dsn, \ESSE_DB_USER, \ESSE_DB_PASS, [
             \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
             \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
             \PDO::ATTR_EMULATE_PREPARES   => false,
@@ -28,7 +29,7 @@ class DB
     // Returns the prefixed table name, e.g. table('users') → 'esse_users'
     public static function table(string $name): string
     {
-        $prefix = defined('ESSE_DB_PREFIX') ? ESSE_DB_PREFIX : 'esse_';
+        $prefix = defined('ESSE_DB_PREFIX') ? \ESSE_DB_PREFIX : 'esse_';
         return $prefix . $name;
     }
 

@@ -312,7 +312,8 @@ function allChecksPass(): bool
 
 // --- HTML ---
 
-$prev = $data['db']   ?? [];
+$data     = $_SESSION['esse_install'] ?? [];
+$prev     = $data['db']   ?? [];
 $prevSite = $data['site'] ?? [];
 $stepLabels = ['Systemprüfung', 'Datenbank', 'Website', 'Forge-Account'];
 

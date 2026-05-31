@@ -142,9 +142,12 @@
             <?= ucfirst(\Esse\Auth::role()) ?>
         </span>
         &nbsp;
-        <a href="/admin/logout" class="text-secondary text-decoration-none" style="font-size:.75rem">
-            <i class="bi bi-box-arrow-right"></i> Abmelden
-        </a>
+        <form method="post" action="/admin/logout" class="d-inline">
+            <input type="hidden" name="_csrf" value="<?= \Esse\Auth::csrfToken() ?>">
+            <button type="submit" class="btn btn-link p-0 text-secondary text-decoration-none" style="font-size:.75rem">
+                <i class="bi bi-box-arrow-right"></i> Abmelden
+            </button>
+        </form>
     </div>
 </div>
 

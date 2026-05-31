@@ -43,7 +43,7 @@ abstract class Plugin
     public function assetUrl(string $path = ''): string
     {
         $name = $this->meta['name'] ?? basename($this->basePath());
-        $base = rtrim(defined('ESSE_URL') ? ESSE_URL : '', '/');
+        $base = rtrim(defined('ESSE_URL') ? \ESSE_URL : '', '/');
         return $base . '/plugins/' . $name . '/public/' . ltrim($path, '/');
     }
 

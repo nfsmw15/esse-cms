@@ -24,7 +24,8 @@ Router::post('/admin/login', fn() => require ESSE_ROOT . '/admin/login.php', [
     'auth' => 'public',
 ]);
 
-Router::get('/admin/logout', function () {
+Router::post('/admin/logout', function () {
+    if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); exit; }
     \Esse\Auth::logout();
     header('Location: /admin/login');
     exit;
