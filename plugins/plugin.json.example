@@ -1,0 +1,10 @@
+{
+    "name": "esse-myplugin",
+    "version": "1.0.0",
+    "description": "Kurzbeschreibung des Plugins.",
+    "author": "Dein Name",
+    "class": "EsseMyPlugin\\Plugin",
+    "requires": {
+        "esse": ">=0.1.0"
+    }
+}

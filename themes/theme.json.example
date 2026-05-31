@@ -1,0 +1,7 @@
+{
+    "name": "esse-mytheme",
+    "version": "1.0.0",
+    "description": "Kurzbeschreibung des Themes.",
+    "author": "Dein Name",
+    "class": "EsseMyTheme\\Theme"
+}
