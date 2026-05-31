@@ -264,6 +264,28 @@ function schema(string $p): array
             `key`   VARCHAR(100) NOT NULL PRIMARY KEY,
             `value` TEXT
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS `{$p}menus` (
+            `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `name`       VARCHAR(100) NOT NULL,
+            `slug`       VARCHAR(100) NOT NULL,
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY `uq_slug` (`slug`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS `{$p}menu_items` (
+            `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `menu_id`    INT UNSIGNED NOT NULL,
+            `parent_id`  INT UNSIGNED DEFAULT NULL,
+            `type`       ENUM('page','url','header') NOT NULL DEFAULT 'page',
+            `label`      VARCHAR(255) NOT NULL,
+            `page_slug`  VARCHAR(255) DEFAULT NULL,
+            `url`        VARCHAR(500) DEFAULT NULL,
+            `target`     ENUM('_self','_blank') NOT NULL DEFAULT '_self',
+            `sort_order` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            FOREIGN KEY (`menu_id`)   REFERENCES `{$p}menus`(`id`)      ON DELETE CASCADE,
+            FOREIGN KEY (`parent_id`) REFERENCES `{$p}menu_items`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
 }
 

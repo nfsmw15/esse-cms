@@ -78,6 +78,26 @@ Router::post('/admin/pages/delete/{slug}', function (string $slug) {
     exit;
 }, ['name' => 'admin.pages.delete', 'auth' => 'admin']);
 
+Router::get('/admin/menus', fn() => require ESSE_ROOT . '/admin/menus/list.php', [
+    'name' => 'admin.menus',
+    'auth' => 'admin',
+]);
+
+Router::post('/admin/menus', fn() => require ESSE_ROOT . '/admin/menus/list.php', [
+    'name' => 'admin.menus.post',
+    'auth' => 'admin',
+]);
+
+Router::get('/admin/menus/edit/{id}', function (string $id) {
+    $menuId = (int) $id;
+    require ESSE_ROOT . '/admin/menus/form.php';
+}, ['name' => 'admin.menus.edit', 'auth' => 'admin']);
+
+Router::post('/admin/menus/edit/{id}', function (string $id) {
+    $menuId = (int) $id;
+    require ESSE_ROOT . '/admin/menus/form.php';
+}, ['name' => 'admin.menus.edit.post', 'auth' => 'admin']);
+
 Router::get('/admin/users', fn() => print('Admin: Benutzer — folgt'), [
     'name' => 'admin.users',
     'auth' => 'admin',

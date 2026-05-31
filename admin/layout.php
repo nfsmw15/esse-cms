@@ -113,6 +113,9 @@
         <a href="/admin/pages" class="<?= ($activeNav ?? '') === 'pages' ? 'active' : '' ?>">
             <i class="bi bi-file-earmark-text"></i> Seiten
         </a>
+        <a href="/admin/menus" class="<?= ($activeNav ?? '') === 'menus' ? 'active' : '' ?>">
+            <i class="bi bi-list-nested"></i> Menüs
+        </a>
 
         <div class="nav-section">System</div>
         <a href="/admin/users" class="<?= ($activeNav ?? '') === 'users' ? 'active' : '' ?>">
