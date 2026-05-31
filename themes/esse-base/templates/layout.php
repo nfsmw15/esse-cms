@@ -34,10 +34,15 @@
                 <?php foreach ($mainMenu as $item): ?>
                 <?php $url = \Esse\Menu::itemUrl($item); ?>
                 <?php if (!empty($item['children'])): ?>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#"
-                       data-bs-toggle="dropdown">
+                <li class="nav-item dropdown d-flex align-items-center">
+                    <a class="nav-link <?= $url === '/' . ltrim($page['slug'], '/') ? 'active' : '' ?>"
+                       href="<?= htmlspecialchars($url) ?>"
+                       <?= $item['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
                         <?= htmlspecialchars($item['label']) ?>
+                    </a>
+                    <a class="nav-link px-1 dropdown-toggle dropdown-toggle-split"
+                       href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="visually-hidden">Untermenü öffnen</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-dark">
                         <?php foreach ($item['children'] as $child): ?>
