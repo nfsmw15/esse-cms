@@ -277,7 +277,7 @@ $stepLabels = ['Systemprüfung', 'Datenbank', 'Website', 'Forge-Account'];
 
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-bs-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
