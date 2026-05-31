@@ -139,20 +139,27 @@ function runSetup(array $data, string $username, string $email, string $password
         $stmt->execute($perm);
     }
 
-    // Default settings
-    $stmt = $pdo->prepare("INSERT INTO `{$p}settings` (`key`, `value`) VALUES (?, ?)");
+    // Default settings — update if already exist
+    $stmt = $pdo->prepare(
+        "INSERT INTO `{$p}settings` (`key`, `value`) VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)"
+    );
     $stmt->execute(['site_name', $site['siteName']]);
     $stmt->execute(['site_url',  $site['siteUrl']]);
 
-    // Forge account
-    $hash = password_hash($password, PASSWORD_BCRYPT);
-    $pdo->prepare("INSERT INTO `{$p}users` (username, email, password, role) VALUES (?, ?, ?, 'forge')")
-        ->execute([$username, $email, $hash]);
+    // Forge account — skip if username or email already exists
+    $exists = $pdo->prepare("SELECT id FROM `{$p}users` WHERE username = ? OR email = ?");
+    $exists->execute([$username, $email]);
+    if (!$exists->fetch()) {
+        $hash = password_hash($password, PASSWORD_BCRYPT);
+        $pdo->prepare("INSERT INTO `{$p}users` (username, email, password, role) VALUES (?, ?, ?, 'forge')")
+            ->execute([$username, $email, $hash]);
+    }
 
-    // Write config.php
+    // Write config.php — always write (contains current DB credentials)
     $configDir = $privatePath . '/config';
-    if (!is_dir($configDir)) {
-        mkdir($configDir, 0750, true);
+    if (!is_dir($configDir) && !mkdir($configDir, 0750, true)) {
+        throw new \RuntimeException("Konnte Verzeichnis nicht erstellen: {$configDir}");
     }
     $config = "<?php\n\n"
         . "define('ESSE_DB_HOST',   " . var_export($db['host'], true)  . ");\n"
@@ -163,18 +170,24 @@ function runSetup(array $data, string $username, string $email, string $password
         . "define('ESSE_DB_PREFIX', " . var_export($p, true)           . ");\n"
         . "define('ESSE_URL',       " . var_export($site['siteUrl'], true) . ");\n";
 
-    file_put_contents($configDir . '/config.php', $config);
+    if (file_put_contents($configDir . '/config.php', $config) === false) {
+        throw new \RuntimeException("Konnte config.php nicht schreiben: {$configDir}/config.php");
+    }
     chmod($configDir . '/config.php', 0640);
 
     // Write local.php if private path differs from webroot
     if ($site['privatePath'] && $site['privatePath'] !== ESSE_ROOT) {
         $local = "<?php\ndefine('ESSE_PRIVATE_PATH', " . var_export($site['privatePath'], true) . ");\n";
-        file_put_contents(ESSE_ROOT . '/local.php', $local);
+        if (file_put_contents(ESSE_ROOT . '/local.php', $local) === false) {
+            throw new \RuntimeException('Konnte local.php nicht schreiben.');
+        }
         chmod(ESSE_ROOT . '/local.php', 0640);
     }
 
     // Lock installer
-    file_put_contents(__DIR__ . '/installed.lock', 'Installed: ' . date('c') . "\n");
+    if (file_put_contents(__DIR__ . '/installed.lock', 'Installed: ' . date('c') . "\n") === false) {
+        throw new \RuntimeException('Konnte installed.lock nicht schreiben.');
+    }
 }
 
 function schema(string $p): array
