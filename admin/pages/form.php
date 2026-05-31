@@ -164,14 +164,23 @@ ob_start();
 
             <!-- Standard content -->
             <div class="card" id="content-card">
-                <div class="card-header py-2">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
                     <small class="text-secondary">Inhalt</small>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" id="btn-visual"
+                                onclick="setEditorMode('visual')">Visual</button>
+                        <button type="button" class="btn btn-outline-secondary" id="btn-html"
+                                onclick="setEditorMode('html')">HTML</button>
+                    </div>
                 </div>
                 <div class="card-body p-0">
+                    <!-- Quill editor -->
+                    <div id="quill-editor" style="min-height:420px;background:#111;color:#e0e0e0;font-size:1rem"></div>
+                    <!-- Raw HTML fallback textarea -->
                     <textarea name="content" id="content"
-                              class="form-control border-0 rounded-0 font-monospace"
-                              rows="20"
-                              style="resize:vertical;background:#111;color:#e0e0e0"><?= htmlspecialchars($page['content'] ?? '') ?></textarea>
+                              class="form-control border-0 rounded-0 font-monospace d-none"
+                              rows="22"
+                              style="background:#111;color:#e0e0e0;resize:vertical"><?= htmlspecialchars($page['content'] ?? '') ?></textarea>
                 </div>
             </div>
 
@@ -292,5 +301,77 @@ typeEl?.addEventListener('change', updateType);
 updateType();
 </script>
 <?php
-$content = ob_get_clean();
+$content    = ob_get_clean();
+$extraHead  = '<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+.ql-toolbar.ql-snow { background:#1e1e1e; border-color:#333; border-radius:.375rem .375rem 0 0; }
+.ql-container.ql-snow { background:#111; border-color:#333; border-radius:0 0 .375rem .375rem; color:#e0e0e0; font-size:1rem; }
+.ql-editor { min-height:380px; color:#e0e0e0; }
+.ql-editor.ql-blank::before { color:#6c757d; }
+.ql-snow .ql-stroke { stroke:#adb5bd; }
+.ql-snow .ql-fill, .ql-snow .ql-stroke.ql-fill { fill:#adb5bd; }
+.ql-snow .ql-picker { color:#adb5bd; }
+.ql-snow .ql-picker-options { background:#1e1e1e; border-color:#333; }
+.ql-snow .ql-picker-item:hover, .ql-snow .ql-picker-item.ql-selected { color:#fff; }
+.ql-snow .ql-tooltip { background:#1e1e1e; border-color:#333; color:#adb5bd; }
+.ql-snow .ql-tooltip input[type=text] { background:#111; border-color:#333; color:#e0e0e0; }
+.ql-snow a { color:#6ea8fe; }
+.ql-snow .ql-active .ql-stroke { stroke:#6ea8fe; }
+.ql-snow .ql-active .ql-fill { fill:#6ea8fe; }
+.ql-snow .ql-active { color:#6ea8fe; }
+</style>';
+$extraScripts = '<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"><\/script>
+<script>
+const textarea   = document.getElementById("content");
+const editorDiv  = document.getElementById("quill-editor");
+const btnVisual  = document.getElementById("btn-visual");
+const btnHtml    = document.getElementById("btn-html");
+
+const quill = new Quill("#quill-editor", {
+    theme: "snow",
+    placeholder: "Seiteninhalt ...",
+    modules: {
+        toolbar: [
+            [{ header: [1, 2, 3, 4, false] }],
+            ["bold", "italic", "underline", "strike"],
+            [{ color: [] }, { background: [] }],
+            ["link", "image"],
+            [{ list: "ordered" }, { list: "bullet" }],
+            ["blockquote", "code-block"],
+            [{ align: [] }],
+            ["clean"]
+        ]
+    }
+});
+
+// Load existing content into Quill
+if (textarea.value.trim()) {
+    quill.root.innerHTML = textarea.value;
+}
+
+// Sync Quill → textarea before any form submit
+document.querySelector("form").addEventListener("submit", () => {
+    if (!editorDiv.classList.contains("d-none")) {
+        textarea.value = quill.root.innerHTML;
+    }
+});
+
+function setEditorMode(mode) {
+    if (mode === "visual") {
+        // HTML → Quill
+        quill.root.innerHTML = textarea.value;
+        editorDiv.classList.remove("d-none");
+        textarea.classList.add("d-none");
+        btnVisual.classList.add("active");
+        btnHtml.classList.remove("active");
+    } else {
+        // Quill → HTML textarea
+        textarea.value = quill.root.innerHTML;
+        textarea.classList.remove("d-none");
+        editorDiv.classList.add("d-none");
+        btnHtml.classList.add("active");
+        btnVisual.classList.remove("active");
+    }
+}
+<\/script>';
 require dirname(__DIR__) . '/layout.php';
