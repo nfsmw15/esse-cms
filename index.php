@@ -39,6 +39,25 @@ if (!file_exists($configFile)) {
 // Start session and load current user
 Auth::init();
 
+// Load active theme
+if (file_exists($configFile)) {
+    $ts          = \Esse\DB::table('settings');
+    $activeTheme = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'active_theme'");
+    if ($activeTheme) {
+        $themeDir  = ESSE_ROOT . '/themes/' . basename($activeTheme);
+        $themeFile = $themeDir . '/Theme.php';
+        $themeMeta = $themeDir . '/theme.json';
+        if (file_exists($themeFile) && file_exists($themeMeta)) {
+            require_once $themeFile;
+            $themeMeta = json_decode(file_get_contents($themeMeta), true);
+            $themeClass = $themeMeta['class'] ?? null;
+            if ($themeClass && class_exists($themeClass)) {
+                (new $themeClass())->boot();
+            }
+        }
+    }
+}
+
 // Plugins register their routes here before dispatch
 Hooks::fire('router.boot');
 

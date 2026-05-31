@@ -1,0 +1,62 @@
+/* esse-base theme */
+
+body {
+    background-color: #0f0f0f;
+    color: #dee2e6;
+}
+
+main {
+    min-height: 60vh;
+}
+
+/* Prose content styles for standard pages */
+.esse-content h1, .esse-content h2, .esse-content h3,
+.esse-content h4, .esse-content h5, .esse-content h6 {
+    color: #f8f9fa;
+    margin-top: 1.5rem;
+    margin-bottom: .75rem;
+}
+
+.esse-content p { margin-bottom: 1rem; }
+.esse-content a { color: #6ea8fe; }
+.esse-content a:hover { color: #9ec5fe; }
+
+.esse-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: .375rem;
+}
+
+.esse-content pre {
+    background: #1a1a2e;
+    border: 1px solid #2d2d2d;
+    border-radius: .375rem;
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.esse-content code {
+    color: #e2b94b;
+    font-size: .875em;
+}
+
+.esse-content pre code { color: inherit; }
+
+.esse-content blockquote {
+    border-left: 3px solid #495057;
+    padding-left: 1rem;
+    color: #adb5bd;
+}
+
+.esse-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+
+.esse-content th, .esse-content td {
+    padding: .5rem .75rem;
+    border: 1px solid #343a40;
+}
+
+.esse-content th { background: #1a1a1a; }

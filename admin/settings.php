@@ -17,6 +17,16 @@ $rows     = DB::fetchAll("SELECT `key`, `value` FROM `{$ts}`");
 $settings = array_column($rows, 'value', 'key');
 
 $pages  = DB::fetchAll("SELECT slug, title FROM `{$tp}` WHERE status = 'published' ORDER BY title ASC");
+
+// Discover installed themes
+$themes = [];
+foreach (glob(ESSE_ROOT . '/themes/*/theme.json') ?: [] as $jsonFile) {
+    $meta = json_decode(file_get_contents($jsonFile), true);
+    if (!empty($meta['name'])) {
+        $themes[$meta['name']] = $meta['name'] . ' — ' . ($meta['description'] ?? '');
+    }
+}
+
 $errors = [];
 
 $flash = null;
@@ -33,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'site_url'      => rtrim(trim($_POST['site_url'] ?? ''), '/'),
         'homepage_slug' => trim($_POST['homepage_slug'] ?? ''),
         'admin_email'   => trim($_POST['admin_email']   ?? ''),
+        'active_theme'  => trim($_POST['active_theme']  ?? ''),
     ];
 
     if (!$save['site_name']) $errors[] = 'Seitenname ist Pflichtfeld.';
@@ -106,6 +117,24 @@ ob_start();
                         <?php endforeach ?>
                     </select>
                     <div class="form-text">Die gewählte Seite wird unter der Hauptdomain angezeigt.</div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header py-2"><small class="text-secondary">Theme</small></div>
+                <div class="card-body">
+                    <select name="active_theme" class="form-select">
+                        <option value="">— kein Theme (reines HTML) —</option>
+                        <?php foreach ($themes as $slug => $label): ?>
+                        <option value="<?= htmlspecialchars($slug) ?>"
+                            <?= ($settings['active_theme'] ?? '') === $slug ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($label) ?>
+                        </option>
+                        <?php endforeach ?>
+                    </select>
+                    <div class="form-text">
+                        Das aktive Theme bestimmt das Aussehen aller Frontend-Seiten.
+                    </div>
                 </div>
             </div>
 

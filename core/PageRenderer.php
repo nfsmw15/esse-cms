@@ -47,9 +47,9 @@ class PageRenderer
             return;
         }
 
-        // No theme active — bare output
+        // No theme active — minimal output
         header('Content-Type: text/html; charset=utf-8');
-        echo $content;
+        echo '<div class="esse-content">' . $content . '</div>';
     }
 
     private static function renderPhp(array $page): void
