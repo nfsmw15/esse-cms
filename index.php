@@ -20,6 +20,7 @@ spl_autoload_register(function (string $class): void {
     if (file_exists($path)) require_once $path;
 });
 
+use Esse\Auth;
 use Esse\Hooks;
 use Esse\Router;
 
@@ -34,6 +35,9 @@ if (!file_exists($configFile)) {
 } else {
     require_once $configFile;
 }
+
+// Start session and load current user
+Auth::init();
 
 // Plugins register their routes here before dispatch
 Hooks::fire('router.boot');

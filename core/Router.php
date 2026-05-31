@@ -122,8 +122,14 @@ class Router
     private static function checkAuth(string $required): bool
     {
         if ($required === 'public') return true;
-        // Auth::check() will be wired in once Auth class is built
-        return false;
+
+        // Named roles: check hierarchy
+        if (in_array($required, Auth::ROLES, true)) {
+            return Auth::meetsRole($required);
+        }
+
+        // Anything else is treated as a permission slug (e.g. 'php_upload')
+        return Auth::can($required);
     }
 
     private static function invoke(callable|array|string $handler, array $params): void
