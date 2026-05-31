@@ -102,9 +102,15 @@ class DB
     public static function commit(): void            { self::pdo()->commit(); }
     public static function rollback(): void          { self::pdo()->rollBack(); }
 
-    private static function pdo(): \PDO
+    // Public for Updater DB dump
+    public static function connection(): \PDO
     {
         if (self::$connection === null) self::connect();
         return self::$connection;
+    }
+
+    private static function pdo(): \PDO
+    {
+        return self::connection();
     }
 }

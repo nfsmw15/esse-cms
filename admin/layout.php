@@ -137,6 +137,9 @@
             <i class="bi bi-terminal"></i> Logs
         </a>
         <?php endif ?>
+        <a href="/admin/update" class="<?= ($activeNav ?? '') === 'update' ? 'active' : '' ?>">
+            <i class="bi bi-cloud-arrow-up"></i> System-Update
+        </a>
     </nav>
     <div class="user-info">
         <strong><?= htmlspecialchars(\Esse\Auth::user()['display_name'] ?? '') ?></strong>

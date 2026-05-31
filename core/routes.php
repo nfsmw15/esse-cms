@@ -155,6 +155,16 @@ Router::post('/admin/settings', fn() => require ESSE_ROOT . '/admin/settings.php
     'auth' => 'admin',
 ]);
 
+Router::get('/admin/update', fn() => require ESSE_ROOT . '/admin/updater.php', [
+    'name' => 'admin.update',
+    'auth' => 'admin',
+]);
+
+Router::get('/admin/update/run', fn() => require ESSE_ROOT . '/admin/updater-run.php', [
+    'name' => 'admin.update.run',
+    'auth' => 'admin',
+]);
+
 // -- Installer --
 
 Router::get('/install', fn() => require ESSE_ROOT . '/install/index.php', [

@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-define('ESSE_VERSION', '0.1.0-dev');
+define('ESSE_VERSION',     '0.1.0-dev');
+define('ESSE_GITHUB_REPO', 'nfsmw15/esse-cms');
 define('ESSE_ROOT', __DIR__);
 
 // local.php can define ESSE_PRIVATE_PATH to point outside the webroot (recommended for VPS/HestiaCP).
