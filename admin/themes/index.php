@@ -1,0 +1,149 @@
+<?php
+
+declare(strict_types=1);
+
+use Esse\Auth;
+use Esse\DB;
+
+$ts = DB::table('settings');
+$tm = DB::table('menus');
+
+$rows        = DB::fetchAll("SELECT `key`, `value` FROM `{$ts}`");
+$settings    = array_column($rows, 'value', 'key');
+$activeTheme = $settings['active_theme'] ?? '';
+$allMenus    = DB::fetchAll("SELECT slug, name FROM `{$tm}` ORDER BY name ASC");
+
+// Discover all installed themes
+$themes = [];
+foreach (glob(ESSE_ROOT . '/themes/*/theme.json') ?: [] as $jsonFile) {
+    $meta = json_decode(file_get_contents($jsonFile), true);
+    if (!empty($meta['name'])) {
+        $themes[$meta['name']] = $meta;
+    }
+}
+
+$flash = null;
+if (!empty($_SESSION['flash'])) {
+    $flash = $_SESSION['flash'];
+    unset($_SESSION['flash']);
+}
+
+// POST: activate theme or save menu positions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
+
+    $action = $_POST['_action'] ?? '';
+
+    if ($action === 'activate') {
+        $name = $_POST['theme_name'] ?? '';
+        if (isset($themes[$name])) {
+            DB::query(
+                "INSERT INTO `{$ts}` (`key`, `value`) VALUES ('active_theme', ?)
+                 ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+                [$name]
+            );
+            $_SESSION['flash'] = ['type' => 'success', 'message' => "Theme „{$name}" aktiviert."];
+        }
+        header('Location: /admin/themes');
+        exit;
+    }
+
+    if ($action === 'save_menus') {
+        $themeName = $_POST['theme_name'] ?? '';
+        $meta      = $themes[$themeName] ?? null;
+        if ($meta && !empty($meta['menus'])) {
+            foreach (array_keys($meta['menus']) as $pos) {
+                $key   = 'theme_' . $themeName . '_menu_' . $pos;
+                $value = trim($_POST[$key] ?? '');
+                DB::query(
+                    "INSERT INTO `{$ts}` (`key`, `value`) VALUES (?, ?)
+                     ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+                    [$key, $value]
+                );
+            }
+        }
+        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Menüpositionen gespeichert.'];
+        header('Location: /admin/themes');
+        exit;
+    }
+}
+
+$pageTitle = 'Themes';
+$activeNav = 'themes';
+
+ob_start();
+?>
+<?php if (!$themes): ?>
+<div class="alert alert-secondary">Keine Themes installiert.</div>
+<?php endif ?>
+
+<div class="row g-4">
+<?php foreach ($themes as $name => $meta): ?>
+<?php $isActive = $name === $activeTheme; ?>
+<div class="col-lg-6">
+    <div class="card h-100 <?= $isActive ? 'border-primary' : '' ?>">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <div>
+                <strong><?= htmlspecialchars($meta['name']) ?></strong>
+                <small class="text-secondary ms-2">v<?= htmlspecialchars($meta['version'] ?? '—') ?></small>
+            </div>
+            <?php if ($isActive): ?>
+                <span class="badge bg-primary">Aktiv</span>
+            <?php else: ?>
+                <form method="post" action="/admin/themes" class="d-inline">
+                    <input type="hidden" name="_csrf"       value="<?= Auth::csrfToken() ?>">
+                    <input type="hidden" name="_action"     value="activate">
+                    <input type="hidden" name="theme_name"  value="<?= htmlspecialchars($name) ?>">
+                    <button class="btn btn-sm btn-outline-primary">Aktivieren</button>
+                </form>
+            <?php endif ?>
+        </div>
+        <div class="card-body">
+            <p class="text-secondary small mb-3">
+                <?= htmlspecialchars($meta['description'] ?? '') ?>
+                <?php if (!empty($meta['author'])): ?>
+                    — <em><?= htmlspecialchars($meta['author']) ?></em>
+                <?php endif ?>
+            </p>
+
+            <?php if ($isActive && !empty($meta['menus'])): ?>
+            <form method="post" action="/admin/themes">
+                <input type="hidden" name="_csrf"      value="<?= Auth::csrfToken() ?>">
+                <input type="hidden" name="_action"    value="save_menus">
+                <input type="hidden" name="theme_name" value="<?= htmlspecialchars($name) ?>">
+
+                <p class="small text-secondary mb-2 fw-semibold">Menüpositionen</p>
+                <?php foreach ($meta['menus'] as $pos => $label): ?>
+                <?php $key = 'theme_' . $name . '_menu_' . $pos; ?>
+                <div class="mb-2">
+                    <label class="form-label small"><?= htmlspecialchars($label) ?></label>
+                    <select name="<?= htmlspecialchars($key) ?>" class="form-select form-select-sm">
+                        <option value="">— kein Menü —</option>
+                        <?php foreach ($allMenus as $m): ?>
+                        <option value="<?= htmlspecialchars($m['slug']) ?>"
+                            <?= ($settings[$key] ?? '') === $m['slug'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($m['name']) ?>
+                        </option>
+                        <?php endforeach ?>
+                    </select>
+                </div>
+                <?php endforeach ?>
+
+                <button class="btn btn-sm btn-primary mt-1">
+                    <i class="bi bi-floppy"></i> Speichern
+                </button>
+                <a href="/admin/menus" class="btn btn-sm btn-outline-secondary mt-1">
+                    <i class="bi bi-list-nested"></i> Menüs verwalten
+                </a>
+            </form>
+            <?php elseif ($isActive): ?>
+            <p class="text-secondary small">Dieses Theme hat keine konfigurierbaren Menüpositionen.</p>
+            <?php endif ?>
+        </div>
+    </div>
+</div>
+<?php endforeach ?>
+</div>
+<?php
+$content = ob_get_clean();
+require dirname(__DIR__) . '/layout.php';

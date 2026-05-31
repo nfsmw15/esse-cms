@@ -18,23 +18,6 @@ $settings = array_column($rows, 'value', 'key');
 
 $pages  = DB::fetchAll("SELECT slug, title FROM `{$tp}` WHERE status = 'published' ORDER BY title ASC");
 
-// Discover installed themes + their menu positions
-$themes      = [];
-$themeMenus  = []; // [ 'position_key' => 'Label' ]
-foreach (glob(ESSE_ROOT . '/themes/*/theme.json') ?: [] as $jsonFile) {
-    $meta = json_decode(file_get_contents($jsonFile), true);
-    if (empty($meta['name'])) continue;
-    $themes[$meta['name']] = $meta['name'] . ' — ' . ($meta['description'] ?? '');
-    if ($meta['name'] === ($settings['active_theme'] ?? '') && !empty($meta['menus'])) {
-        foreach ($meta['menus'] as $pos => $label) {
-            $themeMenus['theme_' . $meta['name'] . '_menu_' . $pos] = $label;
-        }
-    }
-}
-
-// All available menus for dropdowns
-$tm      = DB::table('menus');
-$allMenus = DB::fetchAll("SELECT slug, name FROM `{$tm}` ORDER BY name ASC");
 
 $errors = [];
 
@@ -52,12 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'site_url'      => rtrim(trim($_POST['site_url'] ?? ''), '/'),
         'homepage_slug' => trim($_POST['homepage_slug'] ?? ''),
         'admin_email'   => trim($_POST['admin_email']   ?? ''),
-        'active_theme'  => trim($_POST['active_theme']  ?? ''),
     ];
-    // Theme menu position assignments
-    foreach ($themeMenus as $key => $label) {
-        $save[$key] = trim($_POST[$key] ?? '');
-    }
 
     if (!$save['site_name']) $errors[] = 'Seitenname ist Pflichtfeld.';
     if (!filter_var($save['site_url'], FILTER_VALIDATE_URL)) $errors[] = 'Ungültige URL.';
@@ -133,51 +111,14 @@ ob_start();
                 </div>
             </div>
 
-            <div class="card mb-4">
-                <div class="card-header py-2"><small class="text-secondary">Theme</small></div>
-                <div class="card-body">
-                    <select name="active_theme" class="form-select">
-                        <option value="">— kein Theme (reines HTML) —</option>
-                        <?php foreach ($themes as $slug => $label): ?>
-                        <option value="<?= htmlspecialchars($slug) ?>"
-                            <?= ($settings['active_theme'] ?? '') === $slug ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($label) ?>
-                        </option>
-                        <?php endforeach ?>
-                    </select>
-                    <div class="form-text">
-                        Das aktive Theme bestimmt das Aussehen aller Frontend-Seiten.
-                    </div>
+            <div class="card mb-4 border-secondary">
+                <div class="card-body py-2 d-flex align-items-center justify-content-between">
+                    <small class="text-secondary">Theme &amp; Menüpositionen</small>
+                    <a href="/admin/themes" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-palette"></i> Themes verwalten
+                    </a>
                 </div>
             </div>
-
-            <?php if ($themeMenus): ?>
-            <div class="card mb-4">
-                <div class="card-header py-2">
-                    <small class="text-secondary">Menüpositionen — <?= htmlspecialchars($settings['active_theme'] ?? '') ?></small>
-                </div>
-                <div class="card-body">
-                    <?php foreach ($themeMenus as $key => $label): ?>
-                    <div class="mb-3">
-                        <label class="form-label"><?= htmlspecialchars($label) ?></label>
-                        <select name="<?= htmlspecialchars($key) ?>" class="form-select">
-                            <option value="">— kein Menü —</option>
-                            <?php foreach ($allMenus as $m): ?>
-                            <option value="<?= htmlspecialchars($m['slug']) ?>"
-                                <?= ($settings[$key] ?? '') === $m['slug'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($m['name']) ?>
-                                (<?= htmlspecialchars($m['slug']) ?>)
-                            </option>
-                            <?php endforeach ?>
-                        </select>
-                    </div>
-                    <?php endforeach ?>
-                    <div class="form-text">
-                        Lege deine Menüs unter <a href="/admin/menus">Admin → Menüs</a> an und weise sie hier zu.
-                    </div>
-                </div>
-            </div>
-            <?php endif ?>
 
             <button class="btn btn-primary">
                 <i class="bi bi-floppy"></i> Speichern

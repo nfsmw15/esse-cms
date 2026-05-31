@@ -135,8 +135,13 @@ Router::get('/admin/plugins', fn() => print('Admin: Plugins — folgt'), [
     'auth' => 'admin',
 ]);
 
-Router::get('/admin/themes', fn() => print('Admin: Themes — folgt'), [
+Router::get('/admin/themes', fn() => require ESSE_ROOT . '/admin/themes/index.php', [
     'name' => 'admin.themes',
+    'auth' => 'admin',
+]);
+
+Router::post('/admin/themes', fn() => require ESSE_ROOT . '/admin/themes/index.php', [
+    'name' => 'admin.themes.post',
     'auth' => 'admin',
 ]);
 
