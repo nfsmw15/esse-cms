@@ -18,7 +18,12 @@ $settings = array_column($rows, 'value', 'key');
 
 $pages  = DB::fetchAll("SELECT slug, title FROM `{$tp}` WHERE status = 'published' ORDER BY title ASC");
 $errors = [];
-$flash  = null;
+
+$flash = null;
+if (!empty($_SESSION['flash'])) {
+    $flash = $_SESSION['flash'];
+    unset($_SESSION['flash']);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
@@ -34,12 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!filter_var($save['site_url'], FILTER_VALIDATE_URL)) $errors[] = 'Ungültige URL.';
 
     if (empty($errors)) {
-        $stmt = DB::query(
-            "INSERT INTO `{$ts}` (`key`, `value`) VALUES (?, ?)
-             ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
-            ['_placeholder', '_placeholder'] // warmup — real inserts below
-        );
-
         foreach ($save as $key => $value) {
             DB::query(
                 "INSERT INTO `{$ts}` (`key`, `value`) VALUES (?, ?)
@@ -47,9 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 [$key, $value]
             );
         }
-
-        $settings = $save;
-        $flash = ['type' => 'success', 'message' => 'Einstellungen gespeichert.'];
+        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Einstellungen gespeichert.'];
+        header('Location: /admin/settings');
+        exit;
     }
 }
 
@@ -58,13 +57,6 @@ $activeNav = 'settings';
 
 ob_start();
 ?>
-<?php if ($flash): ?>
-<div class="alert alert-<?= htmlspecialchars($flash['type']) ?> alert-dismissible fade show">
-    <?= htmlspecialchars($flash['message']) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif ?>
-
 <?php if ($errors): ?>
 <div class="alert alert-danger">
     <?php foreach ($errors as $e): ?><div><?= htmlspecialchars($e) ?></div><?php endforeach ?>
