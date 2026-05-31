@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
                 [$name]
             );
-            $_SESSION['flash'] = ['type' => 'success', 'message' => "Theme „{$name}" aktiviert."];
+            $_SESSION['flash'] = ['type' => 'success', 'message' => "Theme '{$name}' aktiviert."];
         }
         header('Location: /admin/themes');
         exit;
