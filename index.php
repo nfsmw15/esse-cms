@@ -14,11 +14,20 @@ if (file_exists(ESSE_ROOT . '/local.php')) {
 }
 defined('ESSE_PRIVATE_PATH') || define('ESSE_PRIVATE_PATH', ESSE_ROOT);
 
-// Autoloader: Esse\Router -> core/Router.php, Esse\Hooks -> core/Hooks.php etc.
+// Autoloader
 spl_autoload_register(function (string $class): void {
-    if (!str_starts_with($class, 'Esse\\')) return;
-    $path = ESSE_ROOT . '/core/' . str_replace('\\', '/', substr($class, 5)) . '.php';
-    if (file_exists($path)) require_once $path;
+    // Esse core: Esse\Router → core/Router.php
+    if (str_starts_with($class, 'Esse\\')) {
+        $path = ESSE_ROOT . '/core/' . str_replace('\\', '/', substr($class, 5)) . '.php';
+        if (file_exists($path)) require_once $path;
+        return;
+    }
+    // PHPMailer: PHPMailer\PHPMailer\PHPMailer → vendor/phpmailer/src/PHPMailer.php
+    if (str_starts_with($class, 'PHPMailer\\PHPMailer\\')) {
+        $name = substr($class, strlen('PHPMailer\\PHPMailer\\'));
+        $path = ESSE_ROOT . '/vendor/phpmailer/src/' . $name . '.php';
+        if (file_exists($path)) require_once $path;
+    }
 });
 
 use Esse\Auth;

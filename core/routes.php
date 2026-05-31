@@ -30,6 +30,40 @@ Router::post('/admin/login', fn() => require ESSE_ROOT . '/admin/login.php', [
     'auth' => 'public',
 ]);
 
+Router::get('/admin/forgot-password', fn() => require ESSE_ROOT . '/admin/forgot-password.php', [
+    'name' => 'admin.forgot_password',
+    'auth' => 'public',
+]);
+Router::post('/admin/forgot-password', fn() => require ESSE_ROOT . '/admin/forgot-password.php', [
+    'name' => 'admin.forgot_password.post',
+    'auth' => 'public',
+]);
+
+Router::get('/admin/reset-password', fn() => require ESSE_ROOT . '/admin/reset-password.php', [
+    'name' => 'admin.reset_password',
+    'auth' => 'public',
+]);
+Router::post('/admin/reset-password', fn() => require ESSE_ROOT . '/admin/reset-password.php', [
+    'name' => 'admin.reset_password.post',
+    'auth' => 'public',
+]);
+
+Router::get('/admin/settings/test-mail', function () {
+    if (!\Esse\Auth::can('manage_settings')) { http_response_code(403); exit; }
+    try {
+        \Esse\Mailer::test();
+        $ts = \Esse\DB::table('settings');
+        $to = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'admin_email'")
+            ?: \Esse\Auth::user()['email'];
+        \Esse\Mailer::send($to, 'Admin', 'ESSE CMS Test-Mail', '<p>SMTP funktioniert.</p>');
+        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Test-Mail erfolgreich gesendet.'];
+    } catch (\Throwable $e) {
+        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'SMTP-Fehler: ' . $e->getMessage()];
+    }
+    header('Location: /admin/settings');
+    exit;
+}, ['name' => 'admin.settings.test_mail', 'auth' => 'admin']);
+
 Router::post('/admin/logout', function () {
     if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); exit; }
     \Esse\Auth::logout();

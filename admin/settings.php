@@ -31,11 +31,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
 
     $save = [
-        'site_name'     => trim($_POST['site_name']     ?? ''),
-        'site_url'      => rtrim(trim($_POST['site_url'] ?? ''), '/'),
-        'homepage_slug' => trim($_POST['homepage_slug'] ?? ''),
-        'admin_email'   => trim($_POST['admin_email']   ?? ''),
+        'site_name'        => trim($_POST['site_name']        ?? ''),
+        'site_url'         => rtrim(trim($_POST['site_url']   ?? ''), '/'),
+        'homepage_slug'    => trim($_POST['homepage_slug']    ?? ''),
+        'admin_email'      => trim($_POST['admin_email']      ?? ''),
+        'smtp_host'        => trim($_POST['smtp_host']        ?? ''),
+        'smtp_port'        => trim($_POST['smtp_port']        ?? '587'),
+        'smtp_user'        => trim($_POST['smtp_user']        ?? ''),
+        'smtp_encryption'  => $_POST['smtp_encryption']       ?? 'tls',
+        'smtp_from'        => trim($_POST['smtp_from']        ?? ''),
+        'smtp_from_name'   => trim($_POST['smtp_from_name']   ?? ''),
     ];
+    // Only update password if a new one was entered
+    if (!empty($_POST['smtp_pass'])) {
+        $save['smtp_pass'] = $_POST['smtp_pass'];
+    }
 
     if (!$save['site_name']) $errors[] = 'Seitenname ist Pflichtfeld.';
     if (!filter_var($save['site_url'], FILTER_VALIDATE_URL)) $errors[] = 'Ungültige URL.';
@@ -108,6 +118,60 @@ ob_start();
                         <?php endforeach ?>
                     </select>
                     <div class="form-text">Die gewählte Seite wird unter der Hauptdomain angezeigt.</div>
+                </div>
+            </div>
+
+            <!-- SMTP -->
+            <div class="card mb-4">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <small class="text-secondary">E-Mail / SMTP</small>
+                    <a href="/admin/settings/test-mail" class="btn btn-sm btn-outline-secondary"
+                       id="btn-test-mail">
+                        <i class="bi bi-envelope"></i> Test-Mail senden
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-8">
+                            <label class="form-label">SMTP-Host</label>
+                            <input type="text" name="smtp_host" class="form-control"
+                                   placeholder="mail.example.com"
+                                   value="<?= htmlspecialchars($settings['smtp_host'] ?? '') ?>">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Port</label>
+                            <input type="number" name="smtp_port" class="form-control"
+                                   value="<?= htmlspecialchars($settings['smtp_port'] ?? '587') ?>">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Benutzername</label>
+                            <input type="text" name="smtp_user" class="form-control" autocomplete="off"
+                                   value="<?= htmlspecialchars($settings['smtp_user'] ?? '') ?>">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Passwort</label>
+                            <input type="password" name="smtp_pass" class="form-control" autocomplete="new-password"
+                                   placeholder="<?= empty($settings['smtp_pass']) ? '' : '••••••••' ?>">
+                            <div class="form-text">Leer lassen = unverändert</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Verschlüsselung</label>
+                            <select name="smtp_encryption" class="form-select">
+                                <option value="tls" <?= ($settings['smtp_encryption'] ?? 'tls') === 'tls' ? 'selected' : '' ?>>STARTTLS (Port 587)</option>
+                                <option value="ssl" <?= ($settings['smtp_encryption'] ?? '') === 'ssl' ? 'selected' : '' ?>>SSL/TLS (Port 465)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Absender-Adresse</label>
+                            <input type="email" name="smtp_from" class="form-control"
+                                   value="<?= htmlspecialchars($settings['smtp_from'] ?? '') ?>">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Absender-Name</label>
+                            <input type="text" name="smtp_from_name" class="form-control"
+                                   value="<?= htmlspecialchars($settings['smtp_from_name'] ?? '') ?>">
+                        </div>
+                    </div>
                 </div>
             </div>
 

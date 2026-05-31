@@ -70,6 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
         </div>
     </div>
+    <div class="text-center mt-3">
+        <a href="/admin/forgot-password" class="text-secondary small">Passwort vergessen?</a>
+    </div>
 </div>
 </body>
 </html>

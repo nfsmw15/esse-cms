@@ -286,6 +286,13 @@ function schema(string $p): array
             FOREIGN KEY (`menu_id`)   REFERENCES `{$p}menus`(`id`)      ON DELETE CASCADE,
             FOREIGN KEY (`parent_id`) REFERENCES `{$p}menu_items`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS `{$p}password_resets` (
+            `token`      VARCHAR(64)  NOT NULL PRIMARY KEY,
+            `email`      VARCHAR(255) NOT NULL,
+            `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            KEY `idx_email` (`email`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
 }
 
