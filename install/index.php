@@ -72,15 +72,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 4:
-            $username        = trim($_POST['username']         ?? '');
+            $displayName     = trim($_POST['display_name']     ?? '');
             $email           = trim($_POST['email']            ?? '');
             $password        = $_POST['password']              ?? '';
             $passwordConfirm = $_POST['password_confirm']      ?? '';
 
-            if (!$username || !$email || !$password) {
+            if (!$displayName || !$email || !$password) {
                 $errors[] = 'Alle Felder sind Pflichtfelder.';
-            } elseif (!preg_match('/^[a-zA-Z0-9_.\-]{3,50}$/', $username)) {
-                $errors[] = 'Benutzername: 3–50 Zeichen, nur Buchstaben, Ziffern, _, ., -';
+            } elseif (mb_strlen($displayName) < 2 || mb_strlen($displayName) > 100) {
+                $errors[] = 'Anzeigename: 2–100 Zeichen.';
             } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $errors[] = 'Ungültige E-Mail-Adresse.';
             } elseif (strlen($password) < 10) {
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Passwörter stimmen nicht überein.';
             } else {
                 try {
-                    runSetup($_SESSION['esse_install'], $username, $email, $password);
+                    runSetup($_SESSION['esse_install'], $displayName, $email, $password);
                     unset($_SESSION['esse_install']);
                     header('Location: /admin/login');
                     exit;
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // --- Setup ---
 
-function runSetup(array $data, string $username, string $email, string $password): void
+function runSetup(array $data, string $displayName, string $email, string $password): void
 {
     $db          = $data['db'];
     $site        = $data['site'];
@@ -119,6 +119,13 @@ function runSetup(array $data, string $username, string $email, string $password
     // Schema
     foreach (schema($p) as $sql) {
         $pdo->exec($sql);
+    }
+
+    // Migration: rename username → display_name if old schema exists
+    $cols = $pdo->query("SHOW COLUMNS FROM `{$p}users` LIKE 'username'")->fetchAll();
+    if (!empty($cols)) {
+        $pdo->exec("ALTER TABLE `{$p}users` CHANGE `username` `display_name` VARCHAR(100) NOT NULL");
+        $pdo->exec("ALTER TABLE `{$p}users` DROP INDEX `uq_username`");
     }
 
     // Default permissions
@@ -147,13 +154,13 @@ function runSetup(array $data, string $username, string $email, string $password
     $stmt->execute(['site_name', $site['siteName']]);
     $stmt->execute(['site_url',  $site['siteUrl']]);
 
-    // Forge account — skip if username or email already exists
-    $exists = $pdo->prepare("SELECT id FROM `{$p}users` WHERE username = ? OR email = ?");
-    $exists->execute([$username, $email]);
+    // Forge account — skip if email already exists
+    $exists = $pdo->prepare("SELECT id FROM `{$p}users` WHERE email = ?");
+    $exists->execute([$email]);
     if (!$exists->fetch()) {
         $hash = password_hash($password, PASSWORD_BCRYPT);
-        $pdo->prepare("INSERT INTO `{$p}users` (username, email, password, role) VALUES (?, ?, ?, 'forge')")
-            ->execute([$username, $email, $hash]);
+        $pdo->prepare("INSERT INTO `{$p}users` (display_name, email, password, role) VALUES (?, ?, ?, 'forge')")
+            ->execute([$displayName, $email, $hash]);
     }
 
     // Write config.php — always write (contains current DB credentials)
@@ -194,16 +201,15 @@ function schema(string $p): array
 {
     return [
         "CREATE TABLE IF NOT EXISTS `{$p}users` (
-            `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            `username`   VARCHAR(50)  NOT NULL,
-            `email`      VARCHAR(255) NOT NULL,
-            `password`   VARCHAR(255) NOT NULL,
-            `role`       ENUM('forge','admin','editor','author','member') NOT NULL DEFAULT 'member',
-            `active`     TINYINT(1)   NOT NULL DEFAULT 1,
-            `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            `updated_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            UNIQUE KEY `uq_username` (`username`),
-            UNIQUE KEY `uq_email`    (`email`)
+            `id`           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `display_name` VARCHAR(100) NOT NULL,
+            `email`        VARCHAR(255) NOT NULL,
+            `password`     VARCHAR(255) NOT NULL,
+            `role`         ENUM('forge','admin','editor','author','member') NOT NULL DEFAULT 'member',
+            `active`       TINYINT(1)   NOT NULL DEFAULT 1,
+            `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY `uq_email` (`email`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         "CREATE TABLE IF NOT EXISTS `{$p}permissions` (
@@ -445,13 +451,14 @@ $stepLabels = ['Systemprüfung', 'Datenbank', 'Website', 'Forge-Account'];
         <form method="post" action="/install?step=4">
             <div class="row g-3">
                 <div class="col-12">
-                    <label class="form-label">Benutzername</label>
-                    <input type="text" name="username" class="form-control" autocomplete="username" required>
-                    <div class="form-text">3–50 Zeichen, nur a–z, 0–9, _, ., -</div>
+                    <label class="form-label">Anzeigename</label>
+                    <input type="text" name="display_name" class="form-control" autocomplete="name" required>
+                    <div class="form-text">Wird im Admin-Panel angezeigt, z.B. "Andreas"</div>
                 </div>
                 <div class="col-12">
                     <label class="form-label">E-Mail</label>
                     <input type="email" name="email" class="form-control" autocomplete="email" required>
+                    <div class="form-text">Wird zum Einloggen verwendet</div>
                 </div>
                 <div class="col-6">
                     <label class="form-label">Passwort</label>

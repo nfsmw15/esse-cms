@@ -59,8 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="post" action="/admin/login">
                 <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
                 <div class="mb-3">
-                    <label class="form-label">Benutzername oder E-Mail</label>
-                    <input type="text" name="login" class="form-control" autocomplete="username" autofocus required>
+                    <label class="form-label">E-Mail</label>
+                    <input type="email" name="login" class="form-control" autocomplete="email" autofocus required>
                 </div>
                 <div class="mb-4">
                     <label class="form-label">Passwort</label>

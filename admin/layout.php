@@ -134,7 +134,7 @@
         <?php endif ?>
     </nav>
     <div class="user-info">
-        <strong><?= htmlspecialchars(\Esse\Auth::user()['username'] ?? '') ?></strong>
+        <strong><?= htmlspecialchars(\Esse\Auth::user()['display_name'] ?? '') ?></strong>
         <span class="badge badge-<?= \Esse\Auth::role() ?> rounded-pill" style="font-size:.65rem">
             <?= ucfirst(\Esse\Auth::role()) ?>
         </span>

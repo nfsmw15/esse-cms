@@ -40,12 +40,12 @@ class Auth
     }
 
     // Attempt login with username or e-mail + password. Returns true on success.
-    public static function attempt(string $login, string $password): bool
+    public static function attempt(string $email, string $password): bool
     {
         $t    = DB::table('users');
         $user = DB::fetch(
-            "SELECT * FROM `{$t}` WHERE (username = ? OR email = ?) AND active = 1",
-            [$login, $login]
+            "SELECT * FROM `{$t}` WHERE email = ? AND active = 1",
+            [$email]
         );
 
         if (!$user || !password_verify($password, $user['password'])) {
