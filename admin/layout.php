@@ -121,14 +121,16 @@
         <a href="/admin/users" class="<?= ($activeNav ?? '') === 'users' ? 'active' : '' ?>">
             <i class="bi bi-people"></i> Benutzer
         </a>
+        <?php if (\Esse\Auth::can('manage_settings')): ?>
+        <a href="/admin/settings" class="<?= ($activeNav ?? '') === 'settings' ? 'active' : '' ?>">
+            <i class="bi bi-gear"></i> Einstellungen
+        </a>
+        <?php endif ?>
         <a href="/admin/plugins" class="<?= ($activeNav ?? '') === 'plugins' ? 'active' : '' ?>">
             <i class="bi bi-puzzle"></i> Plugins
         </a>
         <a href="/admin/themes" class="<?= ($activeNav ?? '') === 'themes' ? 'active' : '' ?>">
             <i class="bi bi-palette"></i> Themes
-        </a>
-        <a href="/admin/settings" class="<?= ($activeNav ?? '') === 'settings' ? 'active' : '' ?>">
-            <i class="bi bi-gear"></i> Einstellungen
         </a>
         <?php if (\Esse\Auth::can('view_logs')): ?>
         <a href="/admin/logs" class="<?= ($activeNav ?? '') === 'logs' ? 'active' : '' ?>">

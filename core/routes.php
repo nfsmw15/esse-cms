@@ -6,10 +6,16 @@ use Esse\Router;
 
 // -- Frontend --
 
-Router::get('/', fn() => print('Homepage — Theme-Rendering folgt'), [
-    'name' => 'home',
-    'auth' => 'public',
-]);
+Router::get('/', function () {
+    $ts   = \Esse\DB::table('settings');
+    $slug = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'homepage_slug'");
+    if ($slug) {
+        \Esse\PageRenderer::render((string) $slug);
+    } else {
+        echo '<p style="font-family:sans-serif;padding:2rem">ESSE CMS — Startseite nicht konfiguriert. '
+           . '<a href="/admin/settings">Einstellungen öffnen</a></p>';
+    }
+}, ['name' => 'home', 'auth' => 'public']);
 
 
 // -- Admin --
@@ -99,10 +105,30 @@ Router::post('/admin/menus/edit/{id}', function (string $id) {
     require ESSE_ROOT . '/admin/menus/form.php';
 }, ['name' => 'admin.menus.edit.post', 'auth' => 'admin']);
 
-Router::get('/admin/users', fn() => print('Admin: Benutzer — folgt'), [
+Router::get('/admin/users', fn() => require ESSE_ROOT . '/admin/users/list.php', [
     'name' => 'admin.users',
     'auth' => 'admin',
 ]);
+
+Router::get('/admin/users/create', fn() => require ESSE_ROOT . '/admin/users/form.php', [
+    'name' => 'admin.users.create',
+    'auth' => 'admin',
+]);
+
+Router::post('/admin/users/create', fn() => require ESSE_ROOT . '/admin/users/form.php', [
+    'name' => 'admin.users.create.post',
+    'auth' => 'admin',
+]);
+
+Router::get('/admin/users/edit/{id}', function (string $id) {
+    $userId = (int) $id;
+    require ESSE_ROOT . '/admin/users/form.php';
+}, ['name' => 'admin.users.edit', 'auth' => 'admin']);
+
+Router::post('/admin/users/edit/{id}', function (string $id) {
+    $userId = (int) $id;
+    require ESSE_ROOT . '/admin/users/form.php';
+}, ['name' => 'admin.users.edit.post', 'auth' => 'admin']);
 
 Router::get('/admin/plugins', fn() => print('Admin: Plugins — folgt'), [
     'name' => 'admin.plugins',
@@ -114,8 +140,13 @@ Router::get('/admin/themes', fn() => print('Admin: Themes — folgt'), [
     'auth' => 'admin',
 ]);
 
-Router::get('/admin/settings', fn() => print('Admin: Einstellungen — folgt'), [
+Router::get('/admin/settings', fn() => require ESSE_ROOT . '/admin/settings.php', [
     'name' => 'admin.settings',
+    'auth' => 'admin',
+]);
+
+Router::post('/admin/settings', fn() => require ESSE_ROOT . '/admin/settings.php', [
+    'name' => 'admin.settings.post',
     'auth' => 'admin',
 ]);
 

@@ -1,0 +1,230 @@
+<?php
+
+declare(strict_types=1);
+
+use Esse\Auth;
+use Esse\DB;
+
+$userId ??= null;
+$isEdit  = $userId !== null;
+$tu      = DB::table('users');
+$user    = null;
+$errors  = [];
+
+if ($isEdit) {
+    $user = DB::fetch("SELECT * FROM `{$tu}` WHERE id = ?", [$userId]);
+    if (!$user) { http_response_code(404); echo '404'; exit; }
+
+    // Only Forge can edit other Forge accounts
+    if ($user['role'] === 'forge' && Auth::role() !== 'forge') {
+        http_response_code(403); echo '403 Forbidden'; exit;
+    }
+}
+
+// Available roles depending on current user's role
+$availableRoles = Auth::role() === 'forge'
+    ? ['forge' => 'Forge', 'admin' => 'Admin', 'editor' => 'Editor', 'author' => 'Author', 'member' => 'Member']
+    : ['admin' => 'Admin', 'editor' => 'Editor', 'author' => 'Author', 'member' => 'Member'];
+
+// -- POST handling --
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
+
+    $action = $_POST['_action'] ?? 'save';
+
+    // Deactivate / activate
+    if (in_array($action, ['deactivate', 'activate'], true) && $isEdit) {
+        if ($user['id'] === Auth::id()) {
+            $errors[] = 'Du kannst deinen eigenen Account nicht deaktivieren.';
+        } else {
+            DB::update($tu, ['active' => $action === 'activate' ? 1 : 0], ['id' => $user['id']]);
+            $_SESSION['flash'] = ['type' => 'success', 'message' => 'Status geändert.'];
+            header('Location: /admin/users');
+            exit;
+        }
+    }
+
+    if ($action === 'save') {
+        $displayName = trim($_POST['display_name'] ?? '');
+        $email       = trim($_POST['email']        ?? '');
+        $password    = $_POST['password']          ?? '';
+        $passwordC   = $_POST['password_confirm']  ?? '';
+        $role        = $_POST['role']              ?? 'member';
+
+        if (!$displayName) $errors[] = 'Anzeigename ist Pflichtfeld.';
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Ungültige E-Mail-Adresse.';
+        if (!array_key_exists($role, $availableRoles)) $errors[] = 'Ungültige Rolle.';
+
+        if (!$isEdit && !$password) $errors[] = 'Passwort ist Pflichtfeld.';
+        if ($password && strlen($password) < 10) $errors[] = 'Passwort muss mindestens 10 Zeichen haben.';
+        if ($password && $password !== $passwordC) $errors[] = 'Passwörter stimmen nicht überein.';
+
+        // Forge-Warnung: Promoting to forge requires confirmation
+        if ($role === 'forge' && (!$isEdit || $user['role'] !== 'forge')) {
+            if (($_POST['forge_confirmed'] ?? '') !== '1') {
+                $errors[] = '__forge_confirm__';
+            }
+        }
+
+        // E-Mail uniqueness
+        if (empty($errors)) {
+            $existing = DB::fetch(
+                "SELECT id FROM `{$tu}` WHERE email = ?" . ($isEdit ? " AND id != ?" : ''),
+                $isEdit ? [$email, $userId] : [$email]
+            );
+            if ($existing) $errors[] = 'Diese E-Mail-Adresse ist bereits vergeben.';
+        }
+
+        if (empty($errors)) {
+            $data = [
+                'display_name' => $displayName,
+                'email'        => $email,
+                'role'         => $role,
+            ];
+            if ($password) {
+                $data['password'] = password_hash($password, PASSWORD_BCRYPT);
+            }
+
+            if ($isEdit) {
+                DB::update($tu, $data, ['id' => $userId]);
+                $_SESSION['flash'] = ['type' => 'success', 'message' => 'Benutzer gespeichert.'];
+            } else {
+                DB::insert($tu, array_merge($data, ['active' => 1]));
+                $_SESSION['flash'] = ['type' => 'success', 'message' => "Benutzer '{$displayName}' erstellt."];
+            }
+            header('Location: /admin/users');
+            exit;
+        }
+
+        $user = array_merge($user ?? [], compact('displayName', 'email', 'role'));
+    }
+}
+
+$showForgeWarning = in_array('__forge_confirm__', $errors);
+$errors = array_filter($errors, fn($e) => $e !== '__forge_confirm__');
+
+$pageTitle = $isEdit ? 'Benutzer bearbeiten' : 'Neuer Benutzer';
+$activeNav = 'users';
+
+ob_start();
+?>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <a href="/admin/users" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Zurück
+    </a>
+</div>
+
+<?php if ($errors): ?>
+<div class="alert alert-danger">
+    <?php foreach ($errors as $e): ?><div><?= htmlspecialchars($e) ?></div><?php endforeach ?>
+</div>
+<?php endif ?>
+
+<?php if ($showForgeWarning): ?>
+<div class="alert alert-warning border border-warning">
+    <h6 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Achtung: Forge-Rechte vergeben</h6>
+    <p class="mb-2">Ein <strong>Forge</strong>-Account hat uneingeschränkten Zugriff und kann:</p>
+    <ul class="mb-3 small">
+        <li>Deinen Account sperren oder degradieren</li>
+        <li>Alle Inhalte und Einstellungen ändern</li>
+        <li>PHP-Code auf dem Server ausführen</li>
+        <li>Weitere Forge-Accounts anlegen</li>
+    </ul>
+    <form method="post">
+        <input type="hidden" name="_csrf"           value="<?= Auth::csrfToken() ?>">
+        <input type="hidden" name="_action"         value="save">
+        <input type="hidden" name="display_name"    value="<?= htmlspecialchars($_POST['display_name'] ?? '') ?>">
+        <input type="hidden" name="email"           value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+        <input type="hidden" name="role"            value="forge">
+        <input type="hidden" name="password"        value="<?= htmlspecialchars($_POST['password'] ?? '') ?>">
+        <input type="hidden" name="password_confirm" value="<?= htmlspecialchars($_POST['password_confirm'] ?? '') ?>">
+        <input type="hidden" name="forge_confirmed" value="1">
+        <div class="d-flex gap-2">
+            <button class="btn btn-warning btn-sm">Ja, Forge-Rechte vergeben</button>
+            <a href="/admin/users<?= $isEdit ? '/edit/'.$userId : '/create' ?>"
+               class="btn btn-outline-secondary btn-sm">Abbrechen</a>
+        </div>
+    </form>
+</div>
+<?php endif ?>
+
+<div class="row">
+    <div class="col-lg-6">
+        <form method="post">
+            <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+            <input type="hidden" name="_action" value="save">
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Anzeigename</label>
+                        <input type="text" name="display_name" class="form-control"
+                               value="<?= htmlspecialchars($user['display_name'] ?? '') ?>"
+                               required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">E-Mail</label>
+                        <input type="email" name="email" class="form-control"
+                               value="<?= htmlspecialchars($user['email'] ?? '') ?>"
+                               autocomplete="off" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Passwort <?= $isEdit ? '<small class="text-secondary">(leer lassen = unverändert)</small>' : '' ?>
+                        </label>
+                        <input type="password" name="password" class="form-control"
+                               autocomplete="new-password"
+                               <?= !$isEdit ? 'required' : '' ?>>
+                        <div class="form-text">Mindestens 10 Zeichen</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Passwort bestätigen</label>
+                        <input type="password" name="password_confirm" class="form-control"
+                               autocomplete="new-password">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Rolle</label>
+                        <select name="role" class="form-select">
+                            <?php foreach ($availableRoles as $val => $label): ?>
+                            <option value="<?= $val ?>"
+                                <?= ($user['role'] ?? 'member') === $val ? 'selected' : '' ?>>
+                                <?= $label ?>
+                            </option>
+                            <?php endforeach ?>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary w-100">
+                        <?= $isEdit ? 'Speichern' : 'Benutzer erstellen' ?>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <?php if ($isEdit && $user['id'] !== Auth::id()): ?>
+    <div class="col-lg-4">
+        <div class="card border-<?= $user['active'] ? 'danger' : 'success' ?>">
+            <div class="card-header py-2">
+                <small class="text-<?= $user['active'] ? 'danger' : 'success' ?>">Account-Status</small>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+                    <input type="hidden" name="_action" value="<?= $user['active'] ? 'deactivate' : 'activate' ?>">
+                    <button class="btn btn-sm w-100 btn-outline-<?= $user['active'] ? 'danger' : 'success' ?>">
+                        <?= $user['active'] ? '<i class="bi bi-person-x"></i> Account deaktivieren' : '<i class="bi bi-person-check"></i> Account aktivieren' ?>
+                    </button>
+                </form>
+                <div class="form-text mt-2">
+                    <?= $user['active']
+                        ? 'Deaktivierte Accounts können sich nicht mehr anmelden.'
+                        : 'Reaktivierung ermöglicht wieder den Login.' ?>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif ?>
+</div>
+<?php
+$content = ob_get_clean();
+require dirname(__DIR__) . '/layout.php';
