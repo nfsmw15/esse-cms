@@ -11,10 +11,6 @@ Router::get('/', fn() => print('Homepage — Theme-Rendering folgt'), [
     'auth' => 'public',
 ]);
 
-Router::get('/page/{slug}', fn(string $slug) => \Esse\PageRenderer::render($slug), [
-    'name' => 'page.show',
-    'auth' => 'public',
-]);
 
 // -- Admin --
 
@@ -111,5 +107,12 @@ Router::get('/install', fn() => require ESSE_ROOT . '/install/index.php', [
 
 Router::post('/install', fn() => require ESSE_ROOT . '/install/index.php', [
     'name' => 'install.post',
+    'auth' => 'public',
+]);
+
+// -- Frontend pages (must be last — catches any unmatched slug) --
+
+Router::get('/{slug}', fn(string $slug) => \Esse\PageRenderer::render($slug), [
+    'name' => 'page.show',
     'auth' => 'public',
 ]);

@@ -5,8 +5,9 @@ declare(strict_types=1);
 use Esse\Auth;
 use Esse\DB;
 
-// $editSlug is injected by the route handler if editing
-$isEdit   = isset($editSlug);
+// $editSlug is injected by the route closure when editing; null for create
+$editSlug ??= null;
+$isEdit   = $editSlug !== null;
 $t        = DB::table('pages');
 $page     = null;
 $errors   = [];
@@ -121,7 +122,7 @@ ob_start();
         <i class="bi bi-arrow-left"></i> Zurück
     </a>
     <?php if ($isEdit && $page['status'] === 'published'): ?>
-    <a href="/page/<?= htmlspecialchars($page['slug']) ?>" target="_blank"
+    <a href="/<?= htmlspecialchars($page['slug']) ?>" target="_blank"
        class="btn btn-sm btn-outline-success">
         <i class="bi bi-box-arrow-up-right"></i> Ansehen
     </a>
