@@ -38,13 +38,6 @@ ob_start();
     </a>
 </div>
 
-<?php if ($flash): ?>
-<div class="alert alert-<?= htmlspecialchars($flash['type']) ?> alert-dismissible fade show">
-    <?= htmlspecialchars($flash['message']) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif ?>
-
 <div class="card">
     <div class="card-body p-0">
         <table class="table table-sm mb-0">
