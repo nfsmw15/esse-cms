@@ -1,0 +1,11 @@
+config/config.php
+storage/cache/*
+storage/uploads/*
+storage/backups/*
+!storage/cache/.gitkeep
+!storage/uploads/.gitkeep
+!storage/backups/.gitkeep
+install/installed.lock
+.DS_Store
+Thumbs.db
+*.log
