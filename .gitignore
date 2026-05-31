@@ -9,3 +9,4 @@ install/installed.lock
 .DS_Store
 Thumbs.db
 *.log
+backup/

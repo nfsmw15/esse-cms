@@ -174,8 +174,9 @@ function runSetup(array $data, string $displayName, string $email, string $passw
         . "define('ESSE_DB_NAME',   " . var_export($db['name'], true)  . ");\n"
         . "define('ESSE_DB_USER',   " . var_export($db['user'], true)  . ");\n"
         . "define('ESSE_DB_PASS',   " . var_export($db['pass'], true)  . ");\n"
-        . "define('ESSE_DB_PREFIX', " . var_export($p, true)           . ");\n"
-        . "define('ESSE_URL',       " . var_export($site['siteUrl'], true) . ");\n";
+        . "define('ESSE_DB_PREFIX',    " . var_export($p, true)                      . ");\n"
+        . "define('ESSE_URL',          " . var_export($site['siteUrl'], true)        . ");\n"
+        . "define('ESSE_ENCRYPT_KEY',  " . var_export(bin2hex(random_bytes(32)), true) . ");\n";
 
     if (file_put_contents($configDir . '/config.php', $config) === false) {
         throw new \RuntimeException("Konnte config.php nicht schreiben: {$configDir}/config.php");

@@ -42,9 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'smtp_from'        => trim($_POST['smtp_from']        ?? ''),
         'smtp_from_name'   => trim($_POST['smtp_from_name']   ?? ''),
     ];
-    // Only update password if a new one was entered
+    // Only update password if a new one was entered — store encrypted
     if (!empty($_POST['smtp_pass'])) {
-        $save['smtp_pass'] = $_POST['smtp_pass'];
+        $save['smtp_pass'] = \Esse\Crypto::encrypt($_POST['smtp_pass']);
     }
 
     if (!$save['site_name']) $errors[] = 'Seitenname ist Pflichtfeld.';
@@ -151,8 +151,7 @@ ob_start();
                         <div class="col-6">
                             <label class="form-label">Passwort</label>
                             <input type="password" name="smtp_pass" class="form-control" autocomplete="new-password"
-                                   placeholder="<?= empty($settings['smtp_pass']) ? '' : '••••••••' ?>">
-                            <div class="form-text">Leer lassen = unverändert</div>
+                                   placeholder="<?= empty($settings['smtp_pass']) ? '' : 'Leer lassen, um Passwort beizubehalten' ?>">
                         </div>
                         <div class="col-6">
                             <label class="form-label">Verschlüsselung</label>

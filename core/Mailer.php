@@ -30,7 +30,7 @@ class Mailer
         $mail->Host       = $cfg['smtp_host'];
         $mail->SMTPAuth   = true;
         $mail->Username   = $cfg['smtp_user'];
-        $mail->Password   = $cfg['smtp_pass'];
+        $mail->Password   = Crypto::decrypt($cfg['smtp_pass'] ?? '');
         $mail->SMTPSecure = $cfg['smtp_encryption'] === 'ssl' ? PM::ENCRYPTION_SMTPS : PM::ENCRYPTION_STARTTLS;
         $mail->Port       = (int) ($cfg['smtp_port'] ?: 587);
         $mail->CharSet    = PM::CHARSET_UTF8;
@@ -74,7 +74,7 @@ class Mailer
             $smtp->startTLS();
         }
 
-        $authed = $smtp->authenticate($cfg['smtp_user'], $cfg['smtp_pass']);
+        $authed = $smtp->authenticate($cfg['smtp_user'], Crypto::decrypt($cfg['smtp_pass'] ?? ''));
         $smtp->quit();
 
         if (!$authed) {
