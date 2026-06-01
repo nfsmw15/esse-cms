@@ -167,18 +167,96 @@ Auth::verifyCsrf();         // bool: CSRF prüfen (in POST-Handlern)
 
 ## Plugin-Assets
 
-Assets (CSS, JS, Bilder) in `plugins/mein-plugin/public/` ablegen.
+Der `plugins/`-Ordner ist per `.htaccess` gesperrt — Dateien darin sind nicht direkt per HTTP erreichbar. Für öffentliche Assets (CSS, JS, Bilder) gibt es zwei Wege:
+
+**Option A: Via Route ausliefern**
+```php
+Router::get('/plugins/mein-plugin/assets/{file}', function(string $file) {
+    $path = $this->basePath('assets/' . basename($file));
+    if (!file_exists($path)) { http_response_code(404); exit; }
+    // mime type + readfile($path);
+}, ['auth' => 'public']);
+```
+
+**Option B: In `public/vendor/` ablegen** (bei der Installation kopieren)
+```php
+public function install(): void
+{
+    $src  = $this->basePath('assets/');
+    $dest = ESSE_ROOT . '/public/vendor/mein-plugin/';
+    // copy files...
+}
+```
 
 URL im Plugin:
 ```php
 $this->assetUrl('css/style.css')
 // → https://example.com/plugins/mein-plugin/public/css/style.css
+// (funktioniert nur wenn Assets über Route ausgeliefert werden)
 ```
 
-**Hinweis:** Der `plugins/`-Ordner ist per `.htaccess` gesperrt.
-Für Assets muss eine eigene Route oder das `public/`-Verzeichnis verwendet werden.
-Am einfachsten: Assets über eine Route ausliefern oder in `public/` des Plugin-Ordners ablegen
-und eine separate Rewrite-Regel nutzen — oder Assets per Route servieren.
+---
+
+## E-Mail senden
+
+```php
+use Esse\Mailer;
+
+// HTML-E-Mail (SMTP muss in Einstellungen konfiguriert sein)
+Mailer::send(
+    'empfaenger@example.com',
+    'Max Mustermann',
+    'Betreff',
+    '<p>HTML-Inhalt</p>'
+);
+
+// Plain-Text
+Mailer::send('to@example.com', 'Name', 'Betreff', 'Nur Text', false);
+```
+
+Wenn SMTP nicht konfiguriert ist, wirft `send()` eine `\RuntimeException`.
+
+---
+
+## Sensible Daten verschlüsseln
+
+Für Plugin-Einstellungen die sensible Werte enthalten (API-Keys, Passwörter):
+
+```php
+use Esse\Crypto;
+use Esse\DB;
+
+// Speichern (verschlüsselt)
+$ts = DB::table('settings');
+DB::query("INSERT INTO `{$ts}` (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)",
+    ['mein_plugin_api_key', Crypto::encrypt($apiKey)]
+);
+
+// Lesen (entschlüsselt)
+$encrypted = DB::value("SELECT `value` FROM `{$ts}` WHERE `key`='mein_plugin_api_key'");
+$apiKey    = Crypto::decrypt($encrypted ?? '');
+```
+
+---
+
+## Flash-Messages in Admin-Seiten
+
+```php
+// Setzen (vor einem Redirect)
+$_SESSION['flash'] = ['type' => 'success', 'message' => 'Gespeichert.'];
+header('Location: /admin/mein-plugin');
+exit;
+
+// Lesen (am Anfang der Seite, nach dem Redirect)
+$flash = null;
+if (!empty($_SESSION['flash'])) {
+    $flash = $_SESSION['flash'];
+    unset($_SESSION['flash']);
+}
+// Das Admin-Layout rendert $flash automatisch wenn es gesetzt ist.
+```
+
+`type` kann sein: `success`, `danger`, `warning`, `info`
 
 ---
 
@@ -266,6 +344,7 @@ class Plugin extends \Esse\Plugin
 - [ ] `boot()` registriert Routen, addAdminNav(), registerPage()
 - [ ] `install()` legt DB-Tabellen an (mit `CREATE TABLE IF NOT EXISTS`)
 - [ ] `uninstall()` löscht DB-Tabellen und Daten
-- [ ] Keine Slug-Konflikte mit Kern-Routen (`/admin`, `/install`, `/profil`, `/registrieren`, `/abmelden`)
+- [ ] Keine Slug-Konflikte mit Kern-Routen:
+      `/admin/*`, `/install`, `/profil`, `/registrieren`, `/abmelden`
 - [ ] CSRF in allen POST-Handlern: `Auth::verifyCsrf()`
 - [ ] Berechtigungen prüfen: `Auth::meetsRole()` oder `Auth::can()`
