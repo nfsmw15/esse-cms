@@ -79,7 +79,12 @@ ob_start();
         <!-- Update available -->
         <div class="card mb-4 border-warning">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <strong>ESSE CMS <?= htmlspecialchars($updateInfo['version']) ?></strong>
+                <div class="d-flex align-items-center gap-2">
+                    <strong>ESSE CMS <?= htmlspecialchars($updateInfo['version']) ?></strong>
+                    <?php if (!empty($updateInfo['prerelease'])): ?>
+                    <span class="badge bg-secondary">Pre-Release</span>
+                    <?php endif ?>
+                </div>
                 <small class="text-secondary">
                     <?= htmlspecialchars(date('d.m.Y', strtotime($updateInfo['published_at']))) ?>
                 </small>

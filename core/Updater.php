@@ -18,17 +18,26 @@ class Updater
 
     public static function checkForUpdate(): ?array
     {
-        $url  = 'https://api.github.com/repos/' . \ESSE_GITHUB_REPO . '/releases/latest';
-        $ctx  = stream_context_create(['http' => [
-            'header'  => "User-Agent: ESSE-CMS/" . \ESSE_VERSION . "\r\n",
-            'timeout' => 8,
-        ]]);
+        // /releases returns all releases incl. pre-releases; take the most recent
+        $url = 'https://api.github.com/repos/' . \ESSE_GITHUB_REPO . '/releases';
 
-        $json = @file_get_contents($url, false, $ctx);
-        if (!$json) return null;
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            \CURLOPT_RETURNTRANSFER => true,
+            \CURLOPT_TIMEOUT        => 8,
+            \CURLOPT_USERAGENT      => 'ESSE-CMS/' . \ESSE_VERSION,
+            \CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+        $json = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, \CURLINFO_HTTP_CODE);
+        curl_close($ch);
 
-        $data = json_decode($json, true);
-        if (empty($data['tag_name'])) return null;
+        if (!$json || $code !== 200) return null;
+
+        $releases = json_decode($json, true);
+        if (empty($releases[0]['tag_name'])) return null;
+
+        $data = $releases[0];
 
         return [
             'version'      => ltrim($data['tag_name'], 'v'),
@@ -37,6 +46,7 @@ class Updater
             'download_url' => $data['zipball_url'] ?? '',
             'published_at' => $data['published_at'] ?? '',
             'html_url'     => $data['html_url'] ?? '',
+            'prerelease'   => $data['prerelease'] ?? false,
         ];
     }
 
