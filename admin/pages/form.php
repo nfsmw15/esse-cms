@@ -308,7 +308,8 @@ $extraHead    = '<link rel="stylesheet" href="/public/vendor/summernote/summerno
 .note-modal .modal-content { background:#1a1a1a; }
 .note-modal .modal-header, .note-modal .modal-footer { border-color:#333; }
 </style>';
-$extraScripts = '<script src="/public/vendor/summernote/summernote-bs5.min.js"></script>
+$extraScripts = '<script src="/public/vendor/summernote/jquery.min.js"></script>
+<script src="/public/vendor/summernote/summernote-bs5.min.js"></script>
 <script src="/public/vendor/summernote/summernote-de-DE.min.js"></script>
 <script>
 (function() {
