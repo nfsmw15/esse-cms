@@ -305,7 +305,8 @@ $extraHead = '<link rel="stylesheet" href="/public/vendor/summernote/summernote-
 .dropdown-item:hover { background:#2d2d2d; color:#fff; }
 </style>';
 
-$extraScripts = '<script src="/public/vendor/summernote/summernote-bs5.min.js"></script>
+$extraScripts = '<script src="/public/vendor/summernote/jquery.min.js"></script>
+<script src="/public/vendor/summernote/summernote-bs5.min.js"></script>
 <script src="/public/vendor/summernote/summernote-de-DE.min.js"></script>
 <script>
 // Bootstrap 5 ↔ jQuery bridge (benötigt für Summernote-Tooltips)
@@ -351,8 +352,6 @@ $.fn.popover = function(opt) {
 </script>';
 ```
 
-> **Hinweis:** jQuery wird vom Layout automatisch vor Bootstrap geladen wenn `$extraScripts`
-> gesetzt ist — du musst jQuery nicht selbst einbinden.
 
 ---
 
