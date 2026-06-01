@@ -86,15 +86,21 @@ class Updater
 
         // Files (skip storage and vendor to keep backup small)
         $log('Dateien sichern...');
-        $root   = \ESSE_ROOT;
-        $skip   = ['/storage/', '/public/vendor/'];
-        $iter   = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root));
+        $root = \ESSE_ROOT;
+        $skip = ['storage/', 'public/vendor/'];
+        $iter = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+        );
 
         foreach ($iter as $file) {
-            if (!$file->isFile()) continue;
-            $rel = str_replace($root . '/', '', $file->getPathname());
+            try {
+                if (!$file->isFile()) continue;
+            } catch (\Throwable) {
+                continue; // open_basedir may block parent dir access
+            }
+            $rel = ltrim(str_replace($root, '', $file->getPathname()), '/');
             foreach ($skip as $s) {
-                if (str_contains($rel, ltrim($s, '/'))) continue 2;
+                if (str_starts_with($rel, $s)) continue 2;
             }
             $zip->addFile($file->getPathname(), 'files/' . $rel);
         }
