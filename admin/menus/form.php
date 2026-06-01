@@ -82,9 +82,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pageSlug = trim($_POST['page_slug'] ?? '');
             $url      = trim($_POST['url']    ?? '');
             $target   = $_POST['target']      ?? '_self';
+            $parentId = (int) ($_POST['parent_id'] ?? 0) ?: null;
 
             if (!in_array($type,   ['page','url','header'], true)) $type   = 'page';
             if (!in_array($target, ['_self','_blank'],       true)) $target = '_self';
+
+            // Prevent item from being its own parent
+            if ($parentId === $itemId) $parentId = null;
 
             if ($itemId && $label) {
                 DB::update($ti, [
@@ -93,9 +97,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'page_slug' => $type === 'page' ? $pageSlug : null,
                     'url'       => $type === 'url'  ? $url      : null,
                     'target'    => $target,
+                    'parent_id' => $parentId,
                 ], ['id' => $itemId, 'menu_id' => $menuId]);
             }
             header("Location: /admin/menus/edit/{$menuId}");
+            exit;
+
+        case 'reorder':
+            // Expects: items=[[id,parent_id,sort_order], ...]
+            $items = json_decode($_POST['items'] ?? '[]', true);
+            foreach ($items as $row) {
+                if (!is_array($row) || !isset($row['id'])) continue;
+                DB::update($ti, [
+                    'sort_order' => (int) ($row['order'] ?? 0),
+                    'parent_id'  => ($row['parent_id'] ?? 0) ?: null,
+                ], ['id' => (int) $row['id'], 'menu_id' => $menuId]);
+            }
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => true]);
             exit;
 
         case 'delete_item':
@@ -148,8 +167,9 @@ foreach ($topItems as &$top) {
 }
 unset($top);
 
-$pages       = DB::fetchAll("SELECT slug, title FROM `{$tp}` WHERE status = 'published' ORDER BY title ASC");
-$pluginPages = \Esse\Plugin::getRegisteredPages();
+$pages         = DB::fetchAll("SELECT slug, title FROM `{$tp}` WHERE status = 'published' ORDER BY title ASC");
+$pluginPages   = \Esse\Plugin::getRegisteredPages();
+$allTopItems   = $topItems; // passed to itemEditForm for parent selector
 
 function itemButtons(array $item, int $menuId): string
 {
@@ -172,7 +192,7 @@ function itemButtons(array $item, int $menuId): string
     return $out;
 }
 
-function itemEditForm(array $item, int $menuId, array $pages): string
+function itemEditForm(array $item, int $menuId, array $pages, array $allTopItems = []): string
 {
     $csrf  = \Esse\Auth::csrfToken();
     $id    = $item['id'];
@@ -203,6 +223,15 @@ function itemEditForm(array $item, int $menuId, array $pages): string
     }
 
     $blankChecked = $item['target'] === '_blank' ? ' checked' : '';
+    $currentParent = (int) ($item['parent_id'] ?? 0);
+
+    // Parent selector: only top-level non-self items
+    $parentOpts = "<option value=''>— Hauptebene —</option>";
+    foreach ($allTopItems as $top) {
+        if ($top['id'] === $id) continue; // can't be own parent
+        $sel = $currentParent === $top['id'] ? ' selected' : '';
+        $parentOpts .= "<option value='{$top['id']}'{$sel}>" . htmlspecialchars($top['label']) . "</option>";
+    }
 
     return "<form method='post' action='/admin/menus/edit/{$menuId}' class='border rounded p-2 bg-dark'>"
          . "<input type='hidden' name='_csrf' value='{$csrf}'>"
@@ -223,6 +252,8 @@ function itemEditForm(array $item, int $menuId, array $pages): string
          . "<div class='col-sm-4 field-url" . ($type !== 'url' ? ' d-none' : '') . "'>"
          . "<label class='form-label small'>URL</label>"
          . "<input type='text' name='url' class='form-control form-control-sm' value='{$url}'></div>"
+         . "<div class='col-sm-3'><label class='form-label small'>Ebene</label>"
+         . "<select name='parent_id' class='form-select form-select-sm'>{$parentOpts}</select></div>"
          . "<div class='col-sm-2'><div class='form-check mt-3'>"
          . "<input class='form-check-input' type='checkbox' name='target' value='_blank' id='t{$id}'{$blankChecked}>"
          . "<label class='form-check-label small' for='t{$id}'>Neuer Tab</label></div></div>"
@@ -257,13 +288,15 @@ ob_start();
             </div>
             <div class="card-body p-0">
                 <?php if ($topItems): ?>
-                <div class="list-group list-group-flush">
+                <div id="sortable-top" class="list-group list-group-flush">
                 <?php foreach ($topItems as $item):
                     $editId = 'edit-' . $item['id']; ?>
 
-                    <?php /* --- Top-level row --- */ ?>
-                    <div class="list-group-item px-3 py-2">
+                    <div class="list-group-item px-3 py-2" data-id="<?= $item['id'] ?>">
                         <div class="d-flex align-items-center gap-2">
+                            <span class="drag-handle text-secondary" style="cursor:grab" title="Verschieben">
+                                <i class="bi bi-grip-vertical"></i>
+                            </span>
                             <i class="bi bi-<?= $item['type'] === 'header' ? 'dash-lg' : 'link-45deg' ?> text-secondary"></i>
                             <span class="fw-semibold flex-grow-1"><?= htmlspecialchars($item['label']) ?>
                                 <?php if ($item['type'] === 'page' && $item['page_slug']): ?>
@@ -272,22 +305,33 @@ ob_start();
                                     <small class="text-secondary fw-normal"><?= htmlspecialchars($item['url']) ?></small>
                                 <?php endif ?>
                             </span>
-                            <?php echo itemButtons($item, $menuId); ?>
                             <button class="btn btn-sm btn-outline-primary"
                                     data-bs-toggle="collapse" data-bs-target="#<?= $editId ?>">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            <?php /* Delete */ ?>
+                            <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline"
+                                  onsubmit="return confirm('Eintrag löschen?')">
+                                <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+                                <input type="hidden" name="_action" value="delete_item">
+                                <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
                         </div>
 
-                        <?php /* --- Inline edit form --- */ ?>
                         <div class="collapse mt-2" id="<?= $editId ?>">
-                            <?php echo itemEditForm($item, $menuId, $pages); ?>
+                            <?php echo itemEditForm($item, $menuId, $pages, $allTopItems); ?>
                         </div>
 
-                        <?php /* --- Children --- */ ?>
+                        <?php if (!empty($item['children'])): ?>
+                        <div class="sortable-children mt-2 ps-3 border-start border-secondary"
+                             data-parent-id="<?= $item['id'] ?>">
                         <?php foreach ($item['children'] as $child):
                             $childEditId = 'edit-' . $child['id']; ?>
-                        <div class="d-flex align-items-center gap-2 mt-2 ps-3 border-start border-secondary">
+                        <div class="d-flex align-items-center gap-2 py-1" data-child-id="<?= $child['id'] ?>">
+                            <span class="drag-handle text-secondary" style="cursor:grab">
+                                <i class="bi bi-grip-vertical"></i>
+                            </span>
                             <i class="bi bi-arrow-return-right text-secondary small"></i>
                             <span class="small flex-grow-1"><?= htmlspecialchars($child['label']) ?>
                                 <?php if ($child['page_slug']): ?>
@@ -296,16 +340,24 @@ ob_start();
                                     <small class="text-secondary"><?= htmlspecialchars($child['url']) ?></small>
                                 <?php endif ?>
                             </span>
-                            <?php echo itemButtons($child, $menuId); ?>
                             <button class="btn btn-sm btn-outline-primary py-0"
                                     data-bs-toggle="collapse" data-bs-target="#<?= $childEditId ?>">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline"
+                                  onsubmit="return confirm('Eintrag löschen?')">
+                                <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+                                <input type="hidden" name="_action" value="delete_item">
+                                <input type="hidden" name="item_id" value="<?= $child['id'] ?>">
+                                <button class="btn btn-sm btn-outline-danger py-0"><i class="bi bi-trash"></i></button>
+                            </form>
                         </div>
-                        <div class="collapse ps-3 mt-1" id="<?= $childEditId ?>">
-                            <?php echo itemEditForm($child, $menuId, $pages); ?>
+                        <div class="collapse ps-4 mt-1" id="<?= $childEditId ?>">
+                            <?php echo itemEditForm($child, $menuId, $pages, $allTopItems); ?>
                         </div>
                         <?php endforeach ?>
+                        </div>
+                        <?php endif ?>
                     </div>
                 <?php endforeach ?>
                 </div>
@@ -444,7 +496,58 @@ document.addEventListener('change', e => {
     form.querySelector('.field-page')?.classList.toggle('d-none', e.target.value !== 'page');
     form.querySelector('.field-url')?.classList.toggle('d-none',  e.target.value !== 'url');
 });
+
+// ---- Drag & Drop (SortableJS) ----
+
+const csrf     = <?= json_encode(Auth::csrfToken()) ?>;
+const reordUrl = '/admin/menus/edit/<?= $menuId ?>';
+
+function collectOrder() {
+    const items = [];
+    let order = 10;
+    document.querySelectorAll('#sortable-top > [data-id]').forEach(el => {
+        items.push({ id: parseInt(el.dataset.id), parent_id: 0, order });
+        order += 10;
+        let childOrder = 10;
+        el.querySelectorAll('[data-child-id]').forEach(ch => {
+            items.push({ id: parseInt(ch.dataset.childId), parent_id: parseInt(el.dataset.id), order: childOrder });
+            childOrder += 10;
+        });
+    });
+    return items;
+}
+
+function saveOrder() {
+    const fd = new FormData();
+    fd.append('_csrf', csrf);
+    fd.append('_action', 'reorder');
+    fd.append('items', JSON.stringify(collectOrder()));
+    fetch(reordUrl, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(d => { if (!d.ok) console.error('Reorder failed'); });
+}
+
+// Top-level sortable
+const topList = document.getElementById('sortable-top');
+if (topList) {
+    Sortable.create(topList, {
+        handle: '.drag-handle',
+        animation: 150,
+        onEnd: saveOrder,
+    });
+
+    // Child sortable for each top-level item
+    document.querySelectorAll('.sortable-children').forEach(el => {
+        Sortable.create(el, {
+            handle: '.drag-handle',
+            animation: 150,
+            group: 'children-' + el.dataset.parentId,
+            onEnd: saveOrder,
+        });
+    });
+}
 </script>
 <?php
-$content = ob_get_clean();
+$content      = ob_get_clean();
+$extraScripts = '<script src="/public/vendor/sortable/Sortable.min.js"></script>';
 require dirname(__DIR__) . '/layout.php';
