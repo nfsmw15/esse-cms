@@ -15,14 +15,15 @@ $redirect = $_SERVER['REQUEST_URI'] ?? '/';
     <link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= $theme->assetUrl('css/esse-dashboard.css') ?>">
     <style>
-        body { display:flex; flex-direction:column; min-height:100vh; justify-content:center; align-items:center; }
+        body { display:flex; flex-direction:column; min-height:100vh; }
+        .login-wrap { flex:1; display:flex; justify-content:center; align-items:center; padding:2rem 1rem; }
         .login-box { width:100%; max-width:380px; padding:1rem; }
         .login-card { background:var(--card-bg); border:1px solid var(--border); border-radius:.75rem; padding:2rem; }
     </style>
 </head>
 <body>
 
-<div class="login-box">
+<div class="login-wrap"><div class="login-box">
     <div class="text-center mb-4">
         <h1 class="h4 fw-bold text-white mb-0"><?= htmlspecialchars($siteName) ?></h1>
     </div>
@@ -53,32 +54,51 @@ $redirect = $_SERVER['REQUEST_URI'] ?? '/';
             <a href="/admin/forgot-password" class="text-secondary small">Passwort vergessen?</a>
         </div>
     </div>
-</div>
+</div></div>
 
-<!-- Minimal footer — only footer menu links (e.g. Impressum) -->
-<?php
-// Collect all visible links from footer menu (including children of headers)
-$footLinks = [];
-foreach ($footMenu as $item) {
-    if ($item['type'] !== 'header') {
-        $footLinks[] = $item;
-    }
-    foreach ($item['children'] ?? [] as $child) {
-        if ($child['type'] !== 'header') {
-            $footLinks[] = $child;
+<!-- Footer: grouped by headers, same pattern as esse-base -->
+<?php if ($footMenu):
+    // Build groups: each header starts a new group, its children are the links
+    $groups  = [];
+    $current = ['header' => null, 'links' => []];
+    foreach ($footMenu as $item) {
+        if ($item['type'] === 'header') {
+            if ($current['header'] !== null || !empty($current['links'])) {
+                $groups[] = $current;
+            }
+            $current = ['header' => $item['label'], 'links' => $item['children'] ?? []];
+        } else {
+            $current['links'][] = $item;
         }
     }
-}
+    if ($current['header'] !== null || !empty($current['links'])) {
+        $groups[] = $current;
+    }
 ?>
-<?php if ($footLinks): ?>
-<footer class="position-fixed bottom-0 w-100 py-3 text-center" style="border-top:1px solid var(--border)">
-    <?php foreach ($footLinks as $link): ?>
-    <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($link)) ?>"
-       class="text-secondary small text-decoration-none mx-2"
-       <?= $link['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
-        <?= htmlspecialchars($link['label']) ?>
-    </a>
-    <?php endforeach ?>
+<footer class="w-100 py-4 mt-auto" style="border-top:1px solid var(--border)">
+    <div class="d-flex flex-wrap justify-content-center gap-5">
+        <?php foreach ($groups as $group): ?>
+        <div>
+            <?php if ($group['header'] !== null): ?>
+            <p class="text-white small fw-semibold mb-1"><?= htmlspecialchars($group['header']) ?></p>
+            <hr class="border-secondary mt-0 mb-2">
+            <?php endif ?>
+            <?php foreach ($group['links'] as $link): ?>
+            <?php if ($link['type'] === 'header'): ?>
+            <p class="text-secondary small mb-1" style="font-size:.8rem"><?= htmlspecialchars($link['label']) ?></p>
+            <?php else: ?>
+            <div>
+                <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($link)) ?>"
+                   class="text-secondary small text-decoration-none"
+                   <?= $link['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
+                    <?= htmlspecialchars($link['label']) ?>
+                </a>
+            </div>
+            <?php endif ?>
+            <?php endforeach ?>
+        </div>
+        <?php endforeach ?>
+    </div>
 </footer>
 <?php endif ?>
 
