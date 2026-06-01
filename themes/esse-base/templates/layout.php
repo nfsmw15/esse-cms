@@ -175,7 +175,7 @@
                     <?php endif ?>
                     <?php foreach ($group['links'] as $link): ?>
                     <?php if ($link['type'] === 'header'): ?>
-                    <p class="text-secondary small mb-1 mt-2" style="font-size:.75rem">
+                    <p class="text-secondary small mb-1 mt-2">
                         <?= htmlspecialchars($link['label']) ?>
                     </p>
                     <?php else: ?>
