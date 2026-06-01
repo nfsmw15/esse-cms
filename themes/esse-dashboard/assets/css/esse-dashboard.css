@@ -1,0 +1,169 @@
+/* esse-dashboard theme */
+
+:root {
+    --sidebar-w: 260px;
+    --topbar-h:  56px;
+    --bg:        #0f0f0f;
+    --sidebar-bg:#111318;
+    --card-bg:   #1a1d23;
+    --border:    #2a2d35;
+    --text:      #dee2e6;
+    --muted:     #6c757d;
+    --accent:    #6ea8fe;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+/* ── Sidebar ── */
+#dash-sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    transition: transform .2s;
+}
+
+#dash-sidebar .brand {
+    padding: 1.25rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: #fff;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+#dash-sidebar .brand small {
+    display: block;
+    font-size: .65rem;
+    font-weight: 400;
+    color: var(--muted);
+    letter-spacing: .04em;
+}
+
+#dash-sidebar nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: .5rem 0;
+}
+
+#dash-sidebar nav .nav-section {
+    padding: .75rem 1.5rem .25rem;
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #3a3f50;
+}
+
+#dash-sidebar nav a {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .5rem 1.5rem;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: .875rem;
+    border-left: 2px solid transparent;
+    transition: color .15s, background .15s;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+#dash-sidebar nav a:hover  { color: #fff; background: #1e2028; }
+#dash-sidebar nav a.active { color: #fff; border-left-color: var(--accent); background: #1e2028; }
+
+#dash-sidebar .sidebar-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    font-size: .8rem;
+    flex-shrink: 0;
+}
+
+/* ── Topbar ── */
+#dash-topbar {
+    position: fixed;
+    top: 0; left: var(--sidebar-w); right: 0;
+    height: var(--topbar-h);
+    background: var(--sidebar-bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.75rem;
+    z-index: 99;
+}
+
+#dash-topbar h1 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: #fff;
+}
+
+/* ── Main content ── */
+#dash-main {
+    margin-left: var(--sidebar-w);
+    padding-top: var(--topbar-h);
+    min-height: 100vh;
+}
+
+.dash-content {
+    padding: 1.75rem;
+    max-width: 1200px;
+}
+
+/* ── Mobile: sidebar hidden by default ── */
+@media (max-width: 991px) {
+    #dash-sidebar { transform: translateX(-100%); }
+    #dash-sidebar.open { transform: translateX(0); }
+    #dash-topbar  { left: 0; }
+    #dash-main    { margin-left: 0; }
+    #sidebar-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.5);
+        z-index: 99;
+    }
+    #sidebar-overlay.show { display: block; }
+}
+
+/* ── Cards ── */
+.dash-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: .5rem;
+    padding: 1.25rem;
+}
+
+/* ── Prose ── */
+.esse-content h1,.esse-content h2,.esse-content h3 { color: #f8f9fa; margin-top: 1.5rem; }
+.esse-content a   { color: var(--accent); }
+.esse-content pre { background: #0d0f14; border: 1px solid var(--border); border-radius: .375rem; padding: 1rem; overflow-x: auto; }
+.esse-content code { color: #e2b94b; }
+.esse-content pre code { color: inherit; }
+
+/* ── Dropdown nav items ── */
+.dash-has-children { position: relative; }
+.dash-sub {
+    display: none;
+    background: #0d0f14;
+    border-left: 2px solid var(--border);
+    margin-left: 2.5rem;
+}
+.dash-sub a { padding-left: 1rem; font-size: .82rem; }
+.dash-has-children.open .dash-sub { display: block; }
+.dash-has-children > a .dash-arrow {
+    margin-left: auto;
+    transition: transform .2s;
+    font-size: .75rem;
+}
+.dash-has-children.open > a .dash-arrow { transform: rotate(90deg); }
