@@ -23,11 +23,9 @@ class Theme extends \Esse\Theme
 
     public function renderPage(array $page, string $content): void
     {
-        $siteName   = $this->settings['site_name'] ?? 'ESSE CMS';
+        $siteName    = $this->settings['site_name'] ?? 'ESSE CMS';
         $sidebarSlug = $this->settings['theme_esse-dashboard_menu_sidebar'] ?? 'sidebar';
         $footSlug    = $this->settings['theme_esse-dashboard_menu_footer']  ?? 'footer';
-
-        $sidebarMenu = Menu::get($sidebarSlug);
         $footMenu    = $footSlug ? Menu::get($footSlug) : [];
         $theme       = $this;
 
@@ -36,6 +34,13 @@ class Theme extends \Esse\Theme
             return;
         }
 
+        // Not logged in → show minimal login page instead of dashboard
+        if (!\Esse\Auth::check()) {
+            require $this->basePath('templates/login.php');
+            return;
+        }
+
+        $sidebarMenu = Menu::get($sidebarSlug);
         require $this->basePath('templates/layout.php');
     }
 }
