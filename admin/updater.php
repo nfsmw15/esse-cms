@@ -250,7 +250,12 @@ function startUpdate(version) {
             es.close();
             status.textContent = 'Abgeschlossen';
             status.className   = 'badge bg-success';
-            setTimeout(() => window.location.reload(), 2000);
+            // Show reload button instead of auto-reloading
+            const btn = document.createElement('a');
+            btn.href      = '/admin/update';
+            btn.className = 'btn btn-success btn-sm mt-3 d-block';
+            btn.textContent = 'Seite neu laden →';
+            document.getElementById('terminal').after(btn);
         }
         if (data.type === 'error') {
             es.close();
