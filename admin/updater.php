@@ -15,6 +15,23 @@ if (!empty($_SESSION['flash'])) {
     unset($_SESSION['flash']);
 }
 
+// Pre-release toggle (POST saves to session)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['prerelease_toggle'])) {
+    if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
+    $ts = \Esse\DB::table('settings');
+    $val = isset($_POST['include_prerelease']) ? '1' : '0';
+    \Esse\DB::query(
+        "INSERT INTO `{$ts}` (`key`, `value`) VALUES ('update_prerelease','$val')
+         ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)"
+    );
+    @unlink(ESSE_PRIVATE_PATH . '/storage/cache/update_check.json');
+    header('Location: /admin/update');
+    exit;
+}
+
+$ts             = \Esse\DB::table('settings');
+$includePrerel  = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'update_prerelease'") === '1';
+
 // Check for updates on page load (cached 1h)
 $cacheFile   = ESSE_PRIVATE_PATH . '/storage/cache/update_check.json';
 $updateInfo  = null;
@@ -29,7 +46,7 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 3600) {
 if ($cached) {
     $updateInfo = $cached;
 } else {
-    $updateInfo = Updater::checkForUpdate();
+    $updateInfo = Updater::checkForUpdate($includePrerel);
     if ($updateInfo) {
         @file_put_contents($cacheFile, json_encode($updateInfo));
     } else {
@@ -159,6 +176,32 @@ ob_start();
                 <?php else: ?>
                 <div class="p-3 text-secondary small">Noch keine Backups vorhanden.</div>
                 <?php endif ?>
+            </div>
+        </div>
+
+        <!-- Pre-release toggle -->
+        <div class="card mt-3">
+            <div class="card-header py-2"><small class="text-secondary">Update-Kanal</small></div>
+            <div class="card-body">
+                <form method="post" action="/admin/update">
+                    <input type="hidden" name="_csrf"              value="<?= Auth::csrfToken() ?>">
+                    <input type="hidden" name="prerelease_toggle"  value="1">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="include_prerelease"
+                               id="prerelease-toggle"
+                               <?= $includePrerel ? 'checked' : '' ?>
+                               onchange="this.form.submit()">
+                        <label class="form-check-label" for="prerelease-toggle">
+                            Pre-Release Updates einschließen
+                        </label>
+                    </div>
+                    <?php if ($includePrerel): ?>
+                    <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Pre-Releases sind nicht für den Produktionseinsatz geeignet und können Fehler enthalten.
+                    </div>
+                    <?php endif ?>
+                </form>
             </div>
         </div>
     </div>

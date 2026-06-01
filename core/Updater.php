@@ -16,9 +16,9 @@ class Updater
 
     // -- Update check --
 
-    public static function checkForUpdate(): ?array
+    public static function checkForUpdate(bool $includePrerelease = false): ?array
     {
-        // /releases returns all releases incl. pre-releases; take the most recent
+        // /releases returns all releases; filter pre-releases if not opted in
         $url = 'https://api.github.com/repos/' . \ESSE_GITHUB_REPO . '/releases';
 
         $ch = curl_init($url);
@@ -30,11 +30,18 @@ class Updater
         ]);
         $json = curl_exec($ch);
         $code = (int) curl_getinfo($ch, \CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        // curl_close() deprecated in PHP 8.4 — let GC handle cleanup
 
         if (!$json || $code !== 200) return null;
 
         $releases = json_decode($json, true);
+        if (!is_array($releases)) return null;
+
+        // Filter out pre-releases if not opted in
+        if (!$includePrerelease) {
+            $releases = array_values(array_filter($releases, fn($r) => empty($r['prerelease'])));
+        }
+
         if (empty($releases[0]['tag_name'])) return null;
 
         $data = $releases[0];
