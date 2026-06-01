@@ -174,6 +174,11 @@
                     <hr class="border-secondary mt-0 mb-2">
                     <?php endif ?>
                     <?php foreach ($group['links'] as $link): ?>
+                    <?php if ($link['type'] === 'header'): ?>
+                    <p class="text-secondary small mb-1 mt-2" style="font-size:.75rem">
+                        <?= htmlspecialchars($link['label']) ?>
+                    </p>
+                    <?php else: ?>
                     <div>
                         <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($link)) ?>"
                            class="text-secondary text-decoration-none small"
@@ -181,6 +186,7 @@
                             <?= htmlspecialchars($link['label']) ?>
                         </a>
                     </div>
+                    <?php endif ?>
                     <?php endforeach ?>
                 </div>
             <?php endforeach ?>
