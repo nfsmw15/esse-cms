@@ -104,7 +104,14 @@
 <body>
 
 <div id="sidebar">
-    <div class="brand">ESSE CMS <small>forge your web.</small></div>
+    <div class="brand">
+        ESSE CMS <small>forge your web.</small>
+        <a href="/" target="_blank"
+           class="text-decoration-none"
+           style="font-size:.7rem;font-weight:400;letter-spacing:.02em;color:#555;display:block;margin-top:.15rem">
+            <i class="bi bi-box-arrow-up-right" style="font-size:.65rem"></i> Zur Website
+        </a>
+    </div>
     <nav>
         <div class="nav-section">Inhalt</div>
         <a href="/admin" class="<?= ($activeNav ?? '') === 'dashboard' ? 'active' : '' ?>">
