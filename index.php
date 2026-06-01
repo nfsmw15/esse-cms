@@ -2,16 +2,15 @@
 
 declare(strict_types=1);
 
-define('ESSE_VERSION',     '0.1.0-dev');
 define('ESSE_GITHUB_REPO', 'nfsmw15/esse-cms');
 define('ESSE_ROOT', __DIR__);
 
-// local.php can define ESSE_PRIVATE_PATH to point outside the webroot (recommended for VPS/HestiaCP).
-// Example local.php: define('ESSE_PRIVATE_PATH', '/home/user/private/esse');
-// local.php is gitignored and never committed.
+// local.php can override ESSE_VERSION (for test servers) and define ESSE_PRIVATE_PATH.
+// It is gitignored and never committed.
 if (file_exists(ESSE_ROOT . '/local.php')) {
     require_once ESSE_ROOT . '/local.php';
 }
+defined('ESSE_VERSION')      || define('ESSE_VERSION',     '0.1.0-dev');
 defined('ESSE_PRIVATE_PATH') || define('ESSE_PRIVATE_PATH', ESSE_ROOT);
 
 // Autoloader
