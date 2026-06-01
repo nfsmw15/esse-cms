@@ -167,23 +167,11 @@ ob_start();
 
             <!-- Standard content -->
             <div class="card" id="content-card">
-                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <div class="card-header py-2">
                     <small class="text-secondary">Inhalt</small>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-secondary active" id="btn-visual"
-                                onclick="setEditorMode('visual')">Visual</button>
-                        <button type="button" class="btn btn-outline-secondary" id="btn-html"
-                                onclick="setEditorMode('html')">HTML</button>
-                    </div>
                 </div>
                 <div class="card-body p-0">
-                    <!-- Quill editor -->
-                    <div id="quill-editor" style="min-height:420px;background:#111;color:#e0e0e0;font-size:1rem"></div>
-                    <!-- Raw HTML fallback textarea -->
-                    <textarea name="content" id="content"
-                              class="form-control border-0 rounded-0 font-monospace d-none"
-                              rows="22"
-                              style="background:#111;color:#e0e0e0;resize:vertical"><?= htmlspecialchars($page['content'] ?? '') ?></textarea>
+                    <textarea name="content" id="content"><?= htmlspecialchars($page['content'] ?? '') ?></textarea>
                 </div>
             </div>
 
@@ -304,72 +292,56 @@ typeEl?.addEventListener('change', updateType);
 updateType();
 </script>
 <?php
-$content    = ob_get_clean();
-$extraHead  = '<link href="/public/vendor/quill/quill.snow.css" rel="stylesheet">
+$content      = ob_get_clean();
+$extraHead    = '<link rel="stylesheet" href="/public/vendor/summernote/summernote-bs5.min.css">
 <style>
-.ql-toolbar.ql-snow { background:#1e1e1e; border-color:#333; border-radius:.375rem .375rem 0 0; }
-.ql-container.ql-snow { background:#111; border-color:#333; border-radius:0 0 .375rem .375rem; color:#e0e0e0; font-size:1rem; }
-.ql-editor { min-height:380px; color:#e0e0e0; }
-.ql-editor.ql-blank::before { color:#6c757d; }
-.ql-snow .ql-stroke { stroke:#adb5bd; }
-.ql-snow .ql-fill, .ql-snow .ql-stroke.ql-fill { fill:#adb5bd; }
-.ql-snow .ql-picker { color:#adb5bd; }
-.ql-snow .ql-picker-options { background:#1e1e1e; border-color:#333; }
-.ql-snow .ql-picker-item:hover, .ql-snow .ql-picker-item.ql-selected { color:#fff; }
-.ql-snow .ql-tooltip { background:#1e1e1e; border-color:#333; color:#adb5bd; }
-.ql-snow .ql-tooltip input[type=text] { background:#111; border-color:#333; color:#e0e0e0; }
-.ql-snow a { color:#6ea8fe; }
-.ql-snow .ql-active .ql-stroke { stroke:#6ea8fe; }
-.ql-snow .ql-active .ql-fill { fill:#6ea8fe; }
-.ql-snow .ql-active { color:#6ea8fe; }
+.note-editor { border-color:#333 !important; }
+.note-toolbar { background:#1e1e1e !important; border-color:#333 !important; }
+.note-toolbar .btn { color:#adb5bd; background:transparent; border-color:#333; }
+.note-toolbar .btn:hover, .note-toolbar .btn.active { background:#2d2d2d; color:#fff; }
+.note-editable { background:#111 !important; color:#e0e0e0 !important; min-height:380px; }
+.note-statusbar { background:#1a1a1a !important; border-color:#333 !important; }
+.note-placeholder { color:#6c757d !important; }
+.dropdown-menu { background:#1e1e1e; border-color:#333; }
+.dropdown-item { color:#adb5bd; }
+.dropdown-item:hover { background:#2d2d2d; color:#fff; }
+.note-modal .modal-content { background:#1a1a1a; }
+.note-modal .modal-header, .note-modal .modal-footer { border-color:#333; }
 </style>';
-$extraScripts = '<script src="/public/vendor/quill/quill.min.js"></script>
+$extraScripts = '<script src="/public/vendor/summernote/summernote-bs5.min.js"></script>
+<script src="/public/vendor/summernote/summernote-de-DE.min.js"></script>
 <script>
-const textarea  = document.getElementById("content");
-const editorDiv = document.getElementById("quill-editor");
-const btnVisual = document.getElementById("btn-visual");
-const btnHtml   = document.getElementById("btn-html");
-
-const quill = new Quill("#quill-editor", {
-    theme: "snow",
-    placeholder: "Seiteninhalt ...",
-    modules: {
+(function() {
+    $("#content").summernote({
+        lang: "de-DE",
+        height: 400,
+        placeholder: "Seiteninhalt ...",
         toolbar: [
-            [{ header: [1, 2, 3, 4, false] }],
-            ["bold", "italic", "underline", "strike"],
-            [{ color: [] }, { background: [] }],
-            ["link", "image"],
-            [{ list: "ordered" }, { list: "bullet" }],
-            ["blockquote", "code-block"],
-            [{ align: [] }],
-            ["clean"]
-        ]
-    }
-});
-
-if (textarea.value.trim()) {
-    quill.root.innerHTML = textarea.value;
-}
-
-// Sync on every change — avoids wrong-form-selector problems
-quill.on("text-change", () => {
-    textarea.value = quill.root.innerHTML;
-});
-
-function setEditorMode(mode) {
-    if (mode === "visual") {
-        quill.root.innerHTML = textarea.value;
-        editorDiv.classList.remove("d-none");
-        textarea.classList.add("d-none");
-        btnVisual.classList.add("active");
-        btnHtml.classList.remove("active");
-    } else {
-        textarea.value = quill.root.innerHTML;
-        textarea.classList.remove("d-none");
-        editorDiv.classList.add("d-none");
-        btnHtml.classList.add("active");
-        btnVisual.classList.remove("active");
-    }
-}
+            ["style",   ["style"]],
+            ["font",    ["bold","italic","underline","strikethrough","clear"]],
+            ["color",   ["color"]],
+            ["para",    ["ul","ol","paragraph"]],
+            ["table",   ["table"]],
+            ["insert",  ["link","picture","hr"]],
+            ["view",    ["fullscreen","codeview"]]
+        ],
+        callbacks: {
+            onImageUpload: function(files) {
+                const fd = new FormData();
+                fd.append("file", files[0]);
+                fetch("/admin/files/upload", { method: "POST", body: fd })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.url) {
+                            $("#content").summernote("insertImage", data.url, files[0].name);
+                        } else {
+                            alert(data.error || "Upload fehlgeschlagen.");
+                        }
+                    })
+                    .catch(() => alert("Upload fehlgeschlagen."));
+            }
+        }
+    });
+})();
 </script>';
 require dirname(__DIR__) . '/layout.php';

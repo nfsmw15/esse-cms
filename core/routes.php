@@ -52,6 +52,12 @@ Router::post('/abmelden', function () {
 
 // -- Admin --
 
+// File upload endpoint (used by editor)
+Router::post('/admin/files/upload', fn() => require ESSE_ROOT . '/admin/files-upload.php', [
+    'name' => 'admin.files.upload',
+    'auth' => 'author',
+]);
+
 Router::get('/admin/login', fn() => require ESSE_ROOT . '/admin/login.php', [
     'name' => 'admin.login',
     'auth' => 'public',
