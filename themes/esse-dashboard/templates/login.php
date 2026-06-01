@@ -56,16 +56,28 @@ $redirect = $_SERVER['REQUEST_URI'] ?? '/';
 </div>
 
 <!-- Minimal footer — only footer menu links (e.g. Impressum) -->
-<?php if ($footMenu): ?>
+<?php
+// Collect all visible links from footer menu (including children of headers)
+$footLinks = [];
+foreach ($footMenu as $item) {
+    if ($item['type'] !== 'header') {
+        $footLinks[] = $item;
+    }
+    foreach ($item['children'] ?? [] as $child) {
+        if ($child['type'] !== 'header') {
+            $footLinks[] = $child;
+        }
+    }
+}
+?>
+<?php if ($footLinks): ?>
 <footer class="position-fixed bottom-0 w-100 py-3 text-center" style="border-top:1px solid var(--border)">
-    <?php foreach ($footMenu as $item): ?>
-    <?php if ($item['type'] !== 'header'): ?>
-    <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($item)) ?>"
+    <?php foreach ($footLinks as $link): ?>
+    <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($link)) ?>"
        class="text-secondary small text-decoration-none mx-2"
-       <?= $item['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
-        <?= htmlspecialchars($item['label']) ?>
+       <?= $link['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
+        <?= htmlspecialchars($link['label']) ?>
     </a>
-    <?php endif ?>
     <?php endforeach ?>
 </footer>
 <?php endif ?>
