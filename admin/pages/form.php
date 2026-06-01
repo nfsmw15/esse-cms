@@ -28,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Ungültige Anfrage.';
     } else {
         $title      = trim($_POST['title']      ?? '');
+        $icon       = trim($_POST['icon']       ?? '');
         $slug       = trim($_POST['slug']       ?? '');
         $content    = $_POST['content']         ?? '';
         $type       = $_POST['type']            ?? 'standard';
@@ -89,6 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($errors)) {
             $data = [
                 'title'      => $title,
+                'icon'       => $icon ?: null,
                 'slug'       => $slug,
                 'content'    => $type === 'standard' ? $content : null,
                 'type'       => $type,
@@ -150,9 +152,16 @@ ob_start();
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">Titel</label>
-                        <input type="text" name="title" id="title" class="form-control"
-                               value="<?= htmlspecialchars($page['title'] ?? '') ?>"
-                               required autofocus>
+                        <div class="input-group">
+                            <input type="text" name="icon" class="form-control font-monospace"
+                                   style="max-width:160px"
+                                   placeholder="Icon (z.B. bi bi-house)"
+                                   value="<?= htmlspecialchars($page['icon'] ?? '') ?>">
+                            <input type="text" name="title" id="title" class="form-control"
+                                   value="<?= htmlspecialchars($page['title'] ?? '') ?>"
+                                   required autofocus placeholder="Seitentitel">
+                        </div>
+                        <div class="form-text">Optional: Icon-CSS-Klasse + Titel. z.B. <code>bi bi-house</code></div>
                     </div>
                     <div class="mb-0">
                         <label class="form-label">Slug</label>

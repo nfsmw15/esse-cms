@@ -74,6 +74,7 @@
                     <a class="nav-link <?= $url === '/' . ltrim($page['slug'], '/') ? 'active' : '' ?>"
                        href="<?= htmlspecialchars($url) ?>"
                        <?= $item['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
+                        <?php if (!empty($item['icon'])): ?><i class="<?= htmlspecialchars($item['icon']) ?> me-1"></i><?php endif ?>
                         <?= htmlspecialchars($item['label']) ?>
                     </a>
                 </li>
@@ -158,6 +159,14 @@
 
 <!-- Content -->
 <main class="container py-5">
+    <?php if (!empty($page['icon']) || $page['title']): ?>
+    <h1 class="mb-4">
+        <?php if (!empty($page['icon'])): ?>
+        <i class="<?= htmlspecialchars($page['icon']) ?> me-2"></i>
+        <?php endif ?>
+        <?= htmlspecialchars($page['title']) ?>
+    </h1>
+    <?php endif ?>
     <div class="esse-content">
         <?= $content ?>
     </div>

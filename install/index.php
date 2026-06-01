@@ -250,6 +250,7 @@ function schema(string $p): array
             `slug`       VARCHAR(255) NOT NULL,
             `title`      VARCHAR(500) NOT NULL,
             `content`    LONGTEXT,
+            `icon`       VARCHAR(100) DEFAULT NULL,
             `type`       ENUM('standard','php') NOT NULL DEFAULT 'standard',
             `file_path`  VARCHAR(500) DEFAULT NULL,
             `visibility` ENUM('public','members','admin') NOT NULL DEFAULT 'public',
@@ -284,6 +285,7 @@ function schema(string $p): array
             `url`        VARCHAR(500) DEFAULT NULL,
             `target`     ENUM('_self','_blank') NOT NULL DEFAULT '_self',
             `sort_order` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            `icon`       VARCHAR(100) DEFAULT NULL,
             `active`     TINYINT(1)   NOT NULL DEFAULT 1,
             FOREIGN KEY (`menu_id`)   REFERENCES `{$p}menus`(`id`)      ON DELETE CASCADE,
             FOREIGN KEY (`parent_id`) REFERENCES `{$p}menu_items`(`id`) ON DELETE CASCADE

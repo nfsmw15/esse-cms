@@ -69,6 +69,7 @@ $currentSlug = $page['slug'] ?? '';
             <a href="<?= htmlspecialchars($url) ?>"
                class="<?= $isActive ? 'active' : '' ?>"
                <?= $item['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
+                <?php if (!empty($item['icon'])): ?><i class="<?= htmlspecialchars($item['icon']) ?>"></i><?php endif ?>
                 <?= htmlspecialchars($item['label']) ?>
             </a>
         <?php endif ?>
@@ -108,7 +109,10 @@ $currentSlug = $page['slug'] ?? '';
         <button class="btn btn-link p-0 text-secondary d-lg-none" onclick="toggleSidebar()" style="font-size:1.2rem">
             <i class="bi bi-list"></i>
         </button>
-        <h1><?= htmlspecialchars($page['title']) ?></h1>
+        <h1>
+            <?php if (!empty($page['icon'])): ?><i class="<?= htmlspecialchars($page['icon']) ?> me-2"></i><?php endif ?>
+            <?= htmlspecialchars($page['title']) ?>
+        </h1>
     </div>
     <?php if (\Esse\Auth::meetsRole('author')): ?>
     <a href="/admin" class="btn btn-sm btn-outline-secondary">

@@ -48,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $url       = trim($_POST['url']   ?? '');
             $target    = $_POST['target']     ?? '_self';
             $parentId  = (int) ($_POST['parent_id'] ?? 0) ?: null;
+            $icon      = trim($_POST['icon']   ?? '');
 
             if (!in_array($type,   ['page','url','header'], true)) $type   = 'page';
             if (!in_array($target, ['_self','_blank'],       true)) $target = '_self';
@@ -67,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'parent_id'  => $parentId,
                 'type'       => $type,
                 'label'      => $label,
+                'icon'       => $icon ?: null,
                 'page_slug'  => $type === 'page' ? $pageSlug : null,
                 'url'        => $type === 'url'  ? $url      : null,
                 'target'     => $target,
@@ -83,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $url      = trim($_POST['url']    ?? '');
             $target   = $_POST['target']      ?? '_self';
             $parentId = (int) ($_POST['parent_id'] ?? 0) ?: null;
+            $icon     = trim($_POST['icon']   ?? '');
 
             if (!in_array($type,   ['page','url','header'], true)) $type   = 'page';
             if (!in_array($target, ['_self','_blank'],       true)) $target = '_self';
@@ -94,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 DB::update($ti, [
                     'type'      => $type,
                     'label'     => $label,
+                    'icon'      => $icon ?: null,
                     'page_slug' => $type === 'page' ? $pageSlug : null,
                     'url'       => $type === 'url'  ? $url      : null,
                     'target'    => $target,
@@ -238,6 +242,7 @@ function itemEditForm(array $item, int $menuId, array $pages, array $allTopItems
     $id    = $item['id'];
     $type  = htmlspecialchars($item['type']);
     $label = htmlspecialchars($item['label']);
+    $icon  = htmlspecialchars($item['icon'] ?? '');
 
     $url   = htmlspecialchars($item['url'] ?? '');
 
@@ -284,8 +289,10 @@ function itemEditForm(array $item, int $menuId, array $pages, array $allTopItems
          . "<option value='url'"  . ($type === 'url'  ? ' selected' : '') . ">URL</option>"
          . "<option value='header'" . ($type === 'header' ? ' selected' : '') . ">Trenner</option>"
          . "</select></div>"
-         . "<div class='col-sm-4'><label class='form-label small'>Label</label>"
+         . "<div class='col-sm-3'><label class='form-label small'>Label</label>"
          . "<input type='text' name='label' class='form-control form-control-sm' value='{$label}' required></div>"
+         . "<div class='col-sm-3'><label class='form-label small'>Icon <small class=\"text-secondary\">(optional)</small></label>"
+         . "<input type='text' name='icon' class='form-control form-control-sm font-monospace' value='{$icon}' placeholder='bi bi-house'></div>"
          . "<div class='col-sm-4 field-page" . ($type !== 'page' ? ' d-none' : '') . "'>"
          . "<label class='form-label small'>Seite</label>"
          . "<select name='page_slug' class='form-select form-select-sm'>{$pageOpts}</select></div>"
@@ -494,6 +501,12 @@ ob_start();
                     <div class="mb-2">
                         <label class="form-label">Label</label>
                         <input type="text" name="label" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Icon <small class="text-secondary">(optional)</small></label>
+                        <input type="text" name="icon" class="form-control form-control-sm font-monospace"
+                               placeholder="bi bi-house">
+                        <div class="form-text">CSS-Klasse, z.B. <code>bi bi-house</code> oder <code>ph ph-house</code></div>
                     </div>
                     <div class="mb-2" id="field-page">
                         <label class="form-label">Seite</label>
