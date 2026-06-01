@@ -284,6 +284,7 @@ function schema(string $p): array
             `url`        VARCHAR(500) DEFAULT NULL,
             `target`     ENUM('_self','_blank') NOT NULL DEFAULT '_self',
             `sort_order` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            `active`     TINYINT(1)   NOT NULL DEFAULT 1,
             FOREIGN KEY (`menu_id`)   REFERENCES `{$p}menus`(`id`)      ON DELETE CASCADE,
             FOREIGN KEY (`parent_id`) REFERENCES `{$p}menu_items`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",

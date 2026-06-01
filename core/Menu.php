@@ -26,8 +26,11 @@ class Menu
             [$menu['id']]
         );
 
-        // Filter out items the current user cannot see
-        $rows = array_values(array_filter($rows, [self::class, 'isVisible']));
+        // Filter out inactive and invisible items
+        $rows = array_values(array_filter($rows, function($item) {
+            if (empty($item['active'])) return false; // disabled by admin
+            return self::isVisible($item);
+        }));
 
         return self::buildTree($rows);
     }

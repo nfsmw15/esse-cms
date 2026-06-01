@@ -142,6 +142,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['ok' => true]);
             exit;
 
+        case 'toggle_item':
+            $itemId = (int) ($_POST['item_id'] ?? 0);
+            if ($itemId) {
+                $item = DB::fetch("SELECT active FROM `{$ti}` WHERE id = ? AND menu_id = ?", [$itemId, $menuId]);
+                if ($item) {
+                    $newActive = $item['active'] ? 0 : 1;
+                    DB::update($ti, ['active' => $newActive], ['id' => $itemId]);
+                    // Also toggle all children
+                    DB::query("UPDATE `{$ti}` SET active = ? WHERE parent_id = ? AND menu_id = ?",
+                        [$newActive, $itemId, $menuId]);
+                }
+            }
+            header("Location: /admin/menus/edit/{$menuId}");
+            exit;
+
         case 'delete_item':
             $itemId = (int) ($_POST['item_id'] ?? 0);
             if ($itemId) DB::delete($ti, ['id' => $itemId]);
@@ -317,19 +332,31 @@ ob_start();
                 <?php foreach ($topItems as $item):
                     $editId = 'edit-' . $item['id']; ?>
 
-                    <div class="list-group-item px-3 py-2" data-id="<?= $item['id'] ?>">
+                    <div class="list-group-item px-3 py-2 <?= empty($item['active']) ? 'opacity-50' : '' ?>"
+                         data-id="<?= $item['id'] ?>">
                         <div class="d-flex align-items-center gap-2">
                             <span class="drag-handle text-secondary" style="cursor:grab" title="Verschieben">
                                 <i class="bi bi-grip-vertical"></i>
                             </span>
                             <i class="bi bi-<?= $item['type'] === 'header' ? 'dash-lg' : 'link-45deg' ?> text-secondary"></i>
-                            <span class="fw-semibold flex-grow-1"><?= htmlspecialchars($item['label']) ?>
+                            <span class="fw-semibold flex-grow-1 <?= empty($item['active']) ? 'text-decoration-line-through text-secondary' : '' ?>">
+                                <?= htmlspecialchars($item['label']) ?>
                                 <?php if ($item['type'] === 'page' && $item['page_slug']): ?>
                                     <small class="text-secondary fw-normal">/<?= htmlspecialchars($item['page_slug']) ?></small>
                                 <?php elseif ($item['type'] === 'url' && $item['url']): ?>
                                     <small class="text-secondary fw-normal"><?= htmlspecialchars($item['url']) ?></small>
                                 <?php endif ?>
                             </span>
+                            <?php /* Toggle active */ ?>
+                            <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline">
+                                <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
+                                <input type="hidden" name="_action"  value="toggle_item">
+                                <input type="hidden" name="item_id"  value="<?= $item['id'] ?>">
+                                <button class="btn btn-sm <?= empty($item['active']) ? 'btn-outline-success' : 'btn-outline-secondary' ?>"
+                                        title="<?= empty($item['active']) ? 'Aktivieren' : 'Deaktivieren' ?>">
+                                    <i class="bi bi-<?= empty($item['active']) ? 'eye' : 'eye-slash' ?>"></i>
+                                </button>
+                            </form>
                             <?php /* Indent (→) — only if there's an item above */ ?>
                             <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline" title="Einrücken (Unterebene)">
                                 <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
@@ -361,18 +388,30 @@ ob_start();
                              data-parent-id="<?= $item['id'] ?>">
                         <?php foreach ($item['children'] as $child):
                             $childEditId = 'edit-' . $child['id']; ?>
-                        <div class="d-flex align-items-center gap-2 py-1" data-child-id="<?= $child['id'] ?>">
+                        <div class="d-flex align-items-center gap-2 py-1 <?= empty($child['active']) ? 'opacity-50' : '' ?>"
+                             data-child-id="<?= $child['id'] ?>">
                             <span class="drag-handle text-secondary" style="cursor:grab">
                                 <i class="bi bi-grip-vertical"></i>
                             </span>
                             <i class="bi bi-arrow-return-right text-secondary small"></i>
-                            <span class="small flex-grow-1"><?= htmlspecialchars($child['label']) ?>
+                            <span class="small flex-grow-1 <?= empty($child['active']) ? 'text-decoration-line-through text-secondary' : '' ?>">
+                                <?= htmlspecialchars($child['label']) ?>
                                 <?php if ($child['page_slug']): ?>
                                     <small class="text-secondary">/<?= htmlspecialchars($child['page_slug']) ?></small>
                                 <?php elseif ($child['url']): ?>
                                     <small class="text-secondary"><?= htmlspecialchars($child['url']) ?></small>
                                 <?php endif ?>
                             </span>
+                            <?php /* Toggle active */ ?>
+                            <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline">
+                                <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
+                                <input type="hidden" name="_action"  value="toggle_item">
+                                <input type="hidden" name="item_id"  value="<?= $child['id'] ?>">
+                                <button class="btn btn-sm py-0 <?= empty($child['active']) ? 'btn-outline-success' : 'btn-outline-secondary' ?>"
+                                        title="<?= empty($child['active']) ? 'Aktivieren' : 'Deaktivieren' ?>">
+                                    <i class="bi bi-<?= empty($child['active']) ? 'eye' : 'eye-slash' ?>"></i>
+                                </button>
+                            </form>
                             <?php /* Dedent (←) */ ?>
                             <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline" title="Ausrücken (Hauptebene)">
                                 <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
