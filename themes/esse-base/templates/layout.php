@@ -114,10 +114,41 @@
                     </ul>
                 </li>
                 <?php else: ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="/admin/login">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"
+                       data-bs-auto-close="outside" aria-expanded="false">
                         <i class="bi bi-person me-1"></i>Anmelden
                     </a>
+                    <div class="dropdown-menu dropdown-menu-dark dropdown-menu-end p-3" style="min-width:280px">
+                        <?php if (!empty($_GET['login_error'])): ?>
+                        <div class="alert alert-danger py-1 px-2 small mb-2">
+                            E-Mail oder Passwort falsch.
+                        </div>
+                        <?php endif ?>
+                        <form method="post" action="/admin/login" id="navbar-login-form">
+                            <input type="hidden" name="_csrf"    value="<?= \Esse\Auth::csrfToken() ?>">
+                            <input type="hidden" name="redirect" value="<?= htmlspecialchars($_SERVER['REQUEST_URI'] ?? '/') ?>">
+                            <div class="mb-2">
+                                <input type="email" name="login" class="form-control form-control-sm"
+                                       placeholder="E-Mail" autocomplete="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <input type="password" name="password" class="form-control form-control-sm"
+                                       placeholder="Passwort" autocomplete="current-password" required>
+                            </div>
+                            <button class="btn btn-primary btn-sm w-100">Anmelden</button>
+                        </form>
+                        <?php
+                        $ts  = \Esse\DB::table('settings');
+                        $reg = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'registration_enabled'");
+                        ?>
+                        <div class="mt-2 text-center">
+                            <a href="/admin/forgot-password" class="text-secondary small">Passwort vergessen?</a>
+                            <?php if ($reg === '1'): ?>
+                            · <a href="/registrieren" class="text-secondary small">Registrieren</a>
+                            <?php endif ?>
+                        </div>
+                    </div>
                 </li>
                 <?php endif ?>
             </ul>

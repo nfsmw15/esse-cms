@@ -22,10 +22,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (Auth::attempt($login, $password)) {
             $redirect = $_POST['redirect'] ?? $_GET['redirect'] ?? '/';
+            // Sanitize redirect — only allow same-site paths
+            if (!str_starts_with($redirect, '/') || str_starts_with($redirect, '//')) {
+                $redirect = '/';
+            }
             header('Location: ' . $redirect);
             exit;
         }
-        $error = 'Benutzername/E-Mail oder Passwort falsch.';
+        // If the login came from the navbar dropdown, go back with error param
+        $redirect = $_POST['redirect'] ?? '/';
+        if ($redirect !== '/admin/login' && !str_starts_with($redirect, '/admin')) {
+            header('Location: ' . $redirect . (str_contains($redirect, '?') ? '&' : '?') . 'login_error=1#navbar-login-form');
+            exit;
+        }
+        $error = 'E-Mail oder Passwort falsch.';
     }
 }
 
@@ -37,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Login — ESSE CMS</title>
     <link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/public/vendor/bootstrap-icons/bootstrap-icons.min.css">
     <style>
         body { background: #0d0d0d; color: #e0e0e0; }
         .card { background: #1a1a1a; border: 1px solid #2d2d2d; }
@@ -50,6 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="text-center mb-4">
         <div class="brand text-white">ESSE CMS</div>
         <small class="text-secondary">forge your web.</small>
+    </div>
+    <div class="text-center mb-3">
+        <a href="/" class="text-secondary small">
+            <i class="bi bi-arrow-left me-1"></i>Zurück zur Website
+        </a>
     </div>
 
     <?php if ($error): ?>
