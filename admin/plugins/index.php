@@ -73,11 +73,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ZIP upload
     if ($action === 'upload' && !empty($_FILES['plugin_zip']['tmp_name'])) {
         $result = packageInstallZip($_FILES['plugin_zip']['tmp_name'], 'plugin');
-        $_SESSION['flash'] = is_string($result)
-            ? ['type' => 'danger',  'message' => $result]
-            : ['type' => 'success', 'message' => empty($result['_updated'])
+        if (!is_string($result)) {
+            $isNew = empty($result['_updated']);
+            // Call install() on new installations (not on updates)
+            if ($isNew) {
+                $slug       = preg_replace('/[^a-z0-9\-]/', '', strtolower($result['name']));
+                $pluginFile = ESSE_ROOT . '/plugins/' . $slug . '/Plugin.php';
+                if (file_exists($pluginFile)) {
+                    require_once $pluginFile;
+                    $class = $result['class'] ?? null;
+                    if ($class && class_exists($class)) {
+                        try { (new $class())->install(); } catch (\Throwable $e) {}
+                    }
+                }
+            }
+            $_SESSION['flash'] = ['type' => 'success', 'message' => $isNew
                 ? "Plugin '{$result['name']}' v{$result['version']} installiert."
                 : "Plugin '{$result['name']}' auf v{$result['version']} aktualisiert."];
+        } else {
+            $_SESSION['flash'] = ['type' => 'danger', 'message' => $result];
+        }
         header('Location: /admin/plugins');
         exit;
     }
