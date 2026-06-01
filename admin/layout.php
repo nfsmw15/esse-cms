@@ -188,6 +188,7 @@
     </div>
 </div>
 
+<?= isset($extraScripts) ? '<script src="/public/vendor/summernote/jquery.min.js"></script>' : '' ?>
 <script src="/public/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <?= $extraScripts ?? '' ?>
 </body>
