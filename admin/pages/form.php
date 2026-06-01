@@ -313,6 +313,29 @@ $extraHead    = '<link rel="stylesheet" href="/public/vendor/summernote/summerno
 $extraScripts = '<script src="/public/vendor/summernote/summernote-bs5.min.js"></script>
 <script src="/public/vendor/summernote/summernote-de-DE.min.js"></script>
 <script>
+// Bootstrap 5 ↔ jQuery bridge for Summernote tooltip/popover
+$.fn.tooltip = function(opt) {
+    return this.each(function() {
+        if (typeof opt === "string") {
+            const t = bootstrap.Tooltip.getInstance(this);
+            if (t) t[opt]();
+        } else {
+            new bootstrap.Tooltip(this, opt || {});
+        }
+    });
+};
+$.fn.popover = function(opt) {
+    return this.each(function() {
+        if (typeof opt === "string") {
+            const p = bootstrap.Popover.getInstance(this);
+            if (p) p[opt]();
+        } else {
+            new bootstrap.Popover(this, opt || {});
+        }
+    });
+};
+</script>
+<script>
 (function() {
     $("#content").summernote({
         lang: "de-DE",
