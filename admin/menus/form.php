@@ -103,6 +103,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: /admin/menus/edit/{$menuId}");
             exit;
 
+        case 'indent': // make child of previous sibling
+        case 'dedent': // make top-level
+            $itemId = (int) ($_POST['item_id'] ?? 0);
+            $item   = DB::fetch("SELECT * FROM `{$ti}` WHERE id = ? AND menu_id = ?", [$itemId, $menuId]);
+            if ($item) {
+                if ($action === 'dedent') {
+                    DB::update($ti, ['parent_id' => null], ['id' => $itemId]);
+                } else {
+                    // Find the item directly above in the same level
+                    $prev = DB::fetch(
+                        "SELECT * FROM `{$ti}` WHERE menu_id = ? AND parent_id IS NULL AND sort_order < ? ORDER BY sort_order DESC LIMIT 1",
+                        [$menuId, $item['sort_order']]
+                    );
+                    if ($prev && $prev['id'] !== $itemId) {
+                        $maxOrder = (int) DB::value(
+                            "SELECT COALESCE(MAX(sort_order),0) FROM `{$ti}` WHERE menu_id = ? AND parent_id = ?",
+                            [$menuId, $prev['id']]
+                        );
+                        DB::update($ti, ['parent_id' => $prev['id'], 'sort_order' => $maxOrder + 10], ['id' => $itemId]);
+                    }
+                }
+            }
+            header("Location: /admin/menus/edit/{$menuId}");
+            exit;
+
         case 'reorder':
             // Expects: items=[[id,parent_id,sort_order], ...]
             $items = json_decode($_POST['items'] ?? '[]', true);
@@ -198,7 +223,7 @@ function itemEditForm(array $item, int $menuId, array $pages, array $allTopItems
     $id    = $item['id'];
     $type  = htmlspecialchars($item['type']);
     $label = htmlspecialchars($item['label']);
-    $pSlug = htmlspecialchars($item['page_slug'] ?? '');
+
     $url   = htmlspecialchars($item['url'] ?? '');
 
     $pageOpts = "<option value=''>— wählen —</option>";
@@ -305,11 +330,19 @@ ob_start();
                                     <small class="text-secondary fw-normal"><?= htmlspecialchars($item['url']) ?></small>
                                 <?php endif ?>
                             </span>
+                            <?php /* Indent (→) — only if there's an item above */ ?>
+                            <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline" title="Einrücken (Unterebene)">
+                                <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
+                                <input type="hidden" name="_action"  value="indent">
+                                <input type="hidden" name="item_id"  value="<?= $item['id'] ?>">
+                                <button class="btn btn-sm btn-outline-secondary" title="→ Unterebene">
+                                    <i class="bi bi-arrow-bar-right"></i>
+                                </button>
+                            </form>
                             <button class="btn btn-sm btn-outline-primary"
                                     data-bs-toggle="collapse" data-bs-target="#<?= $editId ?>">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <?php /* Delete */ ?>
                             <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline"
                                   onsubmit="return confirm('Eintrag löschen?')">
                                 <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
@@ -340,6 +373,15 @@ ob_start();
                                     <small class="text-secondary"><?= htmlspecialchars($child['url']) ?></small>
                                 <?php endif ?>
                             </span>
+                            <?php /* Dedent (←) */ ?>
+                            <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline" title="Ausrücken (Hauptebene)">
+                                <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+                                <input type="hidden" name="_action" value="dedent">
+                                <input type="hidden" name="item_id" value="<?= $child['id'] ?>">
+                                <button class="btn btn-sm btn-outline-secondary py-0" title="← Hauptebene">
+                                    <i class="bi bi-arrow-bar-left"></i>
+                                </button>
+                            </form>
                             <button class="btn btn-sm btn-outline-primary py-0"
                                     data-bs-toggle="collapse" data-bs-target="#<?= $childEditId ?>">
                                 <i class="bi bi-pencil"></i>
