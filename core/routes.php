@@ -232,6 +232,21 @@ Router::post('/admin/settings', fn() => require ESSE_ROOT . '/admin/settings.php
     'auth' => 'admin',
 ]);
 
+Router::get('/admin/backup', fn() => require ESSE_ROOT . '/admin/backup.php', [
+    'name' => 'admin.backup',
+    'auth' => 'admin',
+]);
+
+Router::post('/admin/backup', fn() => require ESSE_ROOT . '/admin/backup.php', [
+    'name' => 'admin.backup.post',
+    'auth' => 'admin',
+]);
+
+Router::get('/admin/backup/download/{file}', function (string $file) {
+    $fileParam = $file;
+    require ESSE_ROOT . '/admin/backup-download.php';
+}, ['name' => 'admin.backup.download', 'auth' => 'admin']);
+
 Router::get('/admin/update', fn() => require ESSE_ROOT . '/admin/updater.php', [
     'name' => 'admin.update',
     'auth' => 'admin',

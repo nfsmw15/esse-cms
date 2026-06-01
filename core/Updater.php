@@ -66,14 +66,16 @@ class Updater
 
     // -- Backup --
 
-    public static function createBackup(callable $log): string
+    public static function createBackup(callable $log, string $prefix = 'backup'): string
     {
         $backupDir = \ESSE_PRIVATE_PATH . '/storage/backups';
         if (!is_dir($backupDir)) mkdir($backupDir, 0750, true);
 
-        $stamp = date('Y-m-d_H-i-s');
-        $zip   = new \ZipArchive();
-        $dest  = $backupDir . '/pre-update_' . $stamp . '.zip';
+        $stamp   = date('Y-m-d_H-i-s');
+        $version = preg_replace('/[^a-zA-Z0-9.\-]/', '', \ESSE_VERSION);
+        $zip     = new \ZipArchive();
+        $prefix  = $prefix ?? 'backup';
+        $dest    = $backupDir . '/' . $prefix . '_v' . $version . '_' . $stamp . '.zip';
 
         if ($zip->open($dest, \ZipArchive::CREATE) !== true) {
             throw new \RuntimeException("Backup: ZIP konnte nicht erstellt werden: {$dest}");
@@ -202,6 +204,71 @@ class Updater
         }
 
         return $sql;
+    }
+
+    // -- Restore --
+
+    public static function restore(string $zipPath, callable $log): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath) !== true) {
+            throw new \RuntimeException('Backup-ZIP konnte nicht geöffnet werden.');
+        }
+
+        // 1. Restore database
+        $log('Datenbank wiederherstellen...');
+        $sqlContent = $zip->getFromName('database.sql');
+        if ($sqlContent !== false) {
+            self::dbImport($sqlContent);
+            $log('Datenbank wiederhergestellt.');
+        } else {
+            $log('Kein database.sql im Backup gefunden — übersprungen.');
+        }
+
+        // 2. Restore files (skip protected paths)
+        $log('Dateien wiederherstellen...');
+        $root  = \ESSE_ROOT;
+        $count = 0;
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if (!str_starts_with($name, 'files/')) continue;
+
+            $rel = substr($name, 6); // strip 'files/'
+            if ($rel === '' || str_ends_with($rel, '/') || str_contains($rel, '..')) continue;
+            if (self::isProtected($rel)) continue;
+
+            $dest = $root . '/' . $rel;
+            if (!is_dir(dirname($dest))) mkdir(dirname($dest), 0755, true);
+            file_put_contents($dest, $zip->getFromIndex($i));
+            $count++;
+        }
+
+        $zip->close();
+        $log("{$count} Dateien wiederhergestellt.");
+    }
+
+    private static function dbImport(string $sql): void
+    {
+        $pdo = DB::connection();
+        $pdo->exec("SET FOREIGN_KEY_CHECKS=0");
+
+        // Split into individual statements
+        $statements = array_filter(
+            array_map('trim', explode(";\n", $sql)),
+            fn($s) => $s !== '' && !str_starts_with($s, '--')
+        );
+
+        foreach ($statements as $stmt) {
+            if (trim($stmt) === '') continue;
+            try {
+                $pdo->exec($stmt);
+            } catch (\PDOException $e) {
+                // Skip errors (e.g. duplicate tables) but continue
+            }
+        }
+
+        $pdo->exec("SET FOREIGN_KEY_CHECKS=1");
     }
 
     private static function isProtected(string $rel): bool

@@ -152,6 +152,9 @@
             <i class="bi bi-terminal"></i> Logs
         </a>
         <?php endif ?>
+        <a href="/admin/backup" class="<?= ($activeNav ?? '') === 'backup' ? 'active' : '' ?>">
+            <i class="bi bi-shield-check"></i> Backups
+        </a>
         <a href="/admin/update" class="<?= ($activeNav ?? '') === 'update' ? 'active' : '' ?>">
             <i class="bi bi-cloud-arrow-up"></i> System-Update
         </a>

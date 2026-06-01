@@ -51,7 +51,7 @@ try {
 
     // 2. Backup
     sse('─── Schritt 1: Backup ───');
-    Updater::createBackup(fn($msg) => sse($msg));
+    Updater::createBackup(fn($msg) => sse($msg), 'pre-update');
     sse('Backup abgeschlossen.', 'success');
 
     // 3. Download
