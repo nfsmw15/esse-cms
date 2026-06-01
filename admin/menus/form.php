@@ -497,57 +497,58 @@ document.addEventListener('change', e => {
     form.querySelector('.field-url')?.classList.toggle('d-none',  e.target.value !== 'url');
 });
 
-// ---- Drag & Drop (SortableJS) ----
+</script>
+<?php
+$content = ob_get_clean();
+$csrf    = Auth::csrfToken();
+$extraScripts = '<script src="/public/vendor/sortable/Sortable.min.js"></script>
+<script>
+// Drag & Drop init — runs after SortableJS is loaded
+(function() {
+    const csrf     = ' . json_encode($csrf) . ';
+    const reordUrl = "/admin/menus/edit/' . $menuId . '";
 
-const csrf     = <?= json_encode(Auth::csrfToken()) ?>;
-const reordUrl = '/admin/menus/edit/<?= $menuId ?>';
-
-function collectOrder() {
-    const items = [];
-    let order = 10;
-    document.querySelectorAll('#sortable-top > [data-id]').forEach(el => {
-        items.push({ id: parseInt(el.dataset.id), parent_id: 0, order });
-        order += 10;
-        let childOrder = 10;
-        el.querySelectorAll('[data-child-id]').forEach(ch => {
-            items.push({ id: parseInt(ch.dataset.childId), parent_id: parseInt(el.dataset.id), order: childOrder });
-            childOrder += 10;
+    function collectOrder() {
+        const items = [];
+        let order = 10;
+        document.querySelectorAll("#sortable-top > [data-id]").forEach(el => {
+            items.push({ id: parseInt(el.dataset.id), parent_id: 0, order });
+            order += 10;
+            let childOrder = 10;
+            el.querySelectorAll("[data-child-id]").forEach(ch => {
+                items.push({ id: parseInt(ch.dataset.childId), parent_id: parseInt(el.dataset.id), order: childOrder });
+                childOrder += 10;
+            });
         });
-    });
-    return items;
-}
+        return items;
+    }
 
-function saveOrder() {
-    const fd = new FormData();
-    fd.append('_csrf', csrf);
-    fd.append('_action', 'reorder');
-    fd.append('items', JSON.stringify(collectOrder()));
-    fetch(reordUrl, { method: 'POST', body: fd })
-        .then(r => r.json())
-        .then(d => { if (!d.ok) console.error('Reorder failed'); });
-}
+    function saveOrder() {
+        const fd = new FormData();
+        fd.append("_csrf", csrf);
+        fd.append("_action", "reorder");
+        fd.append("items", JSON.stringify(collectOrder()));
+        fetch(reordUrl, { method: "POST", body: fd })
+            .then(r => r.json())
+            .catch(() => {});
+    }
 
-// Top-level sortable
-const topList = document.getElementById('sortable-top');
-if (topList) {
+    const topList = document.getElementById("sortable-top");
+    if (!topList) return;
+
     Sortable.create(topList, {
-        handle: '.drag-handle',
+        handle: ".drag-handle",
         animation: 150,
         onEnd: saveOrder,
     });
 
-    // Child sortable for each top-level item
-    document.querySelectorAll('.sortable-children').forEach(el => {
+    document.querySelectorAll(".sortable-children").forEach(el => {
         Sortable.create(el, {
-            handle: '.drag-handle',
+            handle: ".drag-handle",
             animation: 150,
-            group: 'children-' + el.dataset.parentId,
             onEnd: saveOrder,
         });
     });
-}
-</script>
-<?php
-$content      = ob_get_clean();
-$extraScripts = '<script src="/public/vendor/sortable/Sortable.min.js"></script>';
+})();
+</script>';
 require dirname(__DIR__) . '/layout.php';
