@@ -29,9 +29,12 @@ function sse(string $message, string $type = 'info'): void
 }
 
 try {
-    // 1. Get latest release info
+    // 1. Get latest release info (respect pre-release setting)
+    $ts            = \Esse\DB::table('settings');
+    $inclPrerel    = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'update_prerelease'") === '1';
+
     sse('Prüfe auf verfügbare Updates...');
-    $info = Updater::checkForUpdate();
+    $info = Updater::checkForUpdate($inclPrerel);
 
     if (!$info) {
         sse('GitHub nicht erreichbar.', 'error');
