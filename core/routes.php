@@ -237,6 +237,11 @@ Router::get('/admin/update', fn() => require ESSE_ROOT . '/admin/updater.php', [
     'auth' => 'admin',
 ]);
 
+Router::post('/admin/update', fn() => require ESSE_ROOT . '/admin/updater.php', [
+    'name' => 'admin.update.post',
+    'auth' => 'admin',
+]);
+
 Router::get('/admin/update/run', fn() => require ESSE_ROOT . '/admin/updater-run.php', [
     'name' => 'admin.update.run',
     'auth' => 'admin',
