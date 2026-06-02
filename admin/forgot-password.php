@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
                 <div class="mb-3">
                     <label class="form-label">E-Mail</label>
-                    <input type="email" name="email" class="form-control" autocomplete="email" autofocus required>
+                    <input type="email" name="email" class="form-control" autocomplete="username" autofocus required>
                 </div>
                 <button class="btn btn-primary w-100">Link senden</button>
             </form>
