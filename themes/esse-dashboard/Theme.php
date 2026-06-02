@@ -34,8 +34,14 @@ class Theme extends \Esse\Theme
             return;
         }
 
-        // Not logged in → show minimal login page instead of dashboard
+        // Not logged in
         if (!\Esse\Auth::check()) {
+            // Public pages are shown without sidebar (minimal public layout)
+            if (($page['visibility'] ?? 'public') === 'public' && empty($page['error_code'])) {
+                require $this->basePath('templates/public.php');
+                return;
+            }
+            // Everything else → login page
             require $this->basePath('templates/login.php');
             return;
         }
