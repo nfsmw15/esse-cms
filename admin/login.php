@@ -74,11 +74,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="brand text-white">ESSE CMS</div>
         <small class="text-secondary">forge your web.</small>
     </div>
+    <?php
+    // Show "back to website" only if there is a public homepage (not dashboard theme)
+    $ts          = defined('ESSE_DB_NAME') ? \Esse\DB::table('settings') : null;
+    $activeTheme = $ts ? (\Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'active_theme'") ?? '') : '';
+    $homepage    = $ts ? (\Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'homepage_slug'") ?? '') : '';
+    if ($homepage && $activeTheme !== 'esse-dashboard'):
+    ?>
     <div class="text-center mb-3">
         <a href="/" class="text-secondary small">
             <i class="bi bi-arrow-left me-1"></i>Zurück zur Website
         </a>
     </div>
+    <?php endif ?>
 
     <?php if ($error): ?>
     <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
