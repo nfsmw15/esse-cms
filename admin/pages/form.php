@@ -381,7 +381,7 @@ $.fn.dropdown = function(opt) {
     });
 
     // Summernote toolbar dropdown fix for Bootstrap 5.3
-    // Use capture phase so we run before Summernote's own handlers
+    // Use capture phase to run before Summernote handlers
     const toolbar = document.querySelector(".note-toolbar");
     if (toolbar) {
         toolbar.addEventListener("click", function(e) {
