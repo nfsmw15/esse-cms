@@ -337,8 +337,13 @@ $.fn.popover = function(opt) {
 };
 $.fn.dropdown = function(opt) {
     return this.each(function() {
-        if (typeof opt === "string") { const d = bootstrap.Dropdown.getInstance(this); if (d) d[opt](); }
-        else new bootstrap.Dropdown(this, opt || {});
+        if (typeof opt === "string") {
+            // Create instance if none exists yet, then call the method
+            const d = bootstrap.Dropdown.getInstance(this) || new bootstrap.Dropdown(this);
+            d[opt]();
+        } else {
+            new bootstrap.Dropdown(this, opt || {});
+        }
     });
 };
 </script>
