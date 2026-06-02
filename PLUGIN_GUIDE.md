@@ -79,7 +79,7 @@ class Plugin extends \Esse\Plugin
 ### Routen registrieren
 
 ```php
-// Frontend-Route
+// Frontend-Route (nackte Ausgabe — KEIN Theme-Wrapper!)
 Router::get('/news', fn() => require $this->basePath('frontend/list.php'),
     ['name' => 'news.list', 'auth' => 'public']);
 
@@ -87,19 +87,73 @@ Router::get('/news', fn() => require $this->basePath('frontend/list.php'),
 Router::get('/admin/news', fn() => require $this->basePath('admin/list.php'),
     ['name' => 'admin.news', 'auth' => 'admin']);
 
-// Route mit Parameter
+// Route mit Parameter ({param} matched alles außer /)
 Router::get('/news/{id}', function (string $id) {
     $newsId = (int) $id;
     require $this->basePath('frontend/detail.php');
 }, ['name' => 'news.detail', 'auth' => 'public']);
 
-// Route mit Permission
+// GET + POST auf gleicher URL (Formular-Pattern)
+Router::get('/news/create', fn() => require $this->basePath('frontend/create.php'),
+    ['name' => 'news.create.get', 'auth' => 'member']);
 Router::post('/news/create', fn() => require $this->basePath('frontend/create.php'),
-    ['name' => 'news.create', 'auth' => 'member']);
+    ['name' => 'news.create.post', 'auth' => 'member']);
 ```
 
 **auth-Werte:** `public`, `member`, `author`, `editor`, `admin`, `forge`,
 oder ein Permission-Slug wie `php_upload`
+
+### Frontend-Output: mit oder ohne Theme-Wrapper
+
+Das ist der häufigste Stolperstein. Ein einfaches `require` gibt **rohes HTML** aus — kein Theme, kein Navbar, kein Footer.
+
+```php
+// ROHES HTML — kein Theme:
+Router::get('/news', fn() => require $this->basePath('frontend/list.php'), [...]);
+
+// MIT aktivem Theme (Navbar, Sidebar, Footer etc.):
+$base = $this->basePath();
+Router::get('/news', function() use ($base) {
+    \Esse\PageRenderer::renderFile("{$base}/frontend/list.php", 'News');
+}, ['name' => 'news.list', 'auth' => 'public']);
+```
+
+`PageRenderer::renderFile($datei, $titel)` führt die Datei aus, fängt den Output und übergibt ihn dem aktiven Theme. Falls kein Theme aktiv ist, gibt es den Content direkt aus.
+
+**Es gibt kein `frontend/layout.php`** — das Theme übernimmt das Layout vollständig über den `page.render`-Hook.
+
+### 404 und Fehler aus Plugins
+
+```php
+// CMS-404-Seite aufrufen (nutzt aktives Theme):
+\Esse\Router::abort(404);
+return;
+
+// 403 Forbidden:
+\Esse\Router::abort(403);
+return;
+```
+
+`Router::abort()` setzt den HTTP-Status und rendert die Theme-Fehlerseite. Danach einfach `return` — kein `exit` nötig.
+
+> **Wichtig — Router-Einschränkungen:**
+>
+> `{param}` matched nur Zeichen ohne `/`. Für Pfade mit Unterordnern
+> (z.B. `/files/ordner/datei.pdf`) ist `{param}` nicht geeignet —
+> verwende stattdessen GET-Parameter: `/files?path=ordner/datei.pdf`
+>
+> **class constants können keine Runtime-Konstanten enthalten:**
+> ```php
+> // FALSCH — wirft Fatal Error:
+> class MyPlugin extends \Esse\Plugin {
+>     const UPLOAD_DIR = ESSE_ROOT . '/plugins/...'; // geht nicht!
+> }
+>
+> // RICHTIG — in boot() oder Methoden:
+> public function boot(): void {
+>     $dir = $this->basePath('uploads/');  // immer so
+> }
+> ```
 
 ### Admin-Sidebar-Eintrag
 
@@ -133,6 +187,103 @@ $this->on('page.render', function(array $page, string $content) {
 });
 
 \Esse\Hooks::on('my.event', fn() => ...);
+```
+
+---
+
+## Autoloading
+
+ESSE hat **keinen PSR-4-Autoloader für Plugins**. Der Core-Autoloader kennt nur den `Esse\`-Namespace.
+
+Eigene Klassen müssen manuell geladen werden:
+
+```php
+// In Plugin.php, am Anfang der Datei (außerhalb der Klasse):
+require_once __DIR__ . '/NewsRepository.php';
+require_once __DIR__ . '/NewsItem.php';
+
+// Oder in boot():
+public function boot(): void
+{
+    require_once $this->basePath('NewsRepository.php');
+    // ...
+}
+```
+
+Wer einen eigenen PSR-4-Autoloader will, kann ihn in `boot()` registrieren:
+```php
+spl_autoload_register(function(string $class): void {
+    if (!str_starts_with($class, 'EsseNews\\')) return;
+    $file = $this->basePath(str_replace('\\', '/', substr($class, 9)) . '.php');
+    if (file_exists($file)) require_once $file;
+});
+```
+
+---
+
+## Verfügbare Konstanten
+
+| Konstante | Inhalt |
+|---|---|
+| `ESSE_ROOT` | Absoluter Pfad zum CMS-Verzeichnis |
+| `ESSE_PRIVATE_PATH` | Pfad zum privaten Verzeichnis (kann außerhalb Webroot liegen) |
+| `ESSE_VERSION` | Aktuelle CMS-Version (z.B. `'0.1.0-alpha'`) |
+| `ESSE_GITHUB_REPO` | GitHub-Repo für Updates (`'nfsmw15/esse-cms'`) |
+| `ESSE_DB_HOST` | Datenbank-Host (aus config.php) |
+| `ESSE_DB_NAME` | Datenbankname |
+| `ESSE_DB_PREFIX` | Tabellen-Prefix (z.B. `'esse_'`) |
+| `ESSE_URL` | Site-URL ohne abschließenden Slash |
+| `ESSE_ENCRYPT_KEY` | Verschlüsselungsschlüssel für `Crypto::encrypt()` |
+
+> **Achtung:** Diese Konstanten sind Runtime-Werte. Sie können **nicht** in Class-Constants verwendet werden:
+> ```php
+> // FEHLER:
+> class MyPlugin extends \Esse\Plugin {
+>     const DIR = ESSE_ROOT . '/plugins/mein-plugin'; // Fatal Error!
+> }
+> // RICHTIG:
+> public function boot(): void {
+>     $dir = $this->basePath(); // immer so
+> }
+> ```
+
+---
+
+## Plugin-Einstellungen
+
+Einstellungen werden in der `esse_settings`-Tabelle gespeichert. Empfohlenes Key-Format: `plugin_{name}_{schluessel}`.
+
+```php
+use Esse\DB;
+
+$ts = DB::table('settings');
+
+// Lesen (mit Standardwert)
+$perPage = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'plugin_esse-news_per_page'") ?? '10';
+
+// Schreiben
+DB::query(
+    "INSERT INTO `{$ts}` (`key`, `value`) VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+    ['plugin_esse-news_per_page', '20']
+);
+
+// Mehrere Einstellungen auf einmal lesen
+$rows = DB::fetchAll("SELECT `key`, `value` FROM `{$ts}` WHERE `key` LIKE 'plugin_esse-news_%'");
+$settings = array_column($rows, 'value', 'key');
+$perPage  = $settings['plugin_esse-news_per_page'] ?? '10';
+```
+
+---
+
+## $activeNav für mehrere Plugin-Seiten
+
+`$activeNav` ist ein einfacher String-Vergleich mit dem `activeSlug` aus `addAdminNav()`.
+Setze `$activeNav` auf denselben Wert auf **allen** Admin-Seiten des Plugins:
+
+```php
+// In admin/list.php UND admin/form.php UND admin/settings.php:
+$activeNav = 'admin.news'; // immer gleich → Sidebar-Link bleibt aktiv
 ```
 
 ---
@@ -357,7 +508,43 @@ $.fn.popover = function(opt) {
 
 ## Plugin-Assets
 
-Der `plugins/`-Ordner ist per `.htaccess` gesperrt. Für öffentliche Assets gibt es zwei Wege:
+### assetUrl()
+
+```php
+// URL zu einer Datei in plugins/mein-plugin/public/
+$this->assetUrl('css/style.css')
+// → https://example.com/plugins/mein-plugin/public/css/style.css
+
+$this->assetUrl('images/logo.png')
+// → https://example.com/plugins/mein-plugin/public/images/logo.png
+```
+
+> **Achtung:** `assetUrl()` baut die URL nur — die Datei muss trotzdem
+> web-zugänglich sein. Der `plugins/`-Ordner ist per `.htaccess` gesperrt,
+> also muss die Datei über eine Route oder aus `public/vendor/` ausgeliefert werden
+> (siehe unten).
+
+### DB-Migrationen bei Plugin-Updates
+
+`install()` wird nur bei **Neuinstallation** aufgerufen. Wenn du in Version 1.1
+eine neue Spalte brauchst, muss die Migration in `boot()` stehen:
+
+```php
+public function boot(): void
+{
+    // Läuft bei JEDEM Request — immer idempotent schreiben!
+    DB::query("CREATE TABLE IF NOT EXISTS `" . DB::table('news') . "` (...)");
+
+    // Neue Spalte in v1.1 — IF NOT EXISTS verhindert Fehler bei Bestandsinstallationen:
+    DB::query("ALTER TABLE `" . DB::table('news') . "`
+               ADD COLUMN IF NOT EXISTS `image` VARCHAR(500) DEFAULT NULL");
+}
+```
+
+`ALTER TABLE ... ADD COLUMN IF NOT EXISTS` ist MySQL/MariaDB-spezifisch und
+wirft keinen Fehler wenn die Spalte schon existiert.
+
+### Der `plugins/`-Ordner ist per `.htaccess` gesperrt. Für öffentliche Assets gibt es zwei Wege:
 
 **Option A: Route (einfach, keine Kopierschritte)**
 ```php
