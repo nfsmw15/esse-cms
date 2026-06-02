@@ -36,18 +36,13 @@ class Theme extends \Esse\Theme
 
         // Not logged in
         if (!\Esse\Auth::check()) {
-            // Check if this page is explicitly listed as public in theme settings
-            $publicSlugs = array_map('trim', explode(',',
-                $this->settings['theme_esse-dashboard_public_slugs'] ?? ''
-            ));
-            $currentSlug = $page['slug'] ?? '';
-
-            if ($currentSlug && in_array($currentSlug, $publicSlugs, true)) {
+            // Respect the page's visibility setting:
+            // 'public' → show content (uses minimal layout without sidebar)
+            // 'members', 'admin' or anything else → show login
+            if (($page['visibility'] ?? '') === 'public' && empty($page['error_code'])) {
                 require $this->basePath('templates/public.php');
                 return;
             }
-
-            // Everything else → login page
             require $this->basePath('templates/login.php');
             return;
         }
