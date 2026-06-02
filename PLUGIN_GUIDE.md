@@ -107,20 +107,46 @@ oder ein Permission-Slug wie `php_upload`
 
 Das ist der häufigste Stolperstein. Ein einfaches `require` gibt **rohes HTML** aus — kein Theme, kein Navbar, kein Footer.
 
-```php
-// ROHES HTML — kein Theme:
-Router::get('/news', fn() => require $this->basePath('frontend/list.php'), [...]);
+**Pattern 1 — Direkt via `ob_start()` (empfohlen, transparent):**
 
-// MIT aktivem Theme (Navbar, Sidebar, Footer etc.):
+```php
 $base = $this->basePath();
 Router::get('/news', function() use ($base) {
-    \Esse\PageRenderer::renderFile("{$base}/frontend/list.php", 'News');
+    ob_start();
+    require "{$base}/frontend/list.php";
+    $content = ob_get_clean();
+
+    $page = ['title' => 'News', 'slug' => 'news', 'visibility' => 'public'];
+
+    if (\Esse\Hooks::has('page.render')) {
+        \Esse\Hooks::fire('page.render', $page, $content);
+    } else {
+        header('Content-Type: text/html; charset=utf-8');
+        echo $content;
+    }
 }, ['name' => 'news.list', 'auth' => 'public']);
 ```
 
-`PageRenderer::renderFile($datei, $titel)` führt die Datei aus, fängt den Output und übergibt ihn dem aktiven Theme. Falls kein Theme aktiv ist, gibt es den Content direkt aus.
+**Pattern 2 — Via `PageRenderer::renderFile()` (Kurzform):**
+
+```php
+$base = $this->basePath();
+Router::get('/news', function() use ($base) {
+    \Esse\PageRenderer::renderFile("{$base}/frontend/list.php", 'News');
+    // Drittes Argument: visibility ('public', 'members', 'admin')
+    // Default: 'public'
+}, ['name' => 'news.list', 'auth' => 'public']);
+```
+
+Beide Patterns funktionieren gleichwertig. Pattern 1 gibt dir mehr Kontrolle über das `$page`-Array das ans Theme übergeben wird.
 
 **Es gibt kein `frontend/layout.php`** — das Theme übernimmt das Layout vollständig über den `page.render`-Hook.
+
+> **Doppelter `<h1>` vermeiden:**
+> Das aktive Theme rendert `$page['title']` bereits als `<h1>` vor dem Content.
+> Das Frontend-Template darf deshalb **keinen eigenen `<h1>` mit dem Seitentitel** ausgeben —
+> sonst erscheint "News" zweimal. Starte den Template-Output direkt mit dem Inhalt,
+> nicht mit einer Überschrift die den Titel wiederholt.
 
 ### 404 und Fehler aus Plugins
 
@@ -742,6 +768,7 @@ class Plugin extends \Esse\Plugin
 - [ ] `boot()` registriert Routen, `addAdminNav()`, `registerPage()`
 - [ ] `activeNav` in Admin-Templates stimmt **exakt** mit `activeSlug` aus `addAdminNav()` überein
 - [ ] `uninstall()` löscht alle Plugin-Daten (Tabellen, Einstellungen)
+- [ ] Frontend-Templates haben keinen eigenen `<h1>` mit dem Seitentitel (Theme rendert ihn bereits)
 - [ ] Keine Slug-Konflikte mit Kern-Routen: `/admin/*`, `/install`, `/profil`, `/registrieren`, `/abmelden`
 - [ ] CSRF in allen POST-Handlern: `Auth::verifyCsrf()`
 - [ ] Berechtigungen prüfen: `Auth::meetsRole()` oder `Auth::can()`
