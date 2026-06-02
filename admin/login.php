@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="hidden" name="redirect" value="<?= htmlspecialchars($_GET['redirect'] ?? '/') ?>">
                 <div class="mb-3">
                     <label class="form-label">E-Mail</label>
-                    <input type="email" name="login" class="form-control" autocomplete="email" autofocus required>
+                    <input type="email" name="login" class="form-control" autocomplete="username" autofocus required>
                 </div>
                 <div class="mb-4">
                     <label class="form-label">Passwort</label>

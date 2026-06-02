@@ -39,7 +39,7 @@ $redirect = $_SERVER['REQUEST_URI'] ?? '/';
             <div class="mb-3">
                 <label class="form-label text-secondary small">E-Mail</label>
                 <input type="email" name="login" class="form-control"
-                       autocomplete="email" autofocus required
+                       autocomplete="username" autofocus required
                        style="background:#0d0f14;border-color:var(--border);color:var(--text)">
             </div>
             <div class="mb-4">

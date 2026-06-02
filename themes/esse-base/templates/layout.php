@@ -131,7 +131,7 @@
                             <input type="hidden" name="redirect" value="<?= htmlspecialchars($_SERVER['REQUEST_URI'] ?? '/') ?>">
                             <div class="mb-2">
                                 <input type="email" name="login" class="form-control form-control-sm"
-                                       placeholder="E-Mail" autocomplete="email" required>
+                                       placeholder="E-Mail" autocomplete="username" required>
                             </div>
                             <div class="mb-3">
                                 <input type="password" name="password" class="form-control form-control-sm"
