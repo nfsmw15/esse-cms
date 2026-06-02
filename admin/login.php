@@ -138,17 +138,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p class="text-white small fw-semibold mb-1"><?= htmlspecialchars($group['header']) ?></p>
             <hr class="border-secondary mt-0 mb-1">
             <?php endif ?>
-            <div class="d-flex gap-3 justify-content-center">
             <?php foreach ($group['links'] as $link): ?>
-            <?php if ($link['type'] !== 'header'): ?>
-            <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($link)) ?>"
-               class="text-secondary small text-decoration-none"
-               <?= $link['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
-                <?= htmlspecialchars($link['label']) ?>
-            </a>
+            <?php if ($link['type'] === 'header'): ?>
+            <p class="text-secondary small mb-1"><?= htmlspecialchars($link['label']) ?></p>
+            <?php else: ?>
+            <div>
+                <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($link)) ?>"
+                   class="text-secondary small text-decoration-none"
+                   <?= $link['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
+                    <?= htmlspecialchars($link['label']) ?>
+                </a>
+            </div>
             <?php endif ?>
             <?php endforeach ?>
-            </div>
         </div>
         <?php endforeach ?>
     </div>
