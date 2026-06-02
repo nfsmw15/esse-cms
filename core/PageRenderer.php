@@ -53,7 +53,7 @@ class PageRenderer
     }
 
     // Render a PHP file (not from DB) wrapped in the active theme
-    public static function renderFile(string $file, string $title = ''): void
+    public static function renderFile(string $file, string $title = '', string $visibility = 'public'): void
     {
         if (!file_exists($file)) {
             Router::abort(404);
@@ -65,7 +65,7 @@ class PageRenderer
             'title'      => $title,
             'content'    => '',
             'type'       => 'standard',
-            'visibility' => 'public',
+            'visibility' => $visibility,
             'status'     => 'published',
         ];
 

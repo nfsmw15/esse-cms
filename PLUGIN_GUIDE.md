@@ -371,6 +371,48 @@ $apiKey    = Crypto::decrypt($encrypted ?? '');
 
 ---
 
+## CSRF bei AJAX-Requests
+
+Für `fetch()`/XHR das Token aus einem vorhandenen `<input>` auslesen:
+
+```javascript
+// Token aus dem Formular auf der Seite holen
+const csrf = document.querySelector('input[name="_csrf"]')?.value;
+
+fetch('/admin/esse-news/action', {
+    method: 'POST',
+    headers: { 'X-CSRF-TOKEN': csrf },  // Header-Variante
+    body: JSON.stringify({ id: 123 }),
+});
+
+// Oder als FormData:
+const fd = new FormData();
+fd.append('_csrf', csrf);
+fd.append('data', 'wert');
+fetch('/admin/esse-news/action', { method: 'POST', body: fd });
+```
+
+PHP-Seite prüft beides (`$_POST['_csrf']` oder `HTTP_X_CSRF_TOKEN`):
+```php
+if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
+```
+
+Wenn kein Formular auf der Seite ist, CSRF-Token als JS-Variable rendern:
+```php
+// In der Admin-Seite:
+$pageTitle = 'News';
+$activeNav = 'admin.news';
+ob_start();
+?>
+<script>const CSRF = <?= json_encode(Auth::csrfToken()) ?>;</script>
+<div id="app">...</div>
+<?php
+$content = ob_get_clean();
+require ESSE_ROOT . '/admin/layout.php';
+```
+
+---
+
 ## Flash-Messages
 
 ```php
@@ -503,6 +545,67 @@ $.fn.popover = function(opt) {
 </script>';
 ```
 
+
+---
+
+## Icon-Felder
+
+Seiten und Menü-Einträge haben ein optionales `icon`-Feld (volle CSS-Klasse):
+
+```php
+// Seite programmatisch mit Icon anlegen:
+DB::insert(DB::table('pages'), [
+    'slug'       => 'dashboard',
+    'title'      => 'Dashboard',
+    'icon'       => 'bi bi-speedometer2',  // optional
+    'content'    => '',
+    'type'       => 'standard',
+    'visibility' => 'members',
+    'status'     => 'published',
+    'author_id'  => Auth::id(),
+]);
+
+// Menü-Eintrag mit Icon anlegen:
+DB::insert(DB::table('menu_items'), [
+    'menu_id'    => $menuId,
+    'type'       => 'page',
+    'label'      => 'Dashboard',
+    'icon'       => 'bi bi-speedometer2',  // optional
+    'page_slug'  => 'dashboard',
+    'sort_order' => 10,
+    'active'     => 1,
+]);
+```
+
+Themes rendern das Icon automatisch vor Label/Titel wenn `icon` gesetzt ist.
+Funktioniert mit allen selbst gehosteten Icon-Packs — einfach die volle CSS-Klasse angeben.
+
+---
+
+## Dashboard-Theme-Kompatibilität
+
+Das esse-dashboard-Theme zeigt für nicht eingeloggte Nutzer eine Login-Seite,
+**außer** die Seite hat `visibility = 'public'`.
+
+**Plugin-Routen und das Dashboard-Theme:**
+
+```php
+// Mit PageRenderer::renderFile() — Theme prüft Sichtbarkeit:
+$base = $this->basePath();
+Router::get('/portal', function() use ($base) {
+    \Esse\PageRenderer::renderFile("{$base}/frontend/portal.php", 'Portal', 'members');
+    //                                                                        ↑ visibility
+}, ['auth' => 'member']);
+
+// Mit einfachem require — Theme wird KOMPLETT umgangen:
+// → Immer rohes HTML, kein Login-Check vom Dashboard-Theme
+Router::get('/api/data', fn() => require $this->basePath('api/data.php'),
+    ['auth' => 'member']); // Auth-Check vom Router bleibt aktiv
+```
+
+> `PageRenderer::renderFile()` hat einen optionalen dritten Parameter `$visibility`
+> (Standard: `'public'`). Setze ihn auf `'members'` damit das Dashboard-Theme
+> Login-Check durchführt.
 
 ---
 
