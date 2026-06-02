@@ -325,22 +325,20 @@ $extraScripts = '<script src="/public/vendor/summernote/summernote-bs5.min.js"><
 // Bootstrap 5 ↔ jQuery bridge for Summernote tooltip/popover
 $.fn.tooltip = function(opt) {
     return this.each(function() {
-        if (typeof opt === "string") {
-            const t = bootstrap.Tooltip.getInstance(this);
-            if (t) t[opt]();
-        } else {
-            new bootstrap.Tooltip(this, opt || {});
-        }
+        if (typeof opt === "string") { const t = bootstrap.Tooltip.getInstance(this); if (t) t[opt](); }
+        else new bootstrap.Tooltip(this, opt || {});
     });
 };
 $.fn.popover = function(opt) {
     return this.each(function() {
-        if (typeof opt === "string") {
-            const p = bootstrap.Popover.getInstance(this);
-            if (p) p[opt]();
-        } else {
-            new bootstrap.Popover(this, opt || {});
-        }
+        if (typeof opt === "string") { const p = bootstrap.Popover.getInstance(this); if (p) p[opt](); }
+        else new bootstrap.Popover(this, opt || {});
+    });
+};
+$.fn.dropdown = function(opt) {
+    return this.each(function() {
+        if (typeof opt === "string") { const d = bootstrap.Dropdown.getInstance(this); if (d) d[opt](); }
+        else new bootstrap.Dropdown(this, opt || {});
     });
 };
 </script>
