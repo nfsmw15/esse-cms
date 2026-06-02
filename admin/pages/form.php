@@ -380,13 +380,43 @@ $.fn.dropdown = function(opt) {
         }
     });
 
-    // Bootstrap 5 does not auto-init dropdowns added after DOMContentLoaded.
-    // Summernote adds its toolbar dynamically, so we init all toolbar dropdowns manually.
-    document.querySelectorAll(".note-toolbar .dropdown-toggle").forEach(el => {
-        if (!bootstrap.Dropdown.getInstance(el)) {
-            new bootstrap.Dropdown(el);
-        }
-    });
+    // Summernote toolbar dropdown fix for Bootstrap 5.3
+    // Use capture phase so we run before Summernote's own handlers
+    const toolbar = document.querySelector(".note-toolbar");
+    if (toolbar) {
+        toolbar.addEventListener("click", function(e) {
+            const toggle = e.target.closest(".dropdown-toggle");
+            if (!toggle) return;
+
+            const menu = toggle.parentElement.querySelector(".dropdown-menu");
+            if (!menu) return;
+
+            const willOpen = !menu.classList.contains("show");
+
+            // Close all open dropdowns in toolbar
+            toolbar.querySelectorAll(".dropdown-menu.show").forEach(m => {
+                m.classList.remove("show");
+            });
+            toolbar.querySelectorAll(".dropdown-toggle[aria-expanded=true]").forEach(t => {
+                t.setAttribute("aria-expanded", "false");
+            });
+
+            if (willOpen) {
+                menu.classList.add("show");
+                toggle.setAttribute("aria-expanded", "true");
+            }
+        }, true); // capture phase — runs before Summernote handlers
+
+        // Close on outside click
+        document.addEventListener("click", function(e) {
+            if (!e.target.closest(".note-toolbar")) {
+                toolbar.querySelectorAll(".dropdown-menu.show").forEach(m => m.classList.remove("show"));
+                toolbar.querySelectorAll(".dropdown-toggle[aria-expanded=true]").forEach(t => {
+                    t.setAttribute("aria-expanded", "false");
+                });
+            }
+        });
+    }
 })();
 </script>';
 require dirname(__DIR__) . '/layout.php';
