@@ -64,8 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'save_menus') {
         $themeName = $_POST['theme_name'] ?? '';
         $meta      = $themes[$themeName] ?? null;
-        if ($meta && !empty($meta['menus'])) {
-            foreach (array_keys($meta['menus']) as $pos) {
+        if ($meta) {
+            // Save menu positions
+            foreach (array_keys($meta['menus'] ?? []) as $pos) {
                 $key   = 'theme_' . $themeName . '_menu_' . $pos;
                 $value = trim($_POST[$key] ?? '');
                 DB::query(
@@ -74,8 +75,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     [$key, $value]
                 );
             }
+            // Save public slugs if theme supports it
+            if (!empty($meta['settings']['public_slugs']) || isset($_POST['theme_' . $themeName . '_public_slugs'])) {
+                $slugsKey = 'theme_' . $themeName . '_public_slugs';
+                $slugsVal = trim($_POST[$slugsKey] ?? '');
+                DB::query(
+                    "INSERT INTO `{$ts}` (`key`, `value`) VALUES (?, ?)
+                     ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+                    [$slugsKey, $slugsVal]
+                );
+            }
         }
-        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Menüpositionen gespeichert.'];
+        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Theme-Einstellungen gespeichert.'];
         header('Location: /admin/themes');
         exit;
     }
@@ -141,6 +152,20 @@ ob_start();
                     </select>
                 </div>
                 <?php endforeach ?>
+
+                <?php
+                // Public slugs setting (e.g. for dashboard theme)
+                $pubKey = 'theme_' . $name . '_public_slugs';
+                $pubVal = $settings[$pubKey] ?? '';
+                ?>
+                <div class="mb-2 mt-3">
+                    <label class="form-label small">Öffentliche Seiten <span class="text-secondary">(ohne Login zugänglich)</span></label>
+                    <input type="text" name="<?= htmlspecialchars($pubKey) ?>"
+                           class="form-control form-control-sm font-monospace"
+                           value="<?= htmlspecialchars($pubVal) ?>"
+                           placeholder="impressum, datenschutz">
+                    <div class="form-text">Kommagetrennte Slugs — diese Seiten sind auch ohne Login sichtbar.</div>
+                </div>
 
                 <button class="btn btn-sm btn-primary mt-1">
                     <i class="bi bi-floppy"></i> Speichern
