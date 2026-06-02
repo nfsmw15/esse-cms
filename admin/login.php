@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\DB;
+use Esse\Menu;
 
 // Already logged in → go to intended destination or homepage
 if (Auth::check()) {
@@ -12,6 +14,16 @@ if (Auth::check()) {
 }
 
 $error = '';
+
+// Load footer menu from active theme settings
+$footMenu = [];
+if (defined('ESSE_DB_NAME')) {
+    $ts          = DB::table('settings');
+    $activeTheme = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'active_theme'") ?? '';
+    $footSlugKey = 'theme_' . $activeTheme . '_menu_footer';
+    $footSlug    = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = ?", [$footSlugKey]) ?? '';
+    if ($footSlug) $footMenu = Menu::get($footSlug);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) {
@@ -103,5 +115,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ?>
     </div>
 </div>
+
+<?php if ($footMenu):
+    // Group by headers (same pattern as esse-base/esse-dashboard footer)
+    $groups = [];
+    $current = ['header' => null, 'links' => []];
+    foreach ($footMenu as $item) {
+        if ($item['type'] === 'header') {
+            if ($current['header'] !== null || !empty($current['links'])) $groups[] = $current;
+            $current = ['header' => $item['label'], 'links' => $item['children'] ?? []];
+        } else {
+            $current['links'][] = $item;
+        }
+    }
+    if ($current['header'] !== null || !empty($current['links'])) $groups[] = $current;
+?>
+<footer class="position-fixed bottom-0 w-100 py-3" style="background:#0d0d0d;border-top:1px solid #1e1e1e">
+    <div class="d-flex flex-wrap justify-content-center gap-5">
+        <?php foreach ($groups as $group): ?>
+        <div class="text-center">
+            <?php if ($group['header'] !== null): ?>
+            <p class="text-white small fw-semibold mb-1"><?= htmlspecialchars($group['header']) ?></p>
+            <hr class="border-secondary mt-0 mb-1">
+            <?php endif ?>
+            <div class="d-flex gap-3 justify-content-center">
+            <?php foreach ($group['links'] as $link): ?>
+            <?php if ($link['type'] !== 'header'): ?>
+            <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($link)) ?>"
+               class="text-secondary small text-decoration-none"
+               <?= $link['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
+                <?= htmlspecialchars($link['label']) ?>
+            </a>
+            <?php endif ?>
+            <?php endforeach ?>
+            </div>
+        </div>
+        <?php endforeach ?>
+    </div>
+</footer>
+<?php endif ?>
 </body>
 </html>
