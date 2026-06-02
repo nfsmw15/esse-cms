@@ -374,6 +374,14 @@ $.fn.dropdown = function(opt) {
             }
         }
     });
+
+    // Bootstrap 5 does not auto-init dropdowns added after DOMContentLoaded.
+    // Summernote adds its toolbar dynamically, so we init all toolbar dropdowns manually.
+    document.querySelectorAll(".note-toolbar .dropdown-toggle").forEach(el => {
+        if (!bootstrap.Dropdown.getInstance(el)) {
+            new bootstrap.Dropdown(el);
+        }
+    });
 })();
 </script>';
 require dirname(__DIR__) . '/layout.php';
