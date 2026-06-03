@@ -51,6 +51,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $action = $_POST['_action'] ?? '';
 
+    if ($action === 'delete') {
+        $name = $_POST['theme_name'] ?? '';
+        if (isset($themes[$name]) && $name !== $activeTheme) {
+            packageDeleteDir(ESSE_ROOT . '/themes/' . $name);
+            $_SESSION['flash'] = ['type' => 'success', 'message' => "Theme '{$name}' gelöscht."];
+        } elseif ($name === $activeTheme) {
+            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Das aktive Theme kann nicht gelöscht werden.'];
+        }
+        header('Location: /admin/themes');
+        exit;
+    }
+
     if ($action === 'activate') {
         $name = $_POST['theme_name'] ?? '';
         if (isset($themes[$name])) {
@@ -246,12 +258,23 @@ if (!$available) {
             <?php if ($isActive): ?>
                 <span class="badge bg-primary">Aktiv</span>
             <?php else: ?>
-                <form method="post" action="/admin/themes" class="d-inline">
-                    <input type="hidden" name="_csrf"       value="<?= Auth::csrfToken() ?>">
-                    <input type="hidden" name="_action"     value="activate">
-                    <input type="hidden" name="theme_name"  value="<?= htmlspecialchars($name) ?>">
-                    <button class="btn btn-sm btn-outline-primary">Aktivieren</button>
-                </form>
+                <div class="d-flex gap-1">
+                    <form method="post" action="/admin/themes" class="d-inline">
+                        <input type="hidden" name="_csrf"       value="<?= Auth::csrfToken() ?>">
+                        <input type="hidden" name="_action"     value="activate">
+                        <input type="hidden" name="theme_name"  value="<?= htmlspecialchars($name) ?>">
+                        <button class="btn btn-sm btn-outline-primary">Aktivieren</button>
+                    </form>
+                    <form method="post" action="/admin/themes" class="d-inline"
+                          onsubmit="return confirm('Theme \'<?= htmlspecialchars(addslashes($name)) ?>\' wirklich löschen?')">
+                        <input type="hidden" name="_csrf"       value="<?= Auth::csrfToken() ?>">
+                        <input type="hidden" name="_action"     value="delete">
+                        <input type="hidden" name="theme_name"  value="<?= htmlspecialchars($name) ?>">
+                        <button class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
             <?php endif ?>
         </div>
         <div class="card-body">
