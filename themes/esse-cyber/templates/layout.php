@@ -114,15 +114,17 @@ $currentSlug = $page['slug'] ?? '';
 
 <!-- Content -->
 <main class="cyber-main">
-    <div class="cyber-content-wrap">
+    <div style="width:100%;max-width:860px">
         <?php if (!empty($page['title'])): ?>
         <h1 class="cyber-page-title">
             <?php if (!empty($page['icon'])): ?><i class="<?= htmlspecialchars($page['icon']) ?>"></i><?php endif ?>
             <?= htmlspecialchars($page['title']) ?>
         </h1>
         <?php endif ?>
-        <div class="cyber-prose">
-            <?= $content ?>
+        <div class="cyber-content-wrap">
+            <div class="cyber-prose">
+                <?= $content ?>
+            </div>
         </div>
     </div>
 </main>
