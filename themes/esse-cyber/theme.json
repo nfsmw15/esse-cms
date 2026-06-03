@@ -1,0 +1,11 @@
+{
+    "name": "esse-cyber",
+    "version": "1.0.0",
+    "description": "Cyberpunk terminal theme with scanlines, grid background and orange accent.",
+    "author": "ESSE CMS",
+    "class": "EsseCyber\\Theme",
+    "menus": {
+        "main":   "Hauptnavigation",
+        "footer": "Footer-Links"
+    }
+}
