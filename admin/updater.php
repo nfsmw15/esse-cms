@@ -25,6 +25,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'prep
     exit;
 }
 
+// Update check cache refresh
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'refresh_cache') {
+    if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
+    @unlink(ESSE_PRIVATE_PATH . '/storage/cache/update_check.json');
+    header('Location: /admin/update');
+    exit;
+}
+
 // Pre-release toggle (POST saves to session)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['prerelease_toggle'])) {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
@@ -88,13 +96,16 @@ ob_start();
                         <span class="badge bg-warning text-dark">Update verfügbar</span>
                     <?php elseif ($updateInfo): ?>
                         <span class="badge bg-success">Aktuell</span>
-                    <?php endif ?>
+                <?php endif ?>
                 </div>
                 <div class="mt-2">
-                    <a href="?refresh=1" class="btn btn-sm btn-outline-secondary"
-                       onclick="localStorage.removeItem('updateChecked')">
+                    <form method="post" action="/admin/update" class="d-inline">
+                        <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
+                        <input type="hidden" name="_action" value="refresh_cache">
+                        <button class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-arrow-clockwise"></i> Erneut prüfen
-                    </a>
+                        </button>
+                    </form>
                 </div>
                 <?php if ($checkError): ?>
                 <div class="alert alert-secondary mt-3 mb-0 small"><?= htmlspecialchars($checkError) ?></div>
@@ -216,15 +227,6 @@ ob_start();
         </div>
     </div>
 </div>
-
-<?php if (isset($_GET['refresh'])): ?>
-<script>
-// Clear cache and reload without ?refresh param
-fetch('/admin/update?refresh=1').then(() => {
-    window.location.href = '/admin/update';
-});
-</script>
-<?php endif ?>
 
 <script>
 function startUpdate(version) {

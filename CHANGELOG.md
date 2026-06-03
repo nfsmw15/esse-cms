@@ -2,6 +2,16 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [0.1.2-alpha] - 2026-06-03
+
+### Fixed
+
+- Updater SSE progress no longer calls an undefined `$log` callback when updating `ESSE_VERSION` in `local.php`
+- Update "Erneut prüfen" now clears the update-check cache via CSRF-protected POST
+- Fallback `ESSE_VERSION` updated to `0.1.2-alpha` so GitHub release checks can detect this patch release
+
+---
+
 ## [0.1.1-alpha] - 2026-06-03
 
 ### Added

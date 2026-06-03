@@ -88,7 +88,7 @@ try {
             );
             if ($updated && $updated !== $localContent) {
                 file_put_contents($localPhp, $updated);
-                $log("Version in local.php auf {$newVersion} aktualisiert.");
+                sse("Version in local.php auf {$newVersion} aktualisiert.");
             }
         }
     }
