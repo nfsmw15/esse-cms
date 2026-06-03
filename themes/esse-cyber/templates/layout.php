@@ -63,7 +63,7 @@ $currentSlug = $page['slug'] ?? '';
 
     <div style="display:flex;align-items:center;gap:1rem">
         <?php if (\Esse\Auth::check()): ?>
-        <div class="cyber-user">
+        <div class="cyber-user" id="cyber-user-toggle" onclick="event.stopPropagation();this.classList.toggle('open')" style="user-select:none">
             [ <?= htmlspecialchars(\Esse\Auth::user()['display_name'] ?? '') ?> ▾ ]
             <div class="cyber-user-menu">
                 <a href="/profil">// Profil</a>
@@ -77,7 +77,7 @@ $currentSlug = $page['slug'] ?? '';
             </div>
         </div>
         <?php else: ?>
-        <div class="cyber-user">
+        <div class="cyber-user" id="cyber-user-toggle" onclick="event.stopPropagation();this.classList.toggle('open')" style="user-select:none">
             [ Login ▾ ]
             <div class="cyber-user-menu" style="min-width:220px;padding:.75rem">
                 <?php if (!empty($_GET['login_error'])): ?>
@@ -185,6 +185,16 @@ $currentSlug = $page['slug'] ?? '';
     }
     tick();
     setInterval(tick, 1000);
+
+    // Close user menu when clicking outside
+    document.addEventListener('click', function() {
+        document.getElementById('cyber-user-toggle')?.classList.remove('open');
+    });
+
+    // Prevent form clicks inside menu from closing it
+    document.querySelector('.cyber-user-menu')?.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
 })();
 </script>
 </body>
