@@ -161,9 +161,7 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 3600) {
     $available = json_decode(file_get_contents($cacheFile), true);
 }
 if (!$available) {
-    $available = GitHubApi::searchPlugins('nfsmw15', true);
-    // Only keep esse-theme repos
-    $available = array_values(array_filter($available, fn($r) => str_contains($r['name'], 'theme') || str_contains($r['description'] ?? '', 'theme')));
+    $available = GitHubApi::searchThemes('nfsmw15', true);
     foreach ($available as &$r) {
         $rel = GitHubApi::latestRelease($r['full_name']);
         $r['latest_version'] = $rel['version'] ?? null;

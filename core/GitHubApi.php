@@ -45,7 +45,19 @@ class GitHubApi
     // Search repos by topic and optionally by owner
     public static function searchPlugins(string $owner, bool $trustedOnly = false): array
     {
-        $query = urlencode("topic:esse-plugin user:{$owner}");
+        return self::searchByTopic('esse-plugin', $owner, $trustedOnly);
+    }
+
+    // Search themes by esse-theme topic
+    public static function searchThemes(string $owner, bool $trustedOnly = false): array
+    {
+        return self::searchByTopic('esse-theme', $owner, $trustedOnly);
+    }
+
+    // Generic topic search
+    private static function searchByTopic(string $topic, string $owner, bool $trustedOnly = false): array
+    {
+        $query = urlencode("topic:{$topic} user:{$owner}");
         $data  = self::request("https://api.github.com/search/repositories?q={$query}&per_page=50&sort=updated");
 
         if (!$data || empty($data['items'])) return [];
