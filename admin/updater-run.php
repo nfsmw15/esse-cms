@@ -75,6 +75,24 @@ try {
     $cache = ESSE_PRIVATE_PATH . '/storage/cache/update_check.json';
     @unlink($cache);
 
+    // 6. Update ESSE_VERSION in local.php if it overrides the version
+    $localPhp = ESSE_ROOT . '/local.php';
+    if (file_exists($localPhp)) {
+        $localContent = file_get_contents($localPhp);
+        if (str_contains($localContent, 'ESSE_VERSION')) {
+            $newVersion = ltrim($info['version'], 'v');
+            $updated = preg_replace(
+                "/define\('ESSE_VERSION',\s*'[^']+'\)/",
+                "define('ESSE_VERSION', '{$newVersion}')",
+                $localContent
+            );
+            if ($updated && $updated !== $localContent) {
+                file_put_contents($localPhp, $updated);
+                $log("Version in local.php auf {$newVersion} aktualisiert.");
+            }
+        }
+    }
+
     sse("─────────────────────────────────");
     sse("ESSE CMS v{$info['version']} wurde erfolgreich installiert.", 'success');
     sse('Seite wird neu geladen...', 'info');
