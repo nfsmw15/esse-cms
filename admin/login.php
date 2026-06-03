@@ -21,6 +21,9 @@ if (Auth::check()) {
 }
 
 $error = '';
+$now = time();
+$_SESSION['login_failures'] ??= 0;
+$_SESSION['login_block_until'] ??= 0;
 
 // Load footer menu from active theme settings
 $footMenu = [];
@@ -35,13 +38,21 @@ if (defined('ESSE_DB_NAME')) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) {
         $error = 'Ungültige Anfrage. Bitte die Seite neu laden.';
+    } elseif ($_SESSION['login_block_until'] > $now) {
+        $error = 'Zu viele Fehlversuche. Bitte kurz warten und erneut versuchen.';
     } else {
         $login    = trim($_POST['login']    ?? '');
         $password = $_POST['password'] ?? '';
 
         if (Auth::attempt($login, $password)) {
+            unset($_SESSION['login_failures'], $_SESSION['login_block_until']);
             header('Location: ' . sanitizeRedirect($_POST['redirect'] ?? $_GET['redirect'] ?? '/'));
             exit;
+        }
+        $_SESSION['login_failures']++;
+        if ($_SESSION['login_failures'] >= 5) {
+            $_SESSION['login_block_until'] = $now + 60;
+            $_SESSION['login_failures'] = 0;
         }
         // If the login came from the navbar dropdown, go back with error param
         $redirect = sanitizeRedirect($_POST['redirect'] ?? '/');

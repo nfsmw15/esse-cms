@@ -71,7 +71,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $uploadedName = $_FILES['php_file']['name'];
             $ext          = strtolower(pathinfo($uploadedName, PATHINFO_EXTENSION));
 
-            if (!in_array($ext, ['php', 'html'], true)) {
+            if (($_FILES['php_file']['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+                $errors[] = 'Upload fehlgeschlagen.';
+            } elseif (!in_array($ext, ['php', 'html'], true)) {
                 $errors[] = 'Nur .php und .html Dateien erlaubt.';
             } else {
                 $dest = ESSE_ROOT . '/pages/' . $slug . '.' . $ext;
@@ -79,8 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $errors[] = 'Datei konnte nicht gespeichert werden.';
                 } else {
                     // Delete old file if slug or extension changed
-                    if ($isEdit && $page['file_path'] && $page['file_path'] !== $dest) {
-                        @unlink(ESSE_ROOT . '/pages/' . $page['file_path']);
+                    if ($isEdit && $page['file_path'] && $page['file_path'] !== basename($dest)) {
+                        @unlink(ESSE_ROOT . '/pages/' . basename((string)$page['file_path']));
                     }
                     $filePath = $slug . '.' . $ext;
                 }
@@ -366,6 +368,7 @@ $.fn.dropdown = function(opt) {
             onImageUpload: function(files) {
                 const fd = new FormData();
                 fd.append("file", files[0]);
+                fd.append("_csrf", ' . json_encode(Auth::csrfToken()) . ');
                 fetch("/admin/files/upload", { method: "POST", body: fd })
                     .then(r => r.json())
                     .then(data => {

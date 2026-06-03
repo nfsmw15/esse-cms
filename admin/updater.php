@@ -55,6 +55,10 @@ $cacheFile   = ESSE_PRIVATE_PATH . '/storage/cache/update_check.json';
 $updateInfo  = null;
 $checkError  = null;
 $hasUpdate   = false;
+$cacheDir    = dirname($cacheFile);
+if (!is_dir($cacheDir)) {
+    @mkdir($cacheDir, 0750, true);
+}
 
 $cached = null;
 if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 3600) {

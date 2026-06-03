@@ -92,9 +92,16 @@ class PageRenderer
             return;
         }
 
-        $file = \ESSE_ROOT . '/pages/' . $page['file_path'];
+        $fileName = basename((string) $page['file_path']);
+        if ($fileName !== $page['file_path']) {
+            Router::abort(404);
+            return;
+        }
 
-        if (!file_exists($file)) {
+        $base = realpath(\ESSE_ROOT . '/pages');
+        $file = realpath(\ESSE_ROOT . '/pages/' . $fileName);
+
+        if (!$base || !$file || !str_starts_with($file, $base . DIRECTORY_SEPARATOR)) {
             Router::abort(404);
             return;
         }

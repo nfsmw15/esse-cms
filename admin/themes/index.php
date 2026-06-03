@@ -169,6 +169,9 @@ ob_start();
 <?php
 $cacheFile = ESSE_PRIVATE_PATH . '/storage/cache/theme_repos.json';
 $available = null;
+if (!is_dir(dirname($cacheFile))) {
+    @mkdir(dirname($cacheFile), 0750, true);
+}
 if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 3600) {
     $available = json_decode(file_get_contents($cacheFile), true);
 }

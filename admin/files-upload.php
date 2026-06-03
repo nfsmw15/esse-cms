@@ -13,6 +13,12 @@ if (!Auth::meetsRole('author')) {
 
 header('Content-Type: application/json');
 
+if (!Auth::verifyCsrf()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Ungültige Anfrage.']);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_FILES['file']['tmp_name'])) {
     echo json_encode(['error' => 'Keine Datei empfangen.']);
     exit;
@@ -21,6 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_FILES['file']['tmp_name']))
 $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp']; // SVG removed — XSS risk
 $file    = $_FILES['file'];
 $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+    echo json_encode(['error' => 'Upload fehlgeschlagen.']);
+    exit;
+}
 
 if (!in_array($ext, $allowed, true)) {
     echo json_encode(['error' => 'Dateityp nicht erlaubt. Erlaubt: ' . implode(', ', $allowed)]);
@@ -31,6 +42,11 @@ if (!in_array($ext, $allowed, true)) {
 $mime = mime_content_type($file['tmp_name']);
 if (!str_starts_with($mime, 'image/')) {
     echo json_encode(['error' => 'Ungültiger Dateityp.']);
+    exit;
+}
+
+if (@getimagesize($file['tmp_name']) === false) {
+    echo json_encode(['error' => 'Ungültige Bilddatei.']);
     exit;
 }
 

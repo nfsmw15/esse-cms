@@ -2,6 +2,21 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [0.1.4-alpha] - 2026-06-03
+
+### Security
+
+- Editor image uploads now require CSRF validation and verify uploaded files as real images
+- Public upload directory now blocks PHP/PHAR execution via `.htaccess`
+- PHP page rendering and deletion now constrain stored file paths to basenames inside `pages/`
+- Login and password reset forms now have lightweight session throttling
+
+### Fixed
+
+- Update, plugin, and theme checks now create `storage/cache` automatically when missing
+
+---
+
 ## [0.1.3-alpha] - 2026-06-03
 
 ### Fixed

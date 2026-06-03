@@ -148,7 +148,7 @@ Router::post('/admin/pages/delete/{slug}', function (string $slug) {
 
     if ($page) {
         if ($page['file_path']) {
-            @unlink(ESSE_ROOT . '/pages/' . $page['file_path']);
+            @unlink(ESSE_ROOT . '/pages/' . basename((string)$page['file_path']));
         }
         \Esse\DB::delete($t, ['id' => $page['id']]);
         $_SESSION['flash'] = ['type' => 'success', 'message' => "Seite '{$page['title']}' gelöscht."];

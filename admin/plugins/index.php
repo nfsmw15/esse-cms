@@ -236,6 +236,9 @@ $repos = DB::fetchAll("SELECT * FROM `{$tr}` ORDER BY trusted DESC, label ASC");
 // Build a name→latest_version map from cache (if available) for update indicators
 $latestVersionMap = [];
 $repoCacheFile = ESSE_PRIVATE_PATH . '/storage/cache/plugin_repos.json';
+if (!is_dir(dirname($repoCacheFile))) {
+    @mkdir(dirname($repoCacheFile), 0750, true);
+}
 if (file_exists($repoCacheFile)) {
     $cached = json_decode(file_get_contents($repoCacheFile), true) ?: [];
     foreach ($cached as $item) {
@@ -288,6 +291,9 @@ ob_start();
 // Load available plugins from all active repos (cached 1h)
 $cacheFile   = ESSE_PRIVATE_PATH . '/storage/cache/plugin_repos.json';
 $cachedRepos = null;
+if (!is_dir(dirname($cacheFile))) {
+    @mkdir(dirname($cacheFile), 0750, true);
+}
 if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 3600) {
     $cachedRepos = json_decode(file_get_contents($cacheFile), true);
 }

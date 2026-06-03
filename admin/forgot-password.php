@@ -14,15 +14,24 @@ if (Auth::check()) {
 
 $sent   = false;
 $errors = [];
+$now = time();
+$_SESSION['password_reset_requests'] ??= [];
+$_SESSION['password_reset_requests'] = array_values(array_filter(
+    $_SESSION['password_reset_requests'],
+    fn($ts) => is_int($ts) && $ts > $now - 900
+));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
 
     $email = trim($_POST['email'] ?? '');
 
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    if (count($_SESSION['password_reset_requests']) >= 3) {
+        $errors[] = 'Zu viele Anfragen. Bitte warte einige Minuten.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Bitte eine gültige E-Mail-Adresse eingeben.';
     } else {
+        $_SESSION['password_reset_requests'][] = $now;
         $tu   = DB::table('users');
         $user = DB::fetch("SELECT * FROM `{$tu}` WHERE email = ? AND active = 1", [$email]);
 
