@@ -4,11 +4,20 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\GitHubApi;
 
 require_once dirname(__DIR__) . '/package-install.php';
 
-$ts = DB::table('settings');
-$tm = DB::table('menus');
+$ts  = DB::table('settings');
+$tm  = DB::table('menus');
+$tab = $_GET['tab'] ?? 'installed';
+
+// Cache refresh
+if (isset($_GET['refresh'])) {
+    @unlink(ESSE_PRIVATE_PATH . '/storage/cache/theme_repos.json');
+    header('Location: /admin/themes?tab=available');
+    exit;
+}
 
 $rows        = DB::fetchAll("SELECT `key`, `value` FROM `{$ts}`");
 $settings    = array_column($rows, 'value', 'key');
@@ -50,6 +59,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Install from repo
+    if ($action === 'install_from_repo') {
+        $fullName = trim($_POST['repo_full_name'] ?? '');
+        if ($fullName && preg_match('#^[a-zA-Z0-9\-]+/[a-zA-Z0-9\-\.]+$#', $fullName)) {
+            $release = GitHubApi::latestRelease($fullName);
+            if ($release && $release['download_url']) {
+                $tmpFile = ESSE_PRIVATE_PATH . '/storage/update_tmp/theme_' . uniqid() . '.zip';
+                $dir = dirname($tmpFile);
+                if (!is_dir($dir)) mkdir($dir, 0750, true);
+                $ch = curl_init($release['download_url']);
+                curl_setopt_array($ch, [\CURLOPT_RETURNTRANSFER => true, \CURLOPT_FOLLOWLOCATION => true, \CURLOPT_TIMEOUT => 30, \CURLOPT_USERAGENT => 'ESSE-CMS/' . \ESSE_VERSION]);
+                file_put_contents($tmpFile, curl_exec($ch));
+                $result = packageInstallZip($tmpFile, 'theme');
+                @unlink($tmpFile);
+                $_SESSION['flash'] = is_string($result)
+                    ? ['type' => 'danger',  'message' => $result]
+                    : ['type' => 'success', 'message' => empty($result['_updated'])
+                        ? "Theme '{$result['name']}' v{$result['version']} installiert."
+                        : "Theme '{$result['name']}' auf v{$result['version']} aktualisiert."];
+            } else {
+                $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Kein Release gefunden.'];
+            }
+        }
+        header('Location: /admin/themes?tab=available');
+        exit;
+    }
+
     if ($action === 'upload_theme' && !empty($_FILES['theme_zip']['tmp_name'])) {
         $result = packageInstallZip($_FILES['theme_zip']['tmp_name'], 'theme');
         $_SESSION['flash'] = is_string($result)
@@ -82,11 +118,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Build installed name→version map for update comparison
+$installedByName = [];
+foreach ($themes as $n => $m) { if (!empty($m['version'])) $installedByName[$n] = $m['version']; }
+
 $pageTitle = 'Themes';
 $activeNav = 'themes';
 
 ob_start();
 ?>
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link <?= $tab === 'installed' ? 'active' : '' ?>" href="/admin/themes?tab=installed">
+            <i class="bi bi-palette me-1"></i>Installiert
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link <?= $tab === 'available' ? 'active' : '' ?>" href="/admin/themes?tab=available">
+            <i class="bi bi-cloud-download me-1"></i>Verfügbar
+        </a>
+    </li>
+</ul>
+
+<?php if ($tab === 'available'): ?>
+<?php
+$cacheFile = ESSE_PRIVATE_PATH . '/storage/cache/theme_repos.json';
+$available = null;
+if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 3600) {
+    $available = json_decode(file_get_contents($cacheFile), true);
+}
+if (!$available) {
+    $available = GitHubApi::searchPlugins('nfsmw15', true);
+    // Only keep esse-theme repos
+    $available = array_values(array_filter($available, fn($r) => str_contains($r['name'], 'theme') || str_contains($r['description'] ?? '', 'theme')));
+    foreach ($available as &$r) {
+        $rel = GitHubApi::latestRelease($r['full_name']);
+        $r['latest_version'] = $rel['version'] ?? null;
+        $r['download_url']   = $rel['download_url'] ?? null;
+    }
+    unset($r);
+    @file_put_contents($cacheFile, json_encode($available));
+}
+?>
+<?php if ($available): ?>
+<div class="row g-3 mb-4">
+<?php foreach ($available as $r):
+    $instVer   = $installedByName[$r['name']] ?? null;
+    $latestVer = $r['latest_version'] ?? null;
+    $hasUpdate = $instVer && $latestVer && version_compare(ltrim($latestVer,'v'), ltrim($instVer,'v'), '>');
+    $isInstalled = $instVer !== null;
+?>
+<div class="col-lg-6">
+    <div class="card h-100 <?= $hasUpdate ? 'border-warning' : ($isInstalled ? 'border-success' : '') ?>">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <strong><?= htmlspecialchars($r['name']) ?></strong>
+                <span class="badge bg-success" style="font-size:.65rem"><i class="bi bi-shield-check"></i> Offiziell</span>
+            </div>
+            <?php if ($hasUpdate): ?>
+            <span class="badge bg-warning text-dark"><i class="bi bi-arrow-up-circle"></i> v<?= htmlspecialchars($latestVer) ?></span>
+            <?php elseif ($isInstalled): ?>
+            <span class="badge bg-success">v<?= htmlspecialchars($instVer) ?> Aktuell</span>
+            <?php endif ?>
+        </div>
+        <div class="card-body">
+            <?php if ($r['description']): ?><p class="text-secondary small mb-3"><?= htmlspecialchars($r['description']) ?></p><?php endif ?>
+            <div class="d-flex gap-2">
+                <form method="post" action="/admin/themes">
+                    <input type="hidden" name="_csrf"           value="<?= Auth::csrfToken() ?>">
+                    <input type="hidden" name="_action"         value="install_from_repo">
+                    <input type="hidden" name="repo_full_name"  value="<?= htmlspecialchars($r['full_name']) ?>">
+                    <?php if (!$isInstalled): ?>
+                    <button class="btn btn-sm btn-primary"><i class="bi bi-download"></i> Installieren<?= $latestVer ? " (v{$latestVer})" : '' ?></button>
+                    <?php elseif ($hasUpdate): ?>
+                    <button class="btn btn-sm btn-warning text-dark"><i class="bi bi-arrow-up-circle"></i> Update auf v<?= htmlspecialchars($latestVer) ?></button>
+                    <?php else: ?>
+                    <button class="btn btn-sm btn-outline-secondary" disabled><i class="bi bi-check"></i> Aktuell</button>
+                    <?php endif ?>
+                </form>
+                <a href="<?= htmlspecialchars($r['html_url']) ?>" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-github"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endforeach ?>
+</div>
+<?php else: ?>
+<div class="alert alert-secondary">Keine Themes gefunden. Repos müssen das Topic <code>esse-theme</code> auf GitHub haben.</div>
+<?php endif ?>
+<div class="text-end mb-4">
+    <a href="/admin/themes?tab=available&refresh=1" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-clockwise"></i> Cache leeren
+    </a>
+</div>
+
+<?php else: ?>
+<!-- INSTALLED TAB -->
 <?php if (!$themes): ?>
 <div class="alert alert-secondary">Keine Themes installiert.</div>
 <?php endif ?>
@@ -177,6 +305,7 @@ ob_start();
         </form>
     </div>
 </div>
+<?php endif /* tab check */ ?>
 <?php
 $content = ob_get_clean();
 require dirname(__DIR__) . '/layout.php';

@@ -760,6 +760,73 @@ class Plugin extends \Esse\Plugin
 
 ---
 
+## Theme-agnostische Ausgabe
+
+Plugins dürfen **keine** Framework-spezifischen Klassen direkt ausgeben (z.B. Bootstrap `container`, `row`, `col-*`). Das macht das Plugin abhängig vom aktiven Theme.
+
+Stattdessen: ESSE-Standard-Grid-Klassen nutzen, die jedes Theme implementiert.
+
+### esse-grid
+
+```html
+<!-- FALSCH — Bootstrap-abhängig: -->
+<div class="container">
+    <div class="row g-4">
+        <div class="col-6 col-sm-4 col-md-3">...</div>
+    </div>
+</div>
+
+<!-- RICHTIG — Theme-agnostisch: -->
+<div class="esse-grid-wrap">
+    <div class="esse-grid" data-cols="4">
+        <div class="esse-grid-item">...</div>
+        <div class="esse-grid-item">...</div>
+    </div>
+</div>
+```
+
+**Verfügbare Klassen:**
+
+| Klasse | Bedeutung |
+|---|---|
+| `esse-grid-wrap` | Äußerer Container (volle Breite) |
+| `esse-grid` | Grid-Container |
+| `esse-grid-item` | Einzelnes Element |
+| `data-cols="2\|3\|4\|6"` | Spaltenanzahl (Theme entscheidet Breakpoints) |
+
+Alle Themes müssen diese Klassen implementieren. esse-base nutzt Flexbox, esse-cyber nutzt CSS Grid — das Plugin merkt davon nichts.
+
+### Plugin-eigene Styles
+
+Bootstrap-Hilfsklassen (`fw-semibold`, `text-truncate`, `badge`, `py-4` etc.) durch eigene CSS-Klassen ersetzen:
+
+```php
+// Template einbinden (self-hosted via Route):
+Router::get('/plugins/esse-gallery/assets/{file}', function(string $file) {
+    $path = $this->basePath('assets/' . basename($file));
+    if (!file_exists($path)) { http_response_code(404); exit; }
+    header('Content-Type: ' . (mime_content_type($path) ?: 'text/css'));
+    readfile($path);
+}, ['auth' => 'public']);
+```
+
+```html
+<!-- Im Frontend-Template: -->
+<link rel="stylesheet" href="/plugins/esse-gallery/assets/css/gallery.css">
+```
+
+```css
+/* plugins/esse-gallery/assets/css/gallery.css */
+.gal-card { text-decoration: none; color: inherit; display: block; }
+.gal-thumb { aspect-ratio: 1/1; overflow: hidden; background: #111; }
+.gal-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s; }
+.gal-card:hover .gal-thumb img { transform: scale(1.05); }
+.gal-label { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gal-badge { position: absolute; bottom: .5rem; right: .5rem; font-size: .75rem; }
+```
+
+---
+
 ## Plugin veröffentlichen (GitHub-Repo)
 
 Damit ein Plugin im ESSE Plugin-Browser erscheint und installierbar ist:

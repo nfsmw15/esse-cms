@@ -1,5 +1,22 @@
 /* esse-base theme */
 
+/* ── esse-grid standard classes ────────────────────── */
+.esse-grid-wrap { width: 100%; }
+.esse-grid { display: flex; flex-wrap: wrap; margin: 0 -.5rem; }
+.esse-grid-item { padding: 0 .5rem; margin-bottom: 1rem; flex: 0 0 50%; max-width: 50%; }
+.esse-grid[data-cols="2"] .esse-grid-item { flex: 0 0 50%;      max-width: 50%; }
+.esse-grid[data-cols="3"] .esse-grid-item { flex: 0 0 33.333%;  max-width: 33.333%; }
+.esse-grid[data-cols="4"] .esse-grid-item { flex: 0 0 25%;      max-width: 25%; }
+.esse-grid[data-cols="6"] .esse-grid-item { flex: 0 0 16.666%;  max-width: 16.666%; }
+@media (max-width: 768px) {
+  .esse-grid[data-cols="3"] .esse-grid-item,
+  .esse-grid[data-cols="4"] .esse-grid-item { flex: 0 0 50%; max-width: 50%; }
+  .esse-grid[data-cols="6"] .esse-grid-item { flex: 0 0 33.333%; max-width: 33.333%; }
+}
+@media (max-width: 480px) {
+  .esse-grid-item { flex: 0 0 50%; max-width: 50%; }
+}
+
 body {
     background-color: #0f0f0f;
     color: #dee2e6;
