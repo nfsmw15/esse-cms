@@ -125,7 +125,7 @@ body::before {
 
 .cyber-logo {
   font-family: var(--mono);
-  font-size: .75rem;
+  font-size: 1rem;
   color: var(--accent);
   letter-spacing: .1em;
   white-space: nowrap;
@@ -143,12 +143,12 @@ body::before {
 
 .cyber-nav a {
   font-family: var(--head);
-  font-size: .9rem;
+  font-size: 1.05rem;
   font-weight: 500;
   color: var(--muted);
   text-decoration: none;
   letter-spacing: .08em;
-  padding: .25rem .9rem;
+  padding: .3rem 1rem;
   border-left: 1px solid var(--border);
   transition: color .2s;
   text-transform: uppercase;
@@ -163,9 +163,8 @@ body::before {
   position: absolute;
   top: 100%;
   left: 0;
-  background: rgba(5,5,8,0.95);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(8px);
+  background: #0d0d14;
+  border: 1px solid rgba(232,100,10,0.25);
   min-width: 160px;
   z-index: 300;
 }
@@ -174,10 +173,16 @@ body::before {
   display: block;
   border-left: none;
   border-right: none;
-  border-bottom: 1px solid var(--border);
-  padding: .5rem .75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: .6rem .9rem;
+  color: var(--text);
+  font-size: .9rem;
 }
 .cyber-nav .cyber-dropdown-menu a:last-child { border-bottom: none; }
+.cyber-nav .cyber-dropdown-menu a:hover {
+  color: var(--accent);
+  background: rgba(232,100,10,0.06);
+}
 
 .cyber-status {
   display: flex;
@@ -204,22 +209,25 @@ body::before {
 .cyber-user {
   position: relative;
   font-family: var(--mono);
-  font-size: .65rem;
-  color: var(--muted);
+  font-size: .85rem;
+  color: var(--text);
   letter-spacing: .08em;
   cursor: pointer;
+  border: 1px solid rgba(232,100,10,0.3);
+  padding: .25rem .75rem;
+  transition: border-color .2s, color .2s;
 }
+.cyber-user:hover { border-color: var(--accent); color: var(--accent); }
+
 .cyber-user-menu {
   display: none;
   position: absolute;
-  top: 100%;
+  top: calc(100% + .5rem);
   right: 0;
-  background: rgba(5,5,8,0.95);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(8px);
-  min-width: 160px;
+  background: #0d0d14;
+  border: 1px solid rgba(232,100,10,0.3);
+  min-width: 180px;
   z-index: 300;
-  margin-top: .5rem;
 }
 .cyber-user:hover .cyber-user-menu { display: block; }
 .cyber-user-menu a,
@@ -228,19 +236,22 @@ body::before {
   width: 100%;
   text-align: left;
   font-family: var(--mono);
-  font-size: .65rem;
-  color: var(--muted);
+  font-size: .8rem;
+  color: var(--text);
   text-decoration: none;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--border);
-  padding: .5rem .75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: .6rem .85rem;
   letter-spacing: .08em;
   cursor: pointer;
-  transition: color .2s;
+  transition: color .2s, background .2s;
 }
 .cyber-user-menu a:hover,
-.cyber-user-menu button:hover { color: var(--accent); }
+.cyber-user-menu button:hover {
+  color: var(--accent);
+  background: rgba(232,100,10,0.06);
+}
 .cyber-user-menu a:last-child,
 .cyber-user-menu button:last-child { border-bottom: none; }
 
