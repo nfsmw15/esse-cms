@@ -760,6 +760,48 @@ class Plugin extends \Esse\Plugin
 
 ---
 
+## Plugin veröffentlichen (GitHub-Repo)
+
+Damit ein Plugin im ESSE Plugin-Browser erscheint und installierbar ist:
+
+**1. GitHub-Repo anlegen**
+```bash
+gh repo create nfsmw15/esse-mein-plugin --public \
+  --description "Kurzbeschreibung"
+```
+
+**2. Topic `esse-plugin` hinzufügen**
+```bash
+gh repo edit nfsmw15/esse-mein-plugin --add-topic esse-plugin
+```
+Ohne dieses Topic erscheint das Plugin **nicht** im Browser.
+
+**3. Release erstellen** (nötig für "Installieren"-Button)
+```bash
+gh release create v1.0.0 \
+  --repo nfsmw15/esse-mein-plugin \
+  --title "esse-mein-plugin v1.0.0" \
+  --notes "Initial release"
+```
+GitHub erstellt automatisch einen Source-ZIP — keine manuelle ZIP-Erstellung nötig.
+Die Version in `plugin.json` muss mit dem Release-Tag übereinstimmen (ohne `v`-Prefix).
+
+**Update-Mechanismus:**
+- ESSE vergleicht `version` aus `plugin.json` mit dem neuesten GitHub-Release-Tag
+- Wenn Release-Version neuer → "Update"-Button erscheint
+- `version_compare()` wird intern verwendet → Semantic Versioning beachten (`1.0.0` < `1.1.0` < `2.0.0`)
+
+**ZIP-Struktur die GitHub erstellt:**
+```
+nfsmw15-esse-mein-plugin-abc123/   ← Root-Ordner (wird automatisch erkannt und entfernt)
+├── plugin.json
+├── Plugin.php
+└── ...
+```
+ESSE strippt den Root-Ordner automatisch beim Installieren.
+
+---
+
 ## Checkliste neues Plugin
 
 - [ ] `plugin.json` mit eindeutigem `name` (entspricht dem Verzeichnisnamen)
