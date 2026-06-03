@@ -10,7 +10,7 @@ define('ESSE_ROOT', __DIR__);
 if (file_exists(ESSE_ROOT . '/local.php')) {
     require_once ESSE_ROOT . '/local.php';
 }
-defined('ESSE_VERSION')      || define('ESSE_VERSION',     '0.1.0-dev');
+defined('ESSE_VERSION')      || define('ESSE_VERSION',     '0.1.0-alpha');
 defined('ESSE_PRIVATE_PATH') || define('ESSE_PRIVATE_PATH', ESSE_ROOT);
 
 // Autoloader

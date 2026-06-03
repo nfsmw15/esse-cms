@@ -43,6 +43,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Enable / Disable
     if (in_array($action, ['enable', 'disable'], true) && $slug) {
         if ($action === 'enable' && !in_array($slug, $enabled, true)) {
+            // Check CMS version compatibility
+            $meta    = $plugins[$slug] ?? [];
+            $require = $meta['requires']['esse'] ?? null;
+            $error   = null;
+            if ($require) {
+                // Parse constraint: >=1.0.0 or ^1.0.0 or just 1.0.0
+                if (preg_match('/^(>=|>|<=|<|=|~|\^)?\s*([\d.]+.*)$/', trim($require), $m)) {
+                    $op  = $m[1] ?: '>=';
+                    $ver = preg_replace('/[^0-9.].*$/', '', $m[2]); // strip -alpha etc.
+                    $cms = preg_replace('/[^0-9.].*$/', '', \ESSE_VERSION);
+                    if (!version_compare($cms, $ver, $op === '^' || $op === '~' ? '>=' : $op)) {
+                        $error = "Plugin benötigt ESSE CMS {$require} — installiert ist " . \ESSE_VERSION . '.';
+                    }
+                }
+            }
+            if ($error) {
+                $_SESSION['flash'] = ['type' => 'danger', 'message' => $error];
+                header('Location: /admin/plugins');
+                exit;
+            }
             $enabled[] = $slug;
         } elseif ($action === 'disable') {
             $enabled = array_values(array_filter($enabled, fn($s) => $s !== $slug));
