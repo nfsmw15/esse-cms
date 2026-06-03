@@ -273,7 +273,7 @@ body::before {
 /* Page title */
 .cyber-page-title {
   font-family: var(--head);
-  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-size: clamp(2.4rem, 6vw, 4rem);
   font-weight: 700;
   letter-spacing: .03em;
   color: var(--text);
@@ -290,7 +290,7 @@ body::before {
 }
 
 /* Prose content */
-.cyber-prose { font-family: var(--head); font-size: 1.1rem; line-height: 1.7; }
+.cyber-prose { font-family: var(--head); font-size: 1.25rem; line-height: 1.7; }
 .cyber-prose h1,.cyber-prose h2,.cyber-prose h3 {
   font-family: var(--head);
   font-weight: 700;
@@ -362,7 +362,7 @@ body::before {
 
 .cyber-clock {
   font-family: var(--mono);
-  font-size: .65rem;
+  font-size: .85rem;
   color: var(--muted);
   letter-spacing: .08em;
 }
@@ -383,7 +383,7 @@ body::before {
 
 .cyber-footer-link {
   font-family: var(--mono);
-  font-size: .63rem;
+  font-size: .82rem;
   color: var(--muted);
   text-decoration: none;
   letter-spacing: .08em;

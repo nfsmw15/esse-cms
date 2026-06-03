@@ -150,7 +150,7 @@ $currentSlug = $page['slug'] ?? '';
         <?php foreach ($groups as $group): ?>
         <div>
             <?php if ($group['header'] !== null): ?>
-            <div style="font-family:var(--mono);font-size:.6rem;color:var(--accent);letter-spacing:.12em;padding-bottom:.35rem">
+            <div style="font-family:var(--mono);font-size:.82rem;color:var(--accent);letter-spacing:.1em;padding-bottom:.35rem">
                 <?= htmlspecialchars(strtoupper($group['header'])) ?>
             </div>
             <div style="height:1px;background:rgba(232,100,10,0.35);margin-bottom:.6rem"></div>
