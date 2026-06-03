@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\GitHubApi;
 
 require_once dirname(__DIR__) . '/package-install.php';
 
-$ts = DB::table('settings');
+$ts  = DB::table('settings');
+$tr  = DB::table('plugin_repos');
+$tab = $_GET['tab'] ?? 'installed';
 
 // Load enabled plugins list
 $enabledRaw = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'enabled_plugins'") ?? '[]';
@@ -70,6 +73,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Add repo channel
+    if ($action === 'add_repo') {
+        $owner = trim(preg_replace('/[^a-zA-Z0-9\-]/', '', $_POST['repo_owner'] ?? ''));
+        $label = trim($_POST['repo_label'] ?? $owner);
+        if ($owner) {
+            DB::query(
+                "INSERT IGNORE INTO `{$tr}` (owner, label, trusted) VALUES (?, ?, 0)",
+                [$owner, $label ?: $owner]
+            );
+            $_SESSION['flash'] = ['type' => 'warning',
+                'message' => "Kanal '{$owner}' hinzugefügt. Nicht verifizierter Kanal — nur vertrauenswürdige Quellen installieren."];
+        }
+        header('Location: /admin/plugins?tab=available');
+        exit;
+    }
+
+    // Remove repo channel (not official)
+    if ($action === 'remove_repo') {
+        $repoId = (int) ($_POST['repo_id'] ?? 0);
+        $repo   = DB::fetch("SELECT * FROM `{$tr}` WHERE id = ?", [$repoId]);
+        if ($repo && !$repo['trusted']) {
+            DB::delete($tr, ['id' => $repoId]);
+            $_SESSION['flash'] = ['type' => 'success', 'message' => "Kanal '{$repo['owner']}' entfernt."];
+        }
+        header('Location: /admin/plugins?tab=available');
+        exit;
+    }
+
+    // Install from repo (download latest release)
+    if ($action === 'install_from_repo') {
+        $fullName = trim($_POST['repo_full_name'] ?? '');
+        if ($fullName && preg_match('#^[a-zA-Z0-9\-]+/[a-zA-Z0-9\-\.]+$#', $fullName)) {
+            $release = GitHubApi::latestRelease($fullName);
+            if ($release && $release['download_url']) {
+                $tmpFile = ESSE_PRIVATE_PATH . '/storage/update_tmp/plugin_' . uniqid() . '.zip';
+                $dir = dirname($tmpFile);
+                if (!is_dir($dir)) mkdir($dir, 0750, true);
+
+                $ch = curl_init($release['download_url']);
+                curl_setopt_array($ch, [
+                    \CURLOPT_RETURNTRANSFER => true,
+                    \CURLOPT_FOLLOWLOCATION => true,
+                    \CURLOPT_TIMEOUT        => 30,
+                    \CURLOPT_USERAGENT      => 'ESSE-CMS/' . \ESSE_VERSION,
+                ]);
+                file_put_contents($tmpFile, curl_exec($ch));
+
+                $result = packageInstallZip($tmpFile, 'plugin');
+                @unlink($tmpFile);
+
+                if (!is_string($result)) {
+                    $isNew = empty($result['_updated']);
+                    if ($isNew) {
+                        $pSlug = preg_replace('/[^a-z0-9\-]/', '', strtolower($result['name']));
+                        $pFile = ESSE_ROOT . '/plugins/' . $pSlug . '/Plugin.php';
+                        if (file_exists($pFile)) {
+                            require_once $pFile;
+                            $class = $result['class'] ?? null;
+                            if ($class && class_exists($class)) {
+                                try { (new $class())->install(); } catch (\Throwable $e) {}
+                            }
+                        }
+                    }
+                    $_SESSION['flash'] = ['type' => 'success', 'message' => $isNew
+                        ? "Plugin '{$result['name']}' v{$result['version']} installiert."
+                        : "Plugin '{$result['name']}' auf v{$result['version']} aktualisiert."];
+                } else {
+                    $_SESSION['flash'] = ['type' => 'danger', 'message' => $result];
+                }
+            } else {
+                $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Kein Release gefunden.'];
+            }
+        }
+        header('Location: /admin/plugins?tab=available');
+        exit;
+    }
+
     // ZIP upload
     if ($action === 'upload' && !empty($_FILES['plugin_zip']['tmp_name'])) {
         $result = packageInstallZip($_FILES['plugin_zip']['tmp_name'], 'plugin');
@@ -107,11 +187,191 @@ function saveEnabled(string $ts, array $enabled): void
     );
 }
 
+// Cache refresh
+if (isset($_GET['refresh'])) {
+    @unlink(ESSE_PRIVATE_PATH . '/storage/cache/plugin_repos.json');
+    header('Location: /admin/plugins?tab=available');
+    exit;
+}
+
+// Load repo channels
+$repos = DB::fetchAll("SELECT * FROM `{$tr}` ORDER BY trusted DESC, label ASC");
+
 $pageTitle = 'Plugins';
 $activeNav = 'plugins';
 
 ob_start();
 ?>
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link <?= $tab === 'installed' ? 'active' : '' ?>"
+           href="/admin/plugins?tab=installed">
+            <i class="bi bi-puzzle me-1"></i>Installiert
+            <?php if ($plugins): ?>
+            <span class="badge bg-secondary ms-1"><?= count($plugins) ?></span>
+            <?php endif ?>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link <?= $tab === 'available' ? 'active' : '' ?>"
+           href="/admin/plugins?tab=available">
+            <i class="bi bi-cloud-download me-1"></i>Verfügbar
+        </a>
+    </li>
+</ul>
+
+<?php if ($tab === 'available'): ?>
+<!-- ── AVAILABLE TAB ── -->
+<?php
+// Load available plugins from all active repos (cached 1h)
+$cacheFile   = ESSE_PRIVATE_PATH . '/storage/cache/plugin_repos.json';
+$cachedRepos = null;
+if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 3600) {
+    $cachedRepos = json_decode(file_get_contents($cacheFile), true);
+}
+
+if (!$cachedRepos) {
+    $cachedRepos = [];
+    foreach ($repos as $repo) {
+        if (!$repo['active']) continue;
+        $results = GitHubApi::searchPlugins($repo['owner'], (bool)$repo['trusted']);
+        foreach ($results as $plugin) {
+            $plugin['channel_label']   = $repo['label'];
+            $plugin['channel_trusted'] = (bool)$repo['trusted'];
+            $cachedRepos[] = $plugin;
+        }
+    }
+    @file_put_contents($cacheFile, json_encode($cachedRepos));
+}
+
+// Get installed plugin names for comparison
+$installedNames = array_map(fn($p) => $p['name'] ?? '', $plugins);
+?>
+
+<div class="row g-3 mb-4">
+<?php foreach ($cachedRepos as $available):
+    $isInstalled = in_array($available['name'], $installedNames, true);
+    $release     = null; // lazy-load only on demand
+?>
+<div class="col-lg-6">
+    <div class="card h-100 <?= $isInstalled ? 'border-success' : '' ?>">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <strong><?= htmlspecialchars($available['name']) ?></strong>
+                <?php if ($available['channel_trusted']): ?>
+                <span class="badge bg-success" style="font-size:.65rem">
+                    <i class="bi bi-shield-check"></i> Offiziell
+                </span>
+                <?php else: ?>
+                <span class="badge bg-warning text-dark" style="font-size:.65rem">
+                    <i class="bi bi-exclamation-triangle"></i> <?= htmlspecialchars($available['channel_label']) ?>
+                </span>
+                <?php endif ?>
+            </div>
+            <?php if ($isInstalled): ?>
+            <span class="badge bg-success">Installiert</span>
+            <?php endif ?>
+        </div>
+        <div class="card-body">
+            <?php if ($available['description']): ?>
+            <p class="text-secondary small mb-3"><?= htmlspecialchars($available['description']) ?></p>
+            <?php endif ?>
+            <div class="d-flex gap-2">
+                <form method="post" action="/admin/plugins"
+                      <?= !$available['channel_trusted'] ? 'onsubmit="return confirm(\'Achtung: Nicht-offizieller Kanal. Nur installieren wenn du der Quelle vertraust!\')"' : '' ?>>
+                    <input type="hidden" name="_csrf"           value="<?= Auth::csrfToken() ?>">
+                    <input type="hidden" name="_action"         value="install_from_repo">
+                    <input type="hidden" name="repo_full_name"  value="<?= htmlspecialchars($available['full_name']) ?>">
+                    <button class="btn btn-sm <?= $isInstalled ? 'btn-outline-secondary' : 'btn-primary' ?>">
+                        <i class="bi bi-<?= $isInstalled ? 'arrow-repeat' : 'download' ?>"></i>
+                        <?= $isInstalled ? 'Aktualisieren' : 'Installieren' ?>
+                    </button>
+                </form>
+                <a href="<?= htmlspecialchars($available['html_url']) ?>" target="_blank"
+                   class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-github"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endforeach ?>
+</div>
+
+<?php if (empty($cachedRepos)): ?>
+<div class="alert alert-secondary">
+    Keine Plugins gefunden. Stelle sicher dass die Plugin-Repos das Topic <code>esse-plugin</code> auf GitHub haben.
+</div>
+<?php endif ?>
+
+<!-- Repo-Kanal-Verwaltung -->
+<div class="card mt-4">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+        <small class="text-secondary">Kanäle</small>
+        <a href="?tab=available&refresh=1" class="btn btn-sm btn-outline-secondary"
+           onclick="fetch('/admin/plugins?tab=available&refresh=1').then(()=>location.href='/admin/plugins?tab=available')">
+            <i class="bi bi-arrow-clockwise"></i> Cache leeren
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+        <?php foreach ($repos as $repo): ?>
+        <tr class="align-middle">
+            <td class="ps-3">
+                <strong><?= htmlspecialchars($repo['owner']) ?></strong>
+                <small class="text-secondary ms-1"><?= htmlspecialchars($repo['label']) ?></small>
+            </td>
+            <td>
+                <?php if ($repo['trusted']): ?>
+                <span class="badge bg-success"><i class="bi bi-shield-check"></i> Offiziell</span>
+                <?php else: ?>
+                <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Nicht verifiziert</span>
+                <?php endif ?>
+            </td>
+            <td class="text-end pe-3">
+                <?php if (!$repo['trusted']): ?>
+                <form method="post" action="/admin/plugins" class="d-inline"
+                      onsubmit="return confirm('Kanal entfernen?')">
+                    <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
+                    <input type="hidden" name="_action"  value="remove_repo">
+                    <input type="hidden" name="repo_id"  value="<?= $repo['id'] ?>">
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+                <?php endif ?>
+            </td>
+        </tr>
+        <?php endforeach ?>
+        </table>
+    </div>
+    <div class="card-footer">
+        <form method="post" action="/admin/plugins" class="d-flex gap-2 align-items-end">
+            <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+            <input type="hidden" name="_action" value="add_repo">
+            <div>
+                <label class="form-label small">GitHub-Benutzername</label>
+                <input type="text" name="repo_owner" class="form-control form-control-sm font-monospace"
+                       placeholder="username" required>
+            </div>
+            <div>
+                <label class="form-label small">Label (optional)</label>
+                <input type="text" name="repo_label" class="form-control form-control-sm"
+                       placeholder="Community">
+            </div>
+            <button class="btn btn-sm btn-outline-warning">
+                <i class="bi bi-plus-lg"></i> Kanal hinzufügen
+            </button>
+        </form>
+        <div class="form-text mt-1">
+            <i class="bi bi-exclamation-triangle text-warning"></i>
+            Nur vertrauenswürdige Quellen hinzufügen. Plugins können PHP-Code auf dem Server ausführen.
+        </div>
+    </div>
+</div>
+
+<?php else: ?>
+<!-- ── INSTALLED TAB ── -->
+
 <!-- ZIP Upload -->
 <div class="card mb-4">
     <div class="card-header py-2"><small class="text-secondary">Plugin installieren</small></div>
@@ -188,10 +448,13 @@ ob_start();
 <?php else: ?>
 <div class="card">
     <div class="card-body text-center text-secondary py-5">
-        Noch keine Plugins installiert. Lade eine ZIP-Datei hoch um zu starten.
+        Noch keine Plugins installiert. Lade eine ZIP-Datei hoch oder wechsle zu
+        <a href="/admin/plugins?tab=available">Verfügbar</a>.
     </div>
 </div>
 <?php endif ?>
+
+<?php endif /* tab check */ ?>
 <?php
 $content = ob_get_clean();
 require dirname(__DIR__) . '/layout.php';

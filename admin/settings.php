@@ -43,9 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'smtp_from'        => trim($_POST['smtp_from']        ?? ''),
         'smtp_from_name'   => trim($_POST['smtp_from_name']   ?? ''),
     ];
-    // Only update password if a new one was entered — store encrypted
+    // Only update if new value entered — store encrypted
     if (!empty($_POST['smtp_pass'])) {
         $save['smtp_pass'] = \Esse\Crypto::encrypt($_POST['smtp_pass']);
+    }
+    if (!empty($_POST['github_token'])) {
+        $save['github_token'] = \Esse\Crypto::encrypt(trim($_POST['github_token']));
     }
 
     if (!$save['site_name']) $errors[] = 'Seitenname ist Pflichtfeld.';
@@ -188,6 +191,29 @@ ob_start();
                     </div>
                     <div class="form-text">
                         Wenn aktiviert, können sich Besucher unter <code>/registrieren</code> einen Member-Account erstellen.
+                    </div>
+                </div>
+            </div>
+
+            <!-- GitHub API Token -->
+            <div class="card mb-4">
+                <div class="card-header py-2"><small class="text-secondary">GitHub API</small></div>
+                <div class="card-body">
+                    <label class="form-label">Personal Access Token
+                        <small class="text-secondary">(optional — erhöht Rate-Limit von 60 auf 5000 req/h)</small>
+                    </label>
+                    <input type="password" name="github_token" class="form-control font-monospace"
+                           autocomplete="new-password"
+                           placeholder="<?= empty($settings['github_token']) ? 'Token eingeben...' : 'Leer lassen, um Token beizubehalten' ?>">
+                    <div class="form-text">
+                        Fine-Grained PAT ohne Berechtigungen —
+                        <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener">
+                            GitHub → Settings → Developer Settings → Fine-grained tokens
+                        </a>.
+                        Wird verschlüsselt gespeichert.
+                        <?php if (!empty($settings['github_token'])): ?>
+                        <span class="text-success ms-1"><i class="bi bi-check-circle"></i> Token gespeichert</span>
+                        <?php endif ?>
                     </div>
                 </div>
             </div>
