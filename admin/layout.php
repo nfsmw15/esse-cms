@@ -106,10 +106,10 @@
 <div id="sidebar">
     <div class="brand">
         ESSE CMS <small>forge your web.</small>
-        <a href="/" target="_blank"
+        <a href="/"
            class="text-decoration-none"
            style="font-size:.7rem;font-weight:400;letter-spacing:.02em;color:#555;display:block;margin-top:.15rem">
-            <i class="bi bi-box-arrow-up-right" style="font-size:.65rem"></i> Zur Website
+            <i class="bi bi-arrow-left" style="font-size:.65rem"></i> Zur Website
         </a>
     </div>
     <nav>
