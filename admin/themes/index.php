@@ -6,14 +6,20 @@ use Esse\Auth;
 use Esse\DB;
 use Esse\GitHubApi;
 
+// Theme installation = PHP code execution — require explicit permission or Forge role
+if (!Auth::meetsRole('forge') && !Auth::can('manage_themes')) {
+    http_response_code(403); echo '403 Forbidden'; exit;
+}
+
 require_once dirname(__DIR__) . '/package-install.php';
 
 $ts  = DB::table('settings');
 $tm  = DB::table('menus');
 $tab = $_GET['tab'] ?? 'installed';
 
-// Cache refresh
-if (isset($_GET['refresh'])) {
+// Cache refresh (POST only)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'refresh_cache') {
+    if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
     @unlink(ESSE_PRIVATE_PATH . '/storage/cache/theme_repos.json');
     header('Location: /admin/themes?tab=available');
     exit;
@@ -69,8 +75,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $dir = dirname($tmpFile);
                 if (!is_dir($dir)) mkdir($dir, 0750, true);
                 $ch = curl_init($release['download_url']);
-                curl_setopt_array($ch, [\CURLOPT_RETURNTRANSFER => true, \CURLOPT_FOLLOWLOCATION => true, \CURLOPT_TIMEOUT => 30, \CURLOPT_USERAGENT => 'ESSE-CMS/' . \ESSE_VERSION]);
-                file_put_contents($tmpFile, curl_exec($ch));
+                curl_setopt_array($ch, [\CURLOPT_RETURNTRANSFER => true, \CURLOPT_FOLLOWLOCATION => true, \CURLOPT_TIMEOUT => 30, \CURLOPT_USERAGENT => 'ESSE-CMS/' . \ESSE_VERSION, \CURLOPT_FAILONERROR => true]);
+                $data = curl_exec($ch);
+                $code = (int) curl_getinfo($ch, \CURLINFO_HTTP_CODE);
+                if ($data === false || $code < 200 || $code >= 300 || strlen($data) < 100 || substr($data, 0, 2) !== 'PK') {
+                    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Download fehlgeschlagen oder ungültige ZIP-Datei.'];
+                    header('Location: /admin/themes?tab=available'); exit;
+                }
+                file_put_contents($tmpFile, $data);
                 $result = packageInstallZip($tmpFile, 'theme');
                 @unlink($tmpFile);
                 $_SESSION['flash'] = is_string($result)
@@ -208,9 +220,13 @@ if (!$available) {
 <div class="alert alert-secondary">Keine Themes gefunden. Repos müssen das Topic <code>esse-theme</code> auf GitHub haben.</div>
 <?php endif ?>
 <div class="text-end mb-4">
-    <a href="/admin/themes?tab=available&refresh=1" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-arrow-clockwise"></i> Cache leeren
-    </a>
+    <form method="post" action="/admin/themes?tab=available" class="d-inline">
+        <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+        <input type="hidden" name="_action" value="refresh_cache">
+        <button class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-clockwise"></i> Cache leeren
+        </button>
+    </form>
 </div>
 
 <?php else: ?>

@@ -86,7 +86,8 @@ Router::post('/admin/reset-password', fn() => require ESSE_ROOT . '/admin/reset-
     'auth' => 'public',
 ]);
 
-Router::get('/admin/settings/test-mail', function () {
+Router::post('/admin/settings/test-mail', function () {
+    if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); exit; }
     if (!\Esse\Auth::can('manage_settings')) { http_response_code(403); exit; }
     try {
         \Esse\Mailer::test();

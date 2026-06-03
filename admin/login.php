@@ -6,10 +6,17 @@ use Esse\Auth;
 use Esse\DB;
 use Esse\Menu;
 
+// Sanitize redirect — only allow same-site paths
+function sanitizeRedirect(string $url): string
+{
+    // Only allow paths starting with / but not //  (protocol-relative)
+    if (!str_starts_with($url, '/') || str_starts_with($url, '//')) return '/';
+    return $url;
+}
+
 // Already logged in → go to intended destination or homepage
 if (Auth::check()) {
-    $redirect = $_GET['redirect'] ?? '/';
-    header('Location: ' . $redirect);
+    header('Location: ' . sanitizeRedirect($_GET['redirect'] ?? '/'));
     exit;
 }
 
@@ -33,16 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'] ?? '';
 
         if (Auth::attempt($login, $password)) {
-            $redirect = $_POST['redirect'] ?? $_GET['redirect'] ?? '/';
-            // Sanitize redirect — only allow same-site paths
-            if (!str_starts_with($redirect, '/') || str_starts_with($redirect, '//')) {
-                $redirect = '/';
-            }
-            header('Location: ' . $redirect);
+            header('Location: ' . sanitizeRedirect($_POST['redirect'] ?? $_GET['redirect'] ?? '/'));
             exit;
         }
         // If the login came from the navbar dropdown, go back with error param
-        $redirect = $_POST['redirect'] ?? '/';
+        $redirect = sanitizeRedirect($_POST['redirect'] ?? '/');
         if ($redirect !== '/admin/login' && !str_starts_with($redirect, '/admin')) {
             header('Location: ' . $redirect . (str_contains($redirect, '?') ? '&' : '?') . 'login_error=1#navbar-login-form');
             exit;

@@ -2,6 +2,67 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [0.1.1-alpha] - 2026-06-03
+
+### Added
+
+**Plugin & Theme Repository System**
+- GitHub-based discovery via `esse-plugin` / `esse-theme` topics
+- Plugin browser (Admin → Plugins → "Verfügbar") with install/update from GitHub releases
+- Theme browser (Admin → Themes → "Verfügbar")
+- Version comparison — update badge when newer release available
+- Configurable repo channels with trust levels (official/community)
+- Optional GitHub API token (encrypted) for higher rate limits (60 → 5000 req/h)
+- Plugin CMS version compatibility check on activation (`requires.esse` field)
+
+**esse-grid Standard**
+- Theme-agnostic grid classes (`esse-grid`, `esse-grid-item`, `data-cols`) implemented in esse-base and esse-cyber
+- Plugins should use esse-grid instead of Bootstrap-specific classes
+
+**Documentation**
+- `PLUGIN_GUIDE.md` expanded: autoloading, constants, settings API, CSRF/AJAX, icon fields, esse-grid, publishing
+- `THEME_GUIDE.md` added: full theme development reference including esse-grid requirement, template variables, login templates, publishing
+
+**Backup & Update**
+- Version included in backup filename (`pre-update_v0.1.0-alpha_2026-06-01.zip`)
+- Manual backup creation, secure download, restore function
+- Pre-release update channel toggle with warning
+- Updater shows "Seite neu laden" button instead of auto-reload
+
+**UI / UX**
+- Icon field for pages and menu items (CSS class, works with any icon pack)
+- Menu items: enable/disable toggle (cascades to children)
+- Admin sidebar: "← Zur Website" link
+- Login page: footer menu from active theme settings
+- Login autocomplete fixed (`username` instead of `email` — prevents address autofill)
+- Plugin and theme pages show in menu dropdown grouped by type
+
+### Changed
+
+- esse-dashboard and esse-cyber themes moved to separate repos (`nfsmw15/esse-dashboard`, `nfsmw15/esse-cyber`)
+- esse-cyber now bundles Bootstrap for plugin grid support
+- ESSE_VERSION moved to `local.php`-overridable constant
+
+### Security
+
+- **ZIP installer**: slug validated against `^[a-z0-9][a-z0-9-]{1,63}$`, realpath check against path traversal
+- **Updater SSE**: GET `/admin/update/run` now requires a CSRF-protected one-time session token
+- **File upload**: SVG removed from allowed types (XSS risk); MIME check applies to all types
+- **Login**: `sanitizeRedirect()` applied at all redirect points (previously only at POST success)
+- **Plugin/Theme install**: explicit `manage_plugins` / `manage_themes` permission check added
+- **Repo downloads**: `CURLOPT_FAILONERROR`, HTTP status check, ZIP signature (`PK`) validation
+- **Side-effect actions**: Test-Mail and cache-refresh moved from GET to CSRF-protected POST
+
+### Fixed
+
+- Double flash messages in admin (PRG pattern applied consistently)
+- Summernote dropdown menus (Bootstrap 5.3 compatibility shim)
+- Menu drag & drop timing issue (SortableJS loaded before init code)
+- Dashboard theme footer links not opening (visibility check logic)
+- Footer links showing blue (global `a` color reset in esse-cyber)
+
+---
+
 ## [0.1.0-alpha] - 2026-06-01
 
 Initial alpha release. Core systems are functional.

@@ -15,6 +15,16 @@ if (!empty($_SESSION['flash'])) {
     unset($_SESSION['flash']);
 }
 
+// Generate one-time run token for SSE update stream
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'prepare_run') {
+    if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
+    $token = bin2hex(random_bytes(16));
+    $_SESSION['update_run_token'] = $token;
+    header('Content-Type: application/json');
+    echo json_encode(['token' => $token]);
+    exit;
+}
+
 // Pre-release toggle (POST saves to session)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['prerelease_toggle'])) {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
@@ -226,11 +236,25 @@ function startUpdate(version) {
     const terminal = document.getElementById('terminal');
     const status   = document.getElementById('terminal-status');
 
-    const es = new EventSource('/admin/update/run');
+    // Get a one-time run token via POST first (CSRF-protected)
+    const fd = new FormData();
+    fd.append('_csrf', <?= json_encode(\Esse\Auth::csrfToken()) ?>);
+    fd.append('_action', 'prepare_run');
+
+    fetch('/admin/update', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(d => {
+            if (!d.token) { status.textContent = 'Token-Fehler'; return; }
+            const es = new EventSource('/admin/update/run?run_token=' + encodeURIComponent(d.token));
+            listenSSE(es, terminal, status);
+        });
+}
+
+function listenSSE(es, terminal, status) {
 
     es.onmessage = (e) => {
         const data = JSON.parse(e.data);
-        const line = document.createElement('div');
+        const line = document.createElement('div');  // moved inside listenSSE — see below
 
         if (data.type === 'success') {
             line.style.color = '#4ade80';

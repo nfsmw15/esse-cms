@@ -129,10 +129,12 @@ ob_start();
             <div class="card mb-4">
                 <div class="card-header py-2 d-flex justify-content-between align-items-center">
                     <small class="text-secondary">E-Mail / SMTP</small>
-                    <a href="/admin/settings/test-mail" class="btn btn-sm btn-outline-secondary"
-                       id="btn-test-mail">
-                        <i class="bi bi-envelope"></i> Test-Mail senden
-                    </a>
+                    <form method="post" action="/admin/settings/test-mail" class="d-inline">
+                        <input type="hidden" name="_csrf" value="<?= \Esse\Auth::csrfToken() ?>">
+                        <button class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-envelope"></i> Test-Mail senden
+                        </button>
+                    </form>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">

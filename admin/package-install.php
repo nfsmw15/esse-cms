@@ -43,11 +43,30 @@ function packageInstallZip(string $tmpFile, string $type): array|string
         return "Keine gültige {$metaName} im ZIP gefunden.";
     }
 
-    $slug   = preg_replace('/[^a-z0-9\-]/', '', strtolower($metaJson['name']));
-    $target = ESSE_ROOT . '/' . ($type === 'plugin' ? 'plugins' : 'themes') . '/' . $slug;
+    // Validate slug: must be non-empty, lowercase alphanumeric + hyphens, 2-64 chars
+    $slug = preg_replace('/[^a-z0-9\-]/', '', strtolower($metaJson['name']));
+    if (!preg_match('/^[a-z0-9][a-z0-9\-]{1,63}$/', $slug)) {
+        $zip->close();
+        return "Ungültiger Paketname '{$metaJson['name']}' — erlaubt sind Kleinbuchstaben, Ziffern und Bindestriche.";
+    }
+
+    $baseDir = realpath(ESSE_ROOT . '/' . ($type === 'plugin' ? 'plugins' : 'themes'));
+    if (!$baseDir) {
+        $zip->close();
+        return "Zielverzeichnis nicht gefunden.";
+    }
+
+    $target = $baseDir . DIRECTORY_SEPARATOR . $slug;
+
+    // Path traversal guard: ensure target stays within allowed base directory
+    if (strpos($target . DIRECTORY_SEPARATOR, $baseDir . DIRECTORY_SEPARATOR) !== 0) {
+        $zip->close();
+        return "Ungültiger Zielpfad — möglicher Path-Traversal-Angriff.";
+    }
+
     $isUpdate = is_dir($target);
 
-    // Extract to a temp directory first — safer than overwriting live files directly
+    // Extract to a temp directory first
     $tmp = $target . '_tmp_' . bin2hex(random_bytes(4));
     mkdir($tmp, 0755, true);
 
@@ -63,7 +82,6 @@ function packageInstallZip(string $tmpFile, string $type): array|string
 
     $zip->close();
 
-    // Swap: remove old directory, move temp into place
     if ($isUpdate) {
         packageDeleteDir($target);
     }

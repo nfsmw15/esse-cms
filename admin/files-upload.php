@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_FILES['file']['tmp_name']))
     exit;
 }
 
-$allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+$allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp']; // SVG removed — XSS risk
 $file    = $_FILES['file'];
 $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
@@ -27,13 +27,11 @@ if (!in_array($ext, $allowed, true)) {
     exit;
 }
 
-// Validate MIME type for non-SVG
-if ($ext !== 'svg') {
-    $mime = mime_content_type($file['tmp_name']);
-    if (!str_starts_with($mime, 'image/')) {
-        echo json_encode(['error' => 'Ungültiger Dateityp.']);
-        exit;
-    }
+// Validate MIME type
+$mime = mime_content_type($file['tmp_name']);
+if (!str_starts_with($mime, 'image/')) {
+    echo json_encode(['error' => 'Ungültiger Dateityp.']);
+    exit;
 }
 
 // Max 10 MB

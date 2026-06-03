@@ -6,6 +6,11 @@ use Esse\Auth;
 use Esse\DB;
 use Esse\GitHubApi;
 
+// Plugin installation = PHP code execution — require explicit permission or Forge role
+if (!Auth::meetsRole('forge') && !Auth::can('manage_plugins')) {
+    http_response_code(403); echo '403 Forbidden'; exit;
+}
+
 require_once dirname(__DIR__) . '/package-install.php';
 
 $ts  = DB::table('settings');
@@ -137,8 +142,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     \CURLOPT_FOLLOWLOCATION => true,
                     \CURLOPT_TIMEOUT        => 30,
                     \CURLOPT_USERAGENT      => 'ESSE-CMS/' . \ESSE_VERSION,
+                    \CURLOPT_FAILONERROR    => true,
                 ]);
-                file_put_contents($tmpFile, curl_exec($ch));
+                $data = curl_exec($ch);
+                $code = (int) curl_getinfo($ch, \CURLINFO_HTTP_CODE);
+
+                if ($data === false || $code < 200 || $code >= 300
+                    || strlen($data) < 100 || substr($data, 0, 2) !== 'PK') {
+                    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Download fehlgeschlagen oder ungültige ZIP-Datei.'];
+                    header('Location: /admin/plugins?tab=available');
+                    exit;
+                }
+                file_put_contents($tmpFile, $data);
 
                 $result = packageInstallZip($tmpFile, 'plugin');
                 @unlink($tmpFile);
@@ -207,8 +222,9 @@ function saveEnabled(string $ts, array $enabled): void
     );
 }
 
-// Cache refresh
-if (isset($_GET['refresh'])) {
+// Cache refresh (POST only)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'refresh_cache') {
+    if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
     @unlink(ESSE_PRIVATE_PATH . '/storage/cache/plugin_repos.json');
     header('Location: /admin/plugins?tab=available');
     exit;
@@ -381,10 +397,12 @@ foreach ($plugins as $p) {
 <div class="card mt-4">
     <div class="card-header py-2 d-flex justify-content-between align-items-center">
         <small class="text-secondary">Kanäle</small>
-        <a href="?tab=available&refresh=1" class="btn btn-sm btn-outline-secondary"
-           onclick="fetch('/admin/plugins?tab=available&refresh=1').then(()=>location.href='/admin/plugins?tab=available')">
+        <form method="post" action="/admin/plugins?tab=available" class="d-inline">
+        <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+        <input type="hidden" name="_action" value="refresh_cache">
+        <button class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-arrow-clockwise"></i> Cache leeren
-        </a>
+        </button></form>
     </div>
     <div class="card-body p-0">
         <table class="table table-sm mb-0">
