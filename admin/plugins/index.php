@@ -197,6 +197,18 @@ if (isset($_GET['refresh'])) {
 // Load repo channels
 $repos = DB::fetchAll("SELECT * FROM `{$tr}` ORDER BY trusted DESC, label ASC");
 
+// Build a name→latest_version map from cache (if available) for update indicators
+$latestVersionMap = [];
+$repoCacheFile = ESSE_PRIVATE_PATH . '/storage/cache/plugin_repos.json';
+if (file_exists($repoCacheFile)) {
+    $cached = json_decode(file_get_contents($repoCacheFile), true) ?: [];
+    foreach ($cached as $item) {
+        if (!empty($item['name']) && !empty($item['latest_version'])) {
+            $latestVersionMap[$item['name']] = $item['latest_version'];
+        }
+    }
+}
+
 $pageTitle = 'Plugins';
 $activeNav = 'plugins';
 
@@ -210,6 +222,19 @@ ob_start();
             <i class="bi bi-puzzle me-1"></i>Installiert
             <?php if ($plugins): ?>
             <span class="badge bg-secondary ms-1"><?= count($plugins) ?></span>
+            <?php endif ?>
+            <?php
+            $updateCount = 0;
+            foreach ($plugins as $p) {
+                $latest = $latestVersionMap[$p['name'] ?? ''] ?? null;
+                if ($latest && !empty($p['version']) &&
+                    version_compare(ltrim($latest,'v'), ltrim($p['version'],'v'), '>')) {
+                    $updateCount++;
+                }
+            }
+            if ($updateCount > 0):
+            ?>
+            <span class="badge bg-warning text-dark ms-1"><?= $updateCount ?> Update<?= $updateCount > 1 ? 's' : '' ?></span>
             <?php endif ?>
         </a>
     </li>
@@ -420,13 +445,22 @@ foreach ($plugins as $p) {
 <!-- Plugin list -->
 <?php if ($plugins): ?>
 <div class="row g-3">
-    <?php foreach ($plugins as $slug => $meta): ?>
+    <?php foreach ($plugins as $slug => $meta):
+        $latestV   = $latestVersionMap[$meta['name'] ?? ''] ?? null;
+        $hasUpdate = $latestV && !empty($meta['version']) &&
+                     version_compare(ltrim($latestV,'v'), ltrim($meta['version'],'v'), '>');
+    ?>
     <div class="col-lg-6">
-        <div class="card h-100 <?= $meta['enabled'] ? 'border-success' : '' ?>">
+        <div class="card h-100 <?= $hasUpdate ? 'border-warning' : ($meta['enabled'] ? 'border-success' : '') ?>">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <div>
                     <strong><?= htmlspecialchars($meta['name']) ?></strong>
                     <small class="text-secondary ms-2">v<?= htmlspecialchars($meta['version'] ?? '—') ?></small>
+                    <?php if ($hasUpdate): ?>
+                    <small class="text-warning ms-1">
+                        <i class="bi bi-arrow-up-circle-fill"></i> v<?= htmlspecialchars($latestV) ?> verfügbar
+                    </small>
+                    <?php endif ?>
                 </div>
                 <?php if ($meta['enabled']): ?>
                     <span class="badge bg-success">Aktiv</span>
