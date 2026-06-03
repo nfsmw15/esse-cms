@@ -253,6 +253,11 @@ body::before {
   width: 100%;
   max-width: 860px;
   animation: fadeUp .6s ease both;
+  background: rgba(13,13,20,0.75);
+  border: 1px solid var(--border);
+  border-top: 2px solid rgba(232,100,10,0.4);
+  padding: 2rem 2.5rem;
+  backdrop-filter: blur(4px);
 }
 
 @keyframes fadeUp {
