@@ -130,17 +130,45 @@ $currentSlug = $page['slug'] ?? '';
 <!-- Footer -->
 <footer class="cyber-footer">
     <div class="cyber-clock" id="cyber-clock">--:--:--</div>
-    <?php if ($footMenu): ?>
-    <div class="cyber-footer-links">
-        <?php foreach ($footMenu as $item): ?>
-        <?php foreach (array_merge([$item], $item['children'] ?? []) as $link): ?>
-        <?php if ($link['type'] !== 'header'): ?>
-        <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($link)) ?>"
-           <?= $link['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
-            <?= htmlspecialchars($link['label']) ?>
-        </a>
-        <?php endif ?>
-        <?php endforeach ?>
+    <?php if ($footMenu):
+        // Group by headers
+        $groups = [];
+        $current = ['header' => null, 'links' => []];
+        foreach ($footMenu as $item) {
+            if ($item['type'] === 'header') {
+                if ($current['header'] !== null || !empty($current['links'])) $groups[] = $current;
+                $current = ['header' => $item['label'], 'links' => $item['children'] ?? []];
+            } else {
+                $current['links'][] = $item;
+            }
+        }
+        if ($current['header'] !== null || !empty($current['links'])) $groups[] = $current;
+    ?>
+    <div style="display:flex;gap:2.5rem;align-items:flex-start">
+        <?php foreach ($groups as $group): ?>
+        <div>
+            <?php if ($group['header'] !== null): ?>
+            <div style="font-family:var(--mono);font-size:.6rem;color:var(--accent);letter-spacing:.12em;margin-bottom:.3rem">
+                <?= htmlspecialchars(strtoupper($group['header'])) ?>
+            </div>
+            <div style="height:1px;background:rgba(232,100,10,0.3);margin-bottom:.5rem"></div>
+            <?php endif ?>
+            <?php foreach ($group['links'] as $link): ?>
+            <?php if ($link['type'] === 'header'): ?>
+            <div style="font-family:var(--mono);font-size:.6rem;color:var(--muted);letter-spacing:.08em;margin-bottom:.2rem">
+                <?= htmlspecialchars($link['label']) ?>
+            </div>
+            <?php else: ?>
+            <div>
+                <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($link)) ?>"
+                   class="cyber-footer-link"
+                   <?= $link['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
+                    <?= htmlspecialchars($link['label']) ?>
+                </a>
+            </div>
+            <?php endif ?>
+            <?php endforeach ?>
+        </div>
         <?php endforeach ?>
     </div>
     <?php endif ?>
