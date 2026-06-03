@@ -276,19 +276,23 @@ body::before {
   backdrop-filter: blur(4px);
 }
 
-/* Reset Bootstrap container inside content wrap — plugin layouts don't need extra padding */
+/* Reset Bootstrap container inside content wrap */
 .cyber-content-wrap .container,
+.cyber-content-wrap .container-sm,
+.cyber-content-wrap .container-md,
+.cyber-content-wrap .container-lg,
+.cyber-content-wrap .container-xl,
 .cyber-content-wrap .container-fluid {
-  padding-left: 0;
-  padding-right: 0;
-  max-width: 100%;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  max-width: 100% !important;
 }
-.cyber-content-wrap section.py-4,
-.cyber-content-wrap section.py-3,
-.cyber-content-wrap section.py-5 {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
+.cyber-content-wrap > .cyber-prose > section:first-child { padding-top: 0 !important; }
+.cyber-content-wrap > .cyber-prose > section:last-child  { padding-bottom: 0 !important; }
+
+/* Bootstrap overrides — keep cyber aesthetic */
+.cyber-content-wrap a { color: var(--accent); }
+.cyber-content-wrap a:hover { color: var(--accent2); }
 
 @keyframes fadeUp {
   from { opacity:0; transform:translateY(20px); }
