@@ -148,10 +148,10 @@ $currentSlug = $page['slug'] ?? '';
         <?php foreach ($groups as $group): ?>
         <div>
             <?php if ($group['header'] !== null): ?>
-            <div style="font-family:var(--mono);font-size:.6rem;color:var(--accent);letter-spacing:.12em;margin-bottom:.3rem">
+            <div style="font-family:var(--mono);font-size:.6rem;color:var(--accent);letter-spacing:.12em;padding-bottom:.35rem">
                 <?= htmlspecialchars(strtoupper($group['header'])) ?>
             </div>
-            <div style="height:1px;background:rgba(232,100,10,0.3);margin-bottom:.5rem"></div>
+            <div style="height:1px;background:rgba(232,100,10,0.35);margin-bottom:.6rem"></div>
             <?php endif ?>
             <?php foreach ($group['links'] as $link): ?>
             <?php if ($link['type'] === 'header'): ?>
