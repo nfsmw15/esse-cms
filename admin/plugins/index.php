@@ -239,20 +239,31 @@ if (!$cachedRepos) {
         foreach ($results as $plugin) {
             $plugin['channel_label']   = $repo['label'];
             $plugin['channel_trusted'] = (bool)$repo['trusted'];
+            // Fetch latest release version for update comparison
+            $release = GitHubApi::latestRelease($plugin['full_name']);
+            $plugin['latest_version'] = $release['version'] ?? null;
+            $plugin['download_url']   = $release['download_url'] ?? null;
             $cachedRepos[] = $plugin;
         }
     }
     @file_put_contents($cacheFile, json_encode($cachedRepos));
 }
 
-// Get installed plugin names for comparison
-$installedNames = array_map(fn($p) => $p['name'] ?? '', $plugins);
+// Map installed plugins by name for version comparison
+$installedByName = [];
+foreach ($plugins as $p) {
+    if (!empty($p['name'])) $installedByName[$p['name']] = $p;
+}
 ?>
 
 <div class="row g-3 mb-4">
 <?php foreach ($cachedRepos as $available):
-    $isInstalled = in_array($available['name'], $installedNames, true);
-    $release     = null; // lazy-load only on demand
+    $installed    = $installedByName[$available['name']] ?? null;
+    $isInstalled  = $installed !== null;
+    $installedVer = $installed['version'] ?? null;
+    $latestVer    = $available['latest_version'] ?? null;
+    $hasUpdate    = $isInstalled && $latestVer && $installedVer
+                    && version_compare(ltrim($latestVer,'v'), ltrim($installedVer,'v'), '>');
 ?>
 <div class="col-lg-6">
     <div class="card h-100 <?= $isInstalled ? 'border-success' : '' ?>">
@@ -269,8 +280,14 @@ $installedNames = array_map(fn($p) => $p['name'] ?? '', $plugins);
                 </span>
                 <?php endif ?>
             </div>
-            <?php if ($isInstalled): ?>
-            <span class="badge bg-success">Installiert</span>
+            <?php if ($hasUpdate): ?>
+            <span class="badge bg-warning text-dark">
+                <i class="bi bi-arrow-up-circle"></i> Update: v<?= htmlspecialchars($latestVer) ?>
+            </span>
+            <?php elseif ($isInstalled): ?>
+            <span class="badge bg-success">
+                v<?= htmlspecialchars($installedVer) ?> — Aktuell
+            </span>
             <?php endif ?>
         </div>
         <div class="card-body">
@@ -283,10 +300,20 @@ $installedNames = array_map(fn($p) => $p['name'] ?? '', $plugins);
                     <input type="hidden" name="_csrf"           value="<?= Auth::csrfToken() ?>">
                     <input type="hidden" name="_action"         value="install_from_repo">
                     <input type="hidden" name="repo_full_name"  value="<?= htmlspecialchars($available['full_name']) ?>">
-                    <button class="btn btn-sm <?= $isInstalled ? 'btn-outline-secondary' : 'btn-primary' ?>">
-                        <i class="bi bi-<?= $isInstalled ? 'arrow-repeat' : 'download' ?>"></i>
-                        <?= $isInstalled ? 'Aktualisieren' : 'Installieren' ?>
+                    <?php if (!$isInstalled): ?>
+                    <button class="btn btn-sm btn-primary">
+                        <i class="bi bi-download"></i> Installieren
+                        <?php if ($latestVer): ?>(v<?= htmlspecialchars($latestVer) ?>)<?php endif ?>
                     </button>
+                    <?php elseif ($hasUpdate): ?>
+                    <button class="btn btn-sm btn-warning text-dark">
+                        <i class="bi bi-arrow-up-circle"></i> Update auf v<?= htmlspecialchars($latestVer) ?>
+                    </button>
+                    <?php else: ?>
+                    <button class="btn btn-sm btn-outline-secondary" disabled>
+                        <i class="bi bi-check"></i> Aktuell
+                    </button>
+                    <?php endif ?>
                 </form>
                 <a href="<?= htmlspecialchars($available['html_url']) ?>" target="_blank"
                    class="btn btn-sm btn-outline-secondary">
