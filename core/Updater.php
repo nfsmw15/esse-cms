@@ -18,24 +18,9 @@ class Updater
 
     public static function checkForUpdate(bool $includePrerelease = false): ?array
     {
-        // /releases returns all releases; filter pre-releases if not opted in
-        $url = 'https://api.github.com/repos/' . \ESSE_GITHUB_REPO . '/releases';
-
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            \CURLOPT_RETURNTRANSFER => true,
-            \CURLOPT_TIMEOUT        => 8,
-            \CURLOPT_USERAGENT      => 'ESSE-CMS/' . \ESSE_VERSION,
-            \CURLOPT_SSL_VERIFYPEER => true,
-        ]);
-        $json = curl_exec($ch);
-        $code = (int) curl_getinfo($ch, \CURLINFO_HTTP_CODE);
-        // curl_close() deprecated in PHP 8.4 — let GC handle cleanup
-
-        if (!$json || $code !== 200) return null;
-
-        $releases = json_decode($json, true);
-        if (!is_array($releases)) return null;
+        // /releases returns all releases; GitHubApi applies the optional token.
+        $releases = GitHubApi::releases(\ESSE_GITHUB_REPO);
+        if (!$releases) return null;
 
         // Filter out pre-releases if not opted in
         if (!$includePrerelease) {

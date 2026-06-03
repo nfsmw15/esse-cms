@@ -78,7 +78,7 @@ class GitHubApi
     // Get latest release info for a repo
     public static function latestRelease(string $fullName): ?array
     {
-        $releases = self::request("https://api.github.com/repos/{$fullName}/releases");
+        $releases = self::releases($fullName);
         if (!$releases || empty($releases[0])) return null;
 
         $r = $releases[0];
@@ -89,6 +89,13 @@ class GitHubApi
             'published_at' => $r['published_at'] ?? '',
             'prerelease'   => $r['prerelease'] ?? false,
         ];
+    }
+
+    // Get all release entries for a repo
+    public static function releases(string $fullName): array
+    {
+        $releases = self::request("https://api.github.com/repos/{$fullName}/releases");
+        return is_array($releases) ? $releases : [];
     }
 
     // Get rate limit info

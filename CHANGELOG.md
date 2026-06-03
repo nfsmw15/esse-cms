@@ -2,6 +2,15 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [0.1.3-alpha] - 2026-06-03
+
+### Fixed
+
+- System updater release checks now use the shared GitHub API client, so configured GitHub tokens apply to update detection
+- System updater and plugin/theme discovery now use the same GitHub request headers and API version
+
+---
+
 ## [0.1.2-alpha] - 2026-06-03
 
 ### Fixed
