@@ -276,6 +276,20 @@ body::before {
   backdrop-filter: blur(4px);
 }
 
+/* Reset Bootstrap container inside content wrap — plugin layouts don't need extra padding */
+.cyber-content-wrap .container,
+.cyber-content-wrap .container-fluid {
+  padding-left: 0;
+  padding-right: 0;
+  max-width: 100%;
+}
+.cyber-content-wrap section.py-4,
+.cyber-content-wrap section.py-3,
+.cyber-content-wrap section.py-5 {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
 @keyframes fadeUp {
   from { opacity:0; transform:translateY(20px); }
   to   { opacity:1; transform:translateY(0); }
