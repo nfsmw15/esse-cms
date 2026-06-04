@@ -34,7 +34,7 @@ class Ui
         $variant = $opts['variant'] ?? 'default';
         $class   = trim('esse-panel esse-panel--' . $variant . ' ' . ($opts['class'] ?? ''));
         $id      = isset($opts['id']) ? ' id="' . self::e($opts['id']) . '"' : '';
-        $icon    = isset($opts['icon']) ? '<i class="' . self::e($opts['icon']) . ' esse-panel-icon"></i>' : '';
+        $icon    = isset($opts['icon']) ? self::icon($opts['icon']) . ' ' : '';
         $footer  = isset($opts['footer']) ? '<div class="esse-panel-footer">' . $opts['footer'] . '</div>' : '';
 
         $html = '<div class="' . $class . '"' . $id . '>'
@@ -67,7 +67,7 @@ class Ui
         $size     = $opts['size']    ?? 'md';
         $class    = trim('esse-btn esse-btn--' . $variant . ' esse-btn--' . $size . ' ' . ($opts['class'] ?? ''));
         $disabled = !empty($opts['disabled']) ? ' disabled aria-disabled="true"' : '';
-        $icon     = isset($opts['icon']) ? '<i class="' . self::e($opts['icon']) . '"></i> ' : '';
+        $icon     = isset($opts['icon']) ? self::icon($opts['icon']) . ' ' : '';
         $extra    = self::attrs($opts['attr'] ?? []);
         $method   = strtolower($opts['method'] ?? 'get');
 
@@ -111,8 +111,8 @@ class Ui
             'warning' => 'bi bi-exclamation-circle-fill',
             'info'    => 'bi bi-info-circle-fill',
         ];
-        $icon   = $opts['icon'] ?? ($icons[$type] ?? '');
-        $iHtml  = $icon ? '<i class="' . self::e($icon) . ' esse-alert-icon"></i> ' : '';
+        $iconName = $opts['icon'] ?? ($icons[$type] ?? '');
+        $iHtml    = $iconName ? self::icon($iconName) . ' ' : '';
         $close  = !empty($opts['dismissible'])
             ? '<button type="button" class="esse-alert-close" onclick="this.closest(\'.esse-alert\').remove()">×</button>'
             : '';
@@ -186,7 +186,7 @@ class Ui
      */
     public static function emptyState(string $title, string $message = '', array $opts = []): string
     {
-        $icon   = isset($opts['icon']) ? '<div class="esse-empty-icon"><i class="' . self::e($opts['icon']) . '"></i></div>' : '';
+        $icon   = isset($opts['icon']) ? '<div class="esse-empty-icon">' . self::icon($opts['icon']) . '</div>' : '';
         $msg    = $message ? '<p class="esse-empty-message">' . self::e($message) . '</p>' : '';
         $action = isset($opts['action']) ? '<div class="esse-empty-action">' . $opts['action'] . '</div>' : '';
 

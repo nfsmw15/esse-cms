@@ -778,7 +778,7 @@ echo Ui::panel('Galerie', $grid, [
 ]);
 
 // Buttons
-echo Ui::button('Speichern', '/gallery/save', ['method' => 'post', 'icon' => 'bi bi-floppy']);
+echo Ui::button('Speichern', '/gallery/save', ['method' => 'post', 'icon' => 'floppy']);
 echo Ui::button('Löschen',   '/gallery/delete', ['variant' => 'danger', 'method' => 'post', 'csrf' => true]);
 echo Ui::button('Abbrechen', '/gallery', ['variant' => 'ghost']);
 echo Ui::button('Details',   '/gallery/1', ['size' => 'sm']);
@@ -857,7 +857,7 @@ echo Ui::grid($items, ['cols' => 4]);
 
 // Submit-Button innerhalb eines bestehenden Formulars
 // (kein eigenes <form> — nur der Button)
-echo Ui::button('Hochladen', '#', ['type' => 'submit', 'icon' => 'bi bi-upload']);
+echo Ui::button('Hochladen', '#', ['type' => 'submit', 'icon' => 'upload']);
 echo Ui::button('Ordner erstellen', '#', ['type' => 'submit', 'variant' => 'secondary']);
 
 // Icons (icon-pack-agnostisch)
