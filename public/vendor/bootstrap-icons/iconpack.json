@@ -1,0 +1,7 @@
+{
+    "name": "bootstrap-icons",
+    "version": "1.11.3",
+    "description": "Bootstrap Icons — over 2000 open source SVG icons.",
+    "prefix": "bi bi-",
+    "css": "bootstrap-icons.min.css"
+}

@@ -390,16 +390,16 @@ class Ui
         if (class_exists('\Esse\DB') && defined('ESSE_DB_NAME')) {
             try {
                 $ts    = DB::table('settings');
-                DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'active_theme'"); // reserved for future theme-specific icon pack
-                $pack  = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'icon_pack'") ?? '';
-                // Default prefixes for common packs
-                $prefixes = [
-                    'bootstrap-icons' => 'bi bi-',
-                    'phosphor'        => 'ph ph-',
-                    'lucide'          => 'lucide lucide-',
-                    'tabler'          => 'ti ti-',
-                ];
-                $prefix = $prefixes[$pack] ?? 'bi bi-'; // Bootstrap Icons as default
+                $packName = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'icon_pack'") ?? 'bootstrap-icons';
+                // Load prefix from installed iconpack.json
+                $packDir  = ESSE_ROOT . '/public/vendor/' . preg_replace('/[^a-z0-9\-]/', '', $packName);
+                $packJson = $packDir . '/iconpack.json';
+                if (file_exists($packJson)) {
+                    $packMeta = json_decode(file_get_contents($packJson), true);
+                    $prefix   = $packMeta['prefix'] ?? 'bi bi-';
+                } else {
+                    $prefix = 'bi bi-'; // Bootstrap Icons as fallback
+                }
             } catch (\Throwable) {
                 $prefix = 'bi bi-';
             }

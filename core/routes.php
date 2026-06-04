@@ -223,6 +223,15 @@ Router::post('/admin/plugins', fn() => require ESSE_ROOT . '/admin/plugins/index
     'auth' => 'manage_plugins',
 ]);
 
+Router::get('/admin/iconpacks', fn() => require ESSE_ROOT . '/admin/iconpacks.php', [
+    'name' => 'admin.iconpacks',
+    'auth' => 'manage_settings',
+]);
+Router::post('/admin/iconpacks', fn() => require ESSE_ROOT . '/admin/iconpacks.php', [
+    'name' => 'admin.iconpacks.post',
+    'auth' => 'manage_settings',
+]);
+
 Router::get('/admin/themes', fn() => require ESSE_ROOT . '/admin/themes/index.php', [
     'name' => 'admin.themes',
     'auth' => 'manage_themes',

@@ -136,7 +136,13 @@
         <?php foreach ($pluginNavItems as $navItem): ?>
         <a href="<?= htmlspecialchars($navItem['url']) ?>"
            class="<?= ($activeNav ?? '') === ($navItem['active'] ?? '') ? 'active' : '' ?>">
-            <i class="bi <?= htmlspecialchars($navItem['icon'] ?? 'bi-puzzle') ?>"></i>
+            <?php
+            $navIcon = $navItem['icon'] ?? 'puzzle';
+            // Backward compat: if icon contains a space it's a full CSS class, otherwise an icon name
+            echo str_contains($navIcon, ' ')
+                ? '<i class="' . htmlspecialchars($navIcon) . '"></i>'
+                : \Esse\Ui::icon($navIcon);
+            ?>
             <?= htmlspecialchars($navItem['label']) ?>
         </a>
         <?php endforeach ?>
@@ -166,6 +172,10 @@
         <?php if (\Esse\Auth::can('manage_themes')): ?>
         <a href="/admin/themes" class="<?= ($activeNav ?? '') === 'themes' ? 'active' : '' ?>">
             <i class="bi bi-palette"></i> Themes
+        </a>
+        <?php if (\Esse\Auth::can('manage_settings') || \Esse\Auth::meetsRole('forge')): ?>
+        <a href="/admin/iconpacks" class="<?= ($activeNav ?? '') === 'iconpacks' ? 'active' : '' ?>">
+            <i class="bi bi-emoji-smile"></i> Icon-Packs
         </a>
         <?php endif ?>
         <?php if (\Esse\Auth::can('view_logs')): ?>

@@ -55,7 +55,7 @@ abstract class Plugin
     final protected function registerPage(
         string $slug,
         string $label,
-        string $icon = 'bi-puzzle'
+        string $icon = 'puzzle'
     ): void {
         self::$registeredPages[ltrim($slug, '/')] = [
             'slug'        => ltrim($slug, '/'),
@@ -80,7 +80,7 @@ abstract class Plugin
     final protected function addAdminNav(
         string $label,
         string $url,
-        string $icon       = 'bi-puzzle',
+        string $icon       = 'puzzle',
         string $activeSlug = ''
     ): void {
         Hooks::on('admin.nav', function (array $items) use ($label, $url, $icon, $activeSlug) {
