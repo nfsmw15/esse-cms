@@ -1,5 +1,6 @@
 /*
  * esse-ui.css — Theme-agnostic UI component base styles
+ * Components: panel, btn, alert, badge, grid, empty-state, section, table, tabs, breadcrumb
  * Every theme MUST load this file (or provide equivalent styles for all esse-* classes).
  * Themes override/extend these styles to match their visual identity.
  */
@@ -196,3 +197,25 @@
 }
 .esse-tabs-panel { display: none; }
 .esse-tabs-panel--active { display: block; }
+
+/* ── esse-breadcrumb ──────────────────────────────────────────────────────── */
+.esse-breadcrumb { margin-bottom: 1rem; }
+.esse-breadcrumb-list {
+  list-style: none;
+  padding: 0; margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
+  font-size: .875rem;
+  color: var(--esse-text-muted);
+}
+.esse-breadcrumb-item + .esse-breadcrumb-item::before {
+  content: '/';
+  opacity: .4;
+}
+.esse-breadcrumb-link {
+  color: var(--esse-text-muted);
+  text-decoration: none;
+}
+.esse-breadcrumb-link:hover { color: var(--esse-text); text-decoration: underline; }
+.esse-breadcrumb-item--current { color: var(--esse-text); }

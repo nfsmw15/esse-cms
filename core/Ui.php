@@ -73,7 +73,12 @@ class Ui
 
         $inner = $icon . self::e($label);
 
-        if ($method === 'post') {
+        $type = $opts['type'] ?? null;
+
+        if ($type === 'submit') {
+            // Plain submit button — use inside an existing <form>
+            $html = '<button type="submit" class="' . $class . '"' . $disabled . $extra . '>' . $inner . '</button>';
+        } elseif ($method === 'post') {
             $csrf = ($opts['csrf'] ?? true) && class_exists('\Esse\Auth')
                 ? '<input type="hidden" name="_csrf" value="' . Auth::csrfToken() . '">'
                 : '';
@@ -288,6 +293,37 @@ class Ui
               . '<script>(function(){document.querySelectorAll("[data-esse-tab]").forEach(function(btn){btn.addEventListener("click",function(){var id=this.getAttribute("data-esse-tab"),tabs=this.closest(".esse-tabs");tabs.querySelectorAll(".esse-tabs-panel").forEach(function(p){p.classList.remove("esse-tabs-panel--active")});tabs.querySelectorAll(".esse-tabs-btn").forEach(function(b){b.closest(".esse-tabs-nav-item").classList.remove("esse-tabs-nav-item--active")});document.getElementById(id).classList.add("esse-tabs-panel--active");this.closest(".esse-tabs-nav-item").classList.add("esse-tabs-nav-item--active")})})})();</script>';
 
         return self::hook('tabs', $html, compact('tabs', 'opts'));
+    }
+
+    // ── Breadcrumb ────────────────────────────────────────────────────────────
+
+    /**
+     * Navigation breadcrumb trail.
+     *
+     * $items: [['label' => 'Home', 'url' => '/'], ['label' => 'Current']]
+     * The last item without a 'url' key is rendered as the current (non-linked) page.
+     */
+    public static function breadcrumb(array $items): string
+    {
+        $parts = [];
+        $last  = count($items) - 1;
+
+        foreach ($items as $i => $item) {
+            if ($i === $last || !isset($item['url'])) {
+                $parts[] = '<li class="esse-breadcrumb-item esse-breadcrumb-item--current" aria-current="page">'
+                         . self::e($item['label']) . '</li>';
+            } else {
+                $parts[] = '<li class="esse-breadcrumb-item">'
+                         . '<a href="' . self::e($item['url']) . '" class="esse-breadcrumb-link">'
+                         . self::e($item['label']) . '</a></li>';
+            }
+        }
+
+        $html = '<nav class="esse-breadcrumb" aria-label="breadcrumb">'
+              . '<ol class="esse-breadcrumb-list">' . implode('', $parts) . '</ol>'
+              . '</nav>';
+
+        return self::hook('breadcrumb', $html, compact('items'));
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────

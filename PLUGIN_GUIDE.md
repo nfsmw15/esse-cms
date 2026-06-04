@@ -826,6 +826,18 @@ echo Ui::tabs([
     ['label' => 'Uploads', 'content' => $uploadList],
 ]);
 
+// Breadcrumb
+echo Ui::breadcrumb([
+    ['label' => 'Downloads', 'url' => '/downloads'],
+    ['label' => 'Ordner A',  'url' => '/downloads/ordner-a'],
+    ['label' => 'Datei.zip'],   // Letzter Eintrag = aktuell, kein Link
+]);
+
+// Submit-Button innerhalb eines bestehenden Formulars
+// (kein eigenes <form> — nur der Button)
+echo Ui::button('Hochladen', '#', ['type' => 'submit', 'icon' => 'bi bi-upload']);
+echo Ui::button('Ordner erstellen', '#', ['type' => 'submit', 'variant' => 'secondary']);
+
 // Icons (icon-pack-agnostisch)
 echo Ui::icon('house');          // → <i class="bi bi-house"></i> (Bootstrap Icons default)
 echo Ui::icon('images');         // → <i class="bi bi-images"></i>
@@ -844,6 +856,7 @@ echo Ui::icon('images');         // → <i class="bi bi-images"></i>
 | `Ui::section()` | title, content, opts | Abschnitt mit Titel + optionaler Aktion |
 | `Ui::table()` | headers[], rows[], opts | Datentabelle |
 | `Ui::tabs()` | tabs[], opts | Tab-Navigation |
+| `Ui::breadcrumb()` | items[] | Navigations-Breadcrumb |
 | `Ui::icon()` | name, fallback | Icon (icon-pack-agnostisch) |
 
 ### variant-Werte
