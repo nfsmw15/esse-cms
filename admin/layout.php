@@ -173,6 +173,7 @@
         <a href="/admin/themes" class="<?= ($activeNav ?? '') === 'themes' ? 'active' : '' ?>">
             <i class="bi bi-palette"></i> Themes
         </a>
+        <?php endif ?>
         <?php if (\Esse\Auth::can('manage_settings') || \Esse\Auth::meetsRole('forge')): ?>
         <a href="/admin/iconpacks" class="<?= ($activeNav ?? '') === 'iconpacks' ? 'active' : '' ?>">
             <i class="bi bi-emoji-smile"></i> Icon-Packs
