@@ -238,5 +238,22 @@
 <?php endif ?>
 
 <script src="/public/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<?php if (!empty($_GET['login_error'])): ?>
+<script>
+// Auto-open login dropdown when login failed
+document.addEventListener('DOMContentLoaded', function() {
+    var toggle = document.querySelector('[data-bs-target="#navbar-login-form"]') ||
+                 document.querySelector('.dropdown-toggle[href="#"]:last-of-type');
+    var form   = document.getElementById('navbar-login-form');
+    if (form) {
+        var dropdownEl = form.closest('.dropdown');
+        var dropdownToggle = dropdownEl ? dropdownEl.querySelector('.dropdown-toggle') : null;
+        if (dropdownToggle) {
+            new bootstrap.Dropdown(dropdownToggle).show();
+        }
+    }
+});
+</script>
+<?php endif ?>
 </body>
 </html>
