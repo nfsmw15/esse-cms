@@ -53,7 +53,11 @@ class PageRenderer
     }
 
     // Render a PHP file (not from DB) wrapped in the active theme
-    public static function renderFile(string $file, string $title = '', string $visibility = 'public'): void
+    /**
+     * @param string $icon  Optional icon name (e.g. 'newspaper') — rendered via Ui::icon() by the theme.
+     *                      Leave empty for no icon. Existing plugins don't need to change.
+     */
+    public static function renderFile(string $file, string $title = '', string $visibility = 'public', string $icon = ''): void
     {
         if (!file_exists($file)) {
             Router::abort(404);
@@ -63,6 +67,7 @@ class PageRenderer
         $fakePage = [
             'slug'       => ltrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/', '/'),
             'title'      => $title,
+            'icon'       => $icon,
             'content'    => '',
             'type'       => 'standard',
             'visibility' => $visibility,
