@@ -2,7 +2,7 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
-## [Unreleased]
+## [0.1.5-alpha] - 2026-06-04
 
 ### Added
 
@@ -28,6 +28,9 @@ All notable changes to ESSE CMS will be documented in this file.
 
 - Editor uploads require `manage_files` or `manage_content` instead of relying on role hierarchy
 - Admin role assignment now requires `manage_admins`; Forge remains required for Forge accounts
+- Assigning custom roles and per-user permission overrides now requires `manage_admins`
+- Users can only edit accounts whose current role they are allowed to manage
+- Custom roles cannot be deleted while they are still assigned to users
 
 ---
 

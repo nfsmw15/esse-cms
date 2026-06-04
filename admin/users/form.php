@@ -11,32 +11,32 @@ $tu      = DB::table('users');
 $user    = null;
 $errors  = [];
 
+// Available roles depending on current user's role
+// Start with built-in roles
+$availableRoles = ['editor' => 'Editor', 'author' => 'Author', 'member' => 'Member'];
+$canManageAdmins = Auth::can('manage_admins');
+
+if ($canManageAdmins) {
+    $availableRoles = ['admin' => 'Admin'] + $availableRoles;
+
+    // Custom roles can carry high-impact permissions, so assigning them requires manage_admins.
+    $tr = DB::table('roles');
+    $customRoles = DB::fetchAll("SELECT slug, label FROM `{$tr}` WHERE is_default = 0 ORDER BY label ASC");
+    foreach ($customRoles as $cr) {
+        $availableRoles[$cr['slug']] = $cr['label'] . ' (Eigene Rolle)';
+    }
+}
+if (Auth::role() === 'forge') {
+    $availableRoles = ['forge' => 'Forge'] + $availableRoles;
+}
+
 if ($isEdit) {
     $user = DB::fetch("SELECT * FROM `{$tu}` WHERE id = ?", [$userId]);
     if (!$user) { http_response_code(404); echo '404'; exit; }
 
-    // Only Forge can edit other Forge accounts
-    if ($user['role'] === 'forge' && Auth::role() !== 'forge') {
+    if (!array_key_exists($user['role'], $availableRoles)) {
         http_response_code(403); echo '403 Forbidden'; exit;
     }
-}
-
-// Available roles depending on current user's role
-// Start with built-in roles
-$availableRoles = ['editor' => 'Editor', 'author' => 'Author', 'member' => 'Member'];
-
-// Add custom roles from DB
-$tr = DB::table('roles');
-$customRoles = DB::fetchAll("SELECT slug, label FROM `{$tr}` WHERE is_default = 0 ORDER BY label ASC");
-foreach ($customRoles as $cr) {
-    $availableRoles[$cr['slug']] = $cr['label'] . ' (Eigene Rolle)';
-}
-
-if (Auth::can('manage_admins')) {
-    $availableRoles = ['admin' => 'Admin'] + $availableRoles;
-}
-if (Auth::role() === 'forge') {
-    $availableRoles = ['forge' => 'Forge'] + $availableRoles;
 }
 
 // -- POST handling --
@@ -101,23 +101,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($isEdit) {
                 DB::update($tu, $data, ['id' => $userId]);
 
-                // Save per-user permission overrides
-                $tup = DB::table('user_permissions');
-                DB::query("DELETE FROM `{$tup}` WHERE user_id = ?", [$userId]);
-                foreach ($_POST['user_permissions'] ?? [] as $slug) {
-                    $slug = preg_replace('/[^a-z_]/', '', $slug);
-                    if ($slug) DB::insert($tup, ['user_id' => $userId, 'permission_slug' => $slug, 'granted' => 1]);
+                if ($canManageAdmins) {
+                    // Save per-user permission overrides
+                    $tup = DB::table('user_permissions');
+                    DB::query("DELETE FROM `{$tup}` WHERE user_id = ?", [$userId]);
+                    foreach ($_POST['user_permissions'] ?? [] as $slug) {
+                        $slug = preg_replace('/[^a-z_]/', '', $slug);
+                        if ($slug) DB::insert($tup, ['user_id' => $userId, 'permission_slug' => $slug, 'granted' => 1]);
+                    }
                 }
 
                 $_SESSION['flash'] = ['type' => 'success', 'message' => 'Benutzer gespeichert.'];
             } else {
                 $newId = DB::insert($tu, array_merge($data, ['active' => 1]));
 
-                // Save per-user permissions for new user
-                $tup = DB::table('user_permissions');
-                foreach ($_POST['user_permissions'] ?? [] as $slug) {
-                    $slug = preg_replace('/[^a-z_]/', '', $slug);
-                    if ($slug) DB::insert($tup, ['user_id' => $newId, 'permission_slug' => $slug, 'granted' => 1]);
+                if ($canManageAdmins) {
+                    // Save per-user permissions for new user
+                    $tup = DB::table('user_permissions');
+                    foreach ($_POST['user_permissions'] ?? [] as $slug) {
+                        $slug = preg_replace('/[^a-z_]/', '', $slug);
+                        if ($slug) DB::insert($tup, ['user_id' => $newId, 'permission_slug' => $slug, 'granted' => 1]);
+                    }
                 }
 
                 $_SESSION['flash'] = ['type' => 'success', 'message' => "Benutzer '{$displayName}' erstellt."];
@@ -226,7 +230,7 @@ ob_start();
 
                     <?php
                     // Per-user permission overrides — only Forge and manage_admins users can set these
-                    if (Auth::meetsRole('forge') || Auth::can('manage_admins')):
+                    if ($canManageAdmins):
                         $tup = DB::table('user_permissions');
                         $userPerms = [];
                         if ($isEdit) {

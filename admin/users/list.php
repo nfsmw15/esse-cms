@@ -26,6 +26,17 @@ $roleLabels = [
     'author' => ['059669', 'Author'],
     'member' => ['374151', 'Member'],
 ];
+$manageableRoles = ['editor', 'author', 'member'];
+if (Auth::can('manage_admins')) {
+    $manageableRoles[] = 'admin';
+
+    $tr = DB::table('roles');
+    $customRoles = DB::fetchAll("SELECT slug FROM `{$tr}` WHERE is_default = 0");
+    foreach ($customRoles as $customRole) {
+        $manageableRoles[] = (string)$customRole['slug'];
+    }
+}
+if (Auth::role() === 'forge') $manageableRoles[] = 'forge';
 
 $pageTitle = 'Benutzer';
 $activeNav = 'users';
@@ -79,8 +90,7 @@ ob_start();
                 </td>
                 <td class="text-end">
                     <?php
-                    // Forge kann nur von Forge bearbeitet werden
-                    $canEdit = Auth::can('manage_users') && ($user['role'] !== 'forge' || Auth::role() === 'forge');
+                    $canEdit = Auth::can('manage_users') && in_array($user['role'], $manageableRoles, true);
                     ?>
                     <?php if ($canEdit): ?>
                     <a href="/admin/users/edit/<?= $user['id'] ?>"

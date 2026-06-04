@@ -13,6 +13,7 @@ if (!Auth::meetsRole('forge') && !Auth::can('manage_admins')) {
 $tr  = DB::table('roles');
 $tp  = DB::table('permissions');
 $trp = DB::table('role_permissions');
+$tu  = DB::table('users');
 
 $flash = null;
 if (!empty($_SESSION['flash'])) {
@@ -73,8 +74,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $roleId = (int) ($_POST['role_id'] ?? 0);
         $role   = DB::fetch("SELECT * FROM `{$tr}` WHERE id = ? AND is_default = 0", [$roleId]);
         if ($role) {
-            DB::delete($tr, ['id' => $roleId]);
-            $_SESSION['flash'] = ['type' => 'success', 'message' => "Rolle '{$role['label']}' gelöscht."];
+            $usersWithRole = (int) DB::value("SELECT COUNT(*) FROM `{$tu}` WHERE role = ?", [$role['slug']]);
+            if ($usersWithRole > 0) {
+                $_SESSION['flash'] = ['type' => 'danger', 'message' => "Rolle '{$role['label']}' ist noch {$usersWithRole} Benutzer(n) zugewiesen."];
+            } else {
+                DB::delete($tr, ['id' => $roleId]);
+                $_SESSION['flash'] = ['type' => 'success', 'message' => "Rolle '{$role['label']}' gelöscht."];
+            }
         }
         header('Location: /admin/roles');
         exit;

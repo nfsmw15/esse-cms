@@ -180,8 +180,11 @@ class Auth
             $tr  = DB::table('roles');
             $trp = DB::table('role_permissions');
 
-            // Migrate role column from ENUM to VARCHAR if needed (one-time, idempotent)
-            DB::query("ALTER TABLE `{$tu}` MODIFY COLUMN `role` VARCHAR(50) NOT NULL DEFAULT 'member'");
+            // Migrate role column from ENUM to VARCHAR once custom roles are supported.
+            $roleColumn = DB::fetch("SHOW COLUMNS FROM `{$tu}` LIKE 'role'");
+            if ($roleColumn && str_starts_with(strtolower((string)$roleColumn['Type']), 'enum(')) {
+                DB::query("ALTER TABLE `{$tu}` MODIFY COLUMN `role` VARCHAR(50) NOT NULL DEFAULT 'member'");
+            }
 
             foreach (self::PERMISSIONS as $slug => [$label, $description]) {
                 DB::query(
