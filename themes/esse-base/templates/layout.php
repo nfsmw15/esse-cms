@@ -170,7 +170,12 @@ $loginFailed = !empty($_GET['login_error']);
     <?php if (!empty($page['icon']) || $page['title']): ?>
     <h1 class="mb-4">
         <?php if (!empty($page['icon'])): ?>
-        <i class="<?= htmlspecialchars($page['icon']) ?> me-2"></i>
+        <?php
+        $pi = $page['icon'];
+        echo str_contains($pi, ' ')
+            ? '<i class="' . htmlspecialchars($pi) . ' me-2"></i> '
+            : \Esse\Ui::icon(preg_replace('/^(bi|ph|ti|lucide|ri)-/', '', $pi)) . ' ';
+        ?>
         <?php endif ?>
         <?= htmlspecialchars($page['title']) ?>
     </h1>

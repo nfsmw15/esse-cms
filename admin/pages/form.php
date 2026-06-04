@@ -157,13 +157,13 @@ ob_start();
                         <div class="input-group">
                             <input type="text" name="icon" class="form-control font-monospace"
                                    style="max-width:160px"
-                                   placeholder="Icon (z.B. bi bi-house)"
+                                   placeholder="Icon-Name (z.B. house)"
                                    value="<?= htmlspecialchars($page['icon'] ?? '') ?>">
                             <input type="text" name="title" id="title" class="form-control"
                                    value="<?= htmlspecialchars($page['title'] ?? '') ?>"
                                    required autofocus placeholder="Seitentitel">
                         </div>
-                        <div class="form-text">Optional: Icon-CSS-Klasse + Titel. z.B. <code>bi bi-house</code></div>
+                        <div class="form-text">Optional: nur Icon-Name, z.B. <code>house</code> — pack-agnostisch</div>
                     </div>
                     <div class="mb-0">
                         <label class="form-label">Slug</label>
