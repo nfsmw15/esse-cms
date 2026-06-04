@@ -138,10 +138,14 @@
            class="<?= ($activeNav ?? '') === ($navItem['active'] ?? '') ? 'active' : '' ?>">
             <?php
             $navIcon = $navItem['icon'] ?? 'puzzle';
-            // Backward compat: if icon contains a space it's a full CSS class, otherwise an icon name
-            echo str_contains($navIcon, ' ')
-                ? '<i class="' . htmlspecialchars($navIcon) . '"></i>'
-                : \Esse\Ui::icon($navIcon);
+            if (str_contains($navIcon, ' ')) {
+                // Full CSS class with space (e.g. 'bi bi-newspaper') → use directly
+                echo '<i class="' . htmlspecialchars($navIcon) . '"></i>';
+            } else {
+                // Strip known pack prefixes for backward compat (e.g. 'bi-newspaper' → 'newspaper')
+                $iconName = preg_replace('/^(bi|ph|ti|lucide|fa|ri)-/', '', $navIcon);
+                echo \Esse\Ui::icon($iconName);
+            }
             ?>
             <?= htmlspecialchars($navItem['label']) ?>
         </a>
