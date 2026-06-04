@@ -3,12 +3,13 @@
 declare(strict_types=1);
 
 use Esse\DB;
+use Esse\Auth;
 
 $t        = DB::table('pages');
 $tu       = DB::table('users');
 $pages    = (int) DB::value("SELECT COUNT(*) FROM `{$t}` WHERE status = 'published'");
 $drafts   = (int) DB::value("SELECT COUNT(*) FROM `{$t}` WHERE status = 'draft'");
-$users    = (int) DB::value("SELECT COUNT(*) FROM `{$tu}`");
+$users    = Auth::can('manage_users') ? (int) DB::value("SELECT COUNT(*) FROM `{$tu}`") : null;
 
 $pageTitle = 'Dashboard';
 $activeNav = 'dashboard';
@@ -28,18 +29,22 @@ ob_start();
             <small class="text-secondary">Entwürfe</small>
         </div>
     </div>
+    <?php if ($users !== null): ?>
     <div class="col-sm-4">
         <div class="card text-center p-3">
             <div style="font-size:2rem;font-weight:700;color:#198754"><?= $users ?></div>
             <small class="text-secondary">Benutzer</small>
         </div>
     </div>
+    <?php endif ?>
 </div>
 
 <div class="card">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
         <strong>Zuletzt bearbeitet</strong>
+        <?php if (Auth::can('manage_content')): ?>
         <a href="/admin/pages" class="btn btn-sm btn-outline-secondary">Alle Seiten</a>
+        <?php endif ?>
     </div>
     <div class="card-body p-0">
         <?php
@@ -63,9 +68,15 @@ ob_start();
             <tbody>
             <?php foreach ($recent as $row): ?>
             <tr>
-                <td><a href="/admin/pages/edit/<?= htmlspecialchars($row['slug']) ?>" class="text-decoration-none text-white">
+                <td>
+                    <?php if (Auth::can('manage_content')): ?>
+                    <a href="/admin/pages/edit/<?= htmlspecialchars($row['slug']) ?>" class="text-decoration-none text-white">
                     <?= htmlspecialchars($row['title']) ?>
-                </a></td>
+                    </a>
+                    <?php else: ?>
+                    <?= htmlspecialchars($row['title']) ?>
+                    <?php endif ?>
+                </td>
                 <td><code class="text-secondary">/<?= htmlspecialchars($row['slug']) ?></code></td>
                 <td>
                     <?php if ($row['status'] === 'published'): ?>

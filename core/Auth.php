@@ -7,9 +7,39 @@ namespace Esse;
 class Auth
 {
     private static ?array $currentUser = null;
+    private static bool $defaultsSynced = false;
 
     // Role hierarchy — index determines "power level" (higher = more access)
     public const ROLES = ['guest', 'member', 'author', 'editor', 'admin', 'forge'];
+
+    public const PERMISSIONS = [
+        'php_upload'      => ['PHP/HTML hochladen',     'Eigene PHP- und HTML-Dateien als Seiten hochladen'],
+        'manage_users'    => ['Benutzer verwalten',      'Benutzer anlegen, bearbeiten und deaktivieren'],
+        'manage_admins'   => ['Admins verwalten',        'Benutzer zur Admin- oder Forge-Rolle befördern'],
+        'manage_plugins'  => ['Plugins verwalten',       'Plugins installieren, aktualisieren und entfernen'],
+        'manage_themes'   => ['Themes verwalten',        'Themes installieren und wechseln'],
+        'manage_repos'    => ['Repos verwalten',         'Plugin- und Theme-Repos hinzufügen und entfernen'],
+        'manage_settings' => ['Einstellungen verwalten', 'Systemeinstellungen ändern'],
+        'manage_content'  => ['Inhalte verwalten',       'Seiten, Menüs und Inhalte verwalten'],
+        'manage_files'    => ['Dateien verwalten',       'Dateien hochladen und verwalten'],
+        'view_logs'       => ['Logs einsehen',           'System- und Zugriffslogs anzeigen'],
+    ];
+
+    public const DEFAULT_ROLE_PERMISSIONS = [
+        'member' => [],
+        'author' => ['manage_content', 'manage_files'],
+        'editor' => ['manage_content', 'manage_files'],
+        'admin'  => [
+            'manage_users',
+            'manage_plugins',
+            'manage_themes',
+            'manage_repos',
+            'manage_settings',
+            'manage_content',
+            'manage_files',
+            'view_logs',
+        ],
+    ];
 
     // Must be called once at boot (after session_start is safe to call)
     public static function init(): void
@@ -37,6 +67,7 @@ class Auth
         }
 
         self::$currentUser = $user;
+        self::syncDefaultPermissions();
     }
 
     // Attempt login with username or e-mail + password. Returns true on success.
@@ -100,6 +131,7 @@ class Auth
     {
         if (self::role() === 'forge') return true;
         if (!self::$currentUser) return false;
+        self::syncDefaultPermissions();
 
         $tp = DB::table('permissions');
         $tr = DB::table('roles');
@@ -127,6 +159,53 @@ class Auth
         );
 
         return $result !== null && (bool) $result['granted'];
+    }
+
+    public static function canAny(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if (self::can($permission)) return true;
+        }
+        return false;
+    }
+
+    public static function syncDefaultPermissions(): void
+    {
+        if (self::$defaultsSynced) return;
+
+        try {
+            $tp  = DB::table('permissions');
+            $tr  = DB::table('roles');
+            $trp = DB::table('role_permissions');
+
+            foreach (self::PERMISSIONS as $slug => [$label, $description]) {
+                DB::query(
+                    "INSERT INTO `{$tp}` (slug, label, description) VALUES (?, ?, ?)
+                     ON DUPLICATE KEY UPDATE label = VALUES(label), description = VALUES(description)",
+                    [$slug, $label, $description]
+                );
+            }
+
+            foreach (self::DEFAULT_ROLE_PERMISSIONS as $role => $permissions) {
+                DB::query(
+                    "INSERT INTO `{$tr}` (slug, label, is_default) VALUES (?, ?, 1)
+                     ON DUPLICATE KEY UPDATE label = VALUES(label), is_default = 1",
+                    [$role, ucfirst($role)]
+                );
+
+                foreach ($permissions as $permission) {
+                    DB::query(
+                        "INSERT IGNORE INTO `{$trp}` (role_id, permission_id)
+                         SELECT r.id, p.id FROM `{$tr}` r, `{$tp}` p
+                          WHERE r.slug = ? AND p.slug = ?",
+                        [$role, $permission]
+                    );
+                }
+            }
+            self::$defaultsSynced = true;
+        } catch (\Throwable) {
+            // Installer or partial migrations may not have permission tables yet.
+        }
     }
 
     // -- CSRF --

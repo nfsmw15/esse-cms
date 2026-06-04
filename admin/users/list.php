@@ -33,9 +33,11 @@ $activeNav = 'users';
 ob_start();
 ?>
 <div class="d-flex justify-content-end mb-3">
+    <?php if (Auth::can('manage_users')): ?>
     <a href="/admin/users/create" class="btn btn-primary btn-sm">
         <i class="bi bi-person-plus"></i> Neuer Benutzer
     </a>
+    <?php endif ?>
 </div>
 
 <div class="card">
@@ -78,7 +80,7 @@ ob_start();
                 <td class="text-end">
                     <?php
                     // Forge kann nur von Forge bearbeitet werden
-                    $canEdit = $user['role'] !== 'forge' || Auth::role() === 'forge';
+                    $canEdit = Auth::can('manage_users') && ($user['role'] !== 'forge' || Auth::role() === 'forge');
                     ?>
                     <?php if ($canEdit): ?>
                     <a href="/admin/users/edit/<?= $user['id'] ?>"

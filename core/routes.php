@@ -55,7 +55,7 @@ Router::post('/abmelden', function () {
 // File upload endpoint (used by editor)
 Router::post('/admin/files/upload', fn() => require ESSE_ROOT . '/admin/files-upload.php', [
     'name' => 'admin.files.upload',
-    'auth' => 'author',
+    'auth' => ['manage_files', 'manage_content'],
 ]);
 
 Router::get('/admin/login', fn() => require ESSE_ROOT . '/admin/login.php', [
@@ -101,7 +101,7 @@ Router::post('/admin/settings/test-mail', function () {
     }
     header('Location: /admin/settings');
     exit;
-}, ['name' => 'admin.settings.test_mail', 'auth' => 'admin']);
+}, ['name' => 'admin.settings.test_mail', 'auth' => 'manage_settings']);
 
 Router::post('/admin/logout', function () {
     if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); exit; }
@@ -112,33 +112,33 @@ Router::post('/admin/logout', function () {
 
 Router::get('/admin', fn() => require ESSE_ROOT . '/admin/dashboard.php', [
     'name' => 'admin.dashboard',
-    'auth' => 'admin',
+    'auth' => ['manage_content', 'manage_users', 'manage_plugins', 'manage_themes', 'manage_settings'],
 ]);
 
 Router::get('/admin/pages', fn() => require ESSE_ROOT . '/admin/pages/list.php', [
     'name' => 'admin.pages',
-    'auth' => 'admin',
+    'auth' => 'manage_content',
 ]);
 
 Router::get('/admin/pages/create', fn() => require ESSE_ROOT . '/admin/pages/form.php', [
     'name' => 'admin.pages.create',
-    'auth' => 'admin',
+    'auth' => 'manage_content',
 ]);
 
 Router::post('/admin/pages/create', fn() => require ESSE_ROOT . '/admin/pages/form.php', [
     'name' => 'admin.pages.create.post',
-    'auth' => 'admin',
+    'auth' => 'manage_content',
 ]);
 
 Router::get('/admin/pages/edit/{slug}', function (string $slug) {
     $editSlug = $slug;
     require ESSE_ROOT . '/admin/pages/form.php';
-}, ['name' => 'admin.pages.edit', 'auth' => 'admin']);
+}, ['name' => 'admin.pages.edit', 'auth' => 'manage_content']);
 
 Router::post('/admin/pages/edit/{slug}', function (string $slug) {
     $editSlug = $slug;
     require ESSE_ROOT . '/admin/pages/form.php';
-}, ['name' => 'admin.pages.edit.post', 'auth' => 'admin']);
+}, ['name' => 'admin.pages.edit.post', 'auth' => 'manage_content']);
 
 Router::post('/admin/pages/delete/{slug}', function (string $slug) {
     if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); exit; }
@@ -156,111 +156,121 @@ Router::post('/admin/pages/delete/{slug}', function (string $slug) {
 
     header('Location: /admin/pages');
     exit;
-}, ['name' => 'admin.pages.delete', 'auth' => 'admin']);
+}, ['name' => 'admin.pages.delete', 'auth' => 'manage_content']);
 
 Router::get('/admin/menus', fn() => require ESSE_ROOT . '/admin/menus/list.php', [
     'name' => 'admin.menus',
-    'auth' => 'admin',
+    'auth' => 'manage_content',
 ]);
 
 Router::post('/admin/menus', fn() => require ESSE_ROOT . '/admin/menus/list.php', [
     'name' => 'admin.menus.post',
-    'auth' => 'admin',
+    'auth' => 'manage_content',
 ]);
 
 Router::get('/admin/menus/edit/{id}', function (string $id) {
     $menuId = (int) $id;
     require ESSE_ROOT . '/admin/menus/form.php';
-}, ['name' => 'admin.menus.edit', 'auth' => 'admin']);
+}, ['name' => 'admin.menus.edit', 'auth' => 'manage_content']);
 
 Router::post('/admin/menus/edit/{id}', function (string $id) {
     $menuId = (int) $id;
     require ESSE_ROOT . '/admin/menus/form.php';
-}, ['name' => 'admin.menus.edit.post', 'auth' => 'admin']);
+}, ['name' => 'admin.menus.edit.post', 'auth' => 'manage_content']);
+
+Router::get('/admin/roles', fn() => require ESSE_ROOT . '/admin/roles.php', [
+    'name' => 'admin.roles',
+    'auth' => 'manage_admins',
+]);
+
+Router::post('/admin/roles', fn() => require ESSE_ROOT . '/admin/roles.php', [
+    'name' => 'admin.roles.post',
+    'auth' => 'manage_admins',
+]);
 
 Router::get('/admin/users', fn() => require ESSE_ROOT . '/admin/users/list.php', [
     'name' => 'admin.users',
-    'auth' => 'admin',
+    'auth' => 'manage_users',
 ]);
 
 Router::get('/admin/users/create', fn() => require ESSE_ROOT . '/admin/users/form.php', [
     'name' => 'admin.users.create',
-    'auth' => 'admin',
+    'auth' => 'manage_users',
 ]);
 
 Router::post('/admin/users/create', fn() => require ESSE_ROOT . '/admin/users/form.php', [
     'name' => 'admin.users.create.post',
-    'auth' => 'admin',
+    'auth' => 'manage_users',
 ]);
 
 Router::get('/admin/users/edit/{id}', function (string $id) {
     $userId = (int) $id;
     require ESSE_ROOT . '/admin/users/form.php';
-}, ['name' => 'admin.users.edit', 'auth' => 'admin']);
+}, ['name' => 'admin.users.edit', 'auth' => 'manage_users']);
 
 Router::post('/admin/users/edit/{id}', function (string $id) {
     $userId = (int) $id;
     require ESSE_ROOT . '/admin/users/form.php';
-}, ['name' => 'admin.users.edit.post', 'auth' => 'admin']);
+}, ['name' => 'admin.users.edit.post', 'auth' => 'manage_users']);
 
 Router::get('/admin/plugins', fn() => require ESSE_ROOT . '/admin/plugins/index.php', [
     'name' => 'admin.plugins',
-    'auth' => 'admin',
+    'auth' => 'manage_plugins',
 ]);
 
 Router::post('/admin/plugins', fn() => require ESSE_ROOT . '/admin/plugins/index.php', [
     'name' => 'admin.plugins.post',
-    'auth' => 'admin',
+    'auth' => 'manage_plugins',
 ]);
 
 Router::get('/admin/themes', fn() => require ESSE_ROOT . '/admin/themes/index.php', [
     'name' => 'admin.themes',
-    'auth' => 'admin',
+    'auth' => 'manage_themes',
 ]);
 
 Router::post('/admin/themes', fn() => require ESSE_ROOT . '/admin/themes/index.php', [
     'name' => 'admin.themes.post',
-    'auth' => 'admin',
+    'auth' => 'manage_themes',
 ]);
 
 Router::get('/admin/settings', fn() => require ESSE_ROOT . '/admin/settings.php', [
     'name' => 'admin.settings',
-    'auth' => 'admin',
+    'auth' => 'manage_settings',
 ]);
 
 Router::post('/admin/settings', fn() => require ESSE_ROOT . '/admin/settings.php', [
     'name' => 'admin.settings.post',
-    'auth' => 'admin',
+    'auth' => 'manage_settings',
 ]);
 
 Router::get('/admin/backup', fn() => require ESSE_ROOT . '/admin/backup.php', [
     'name' => 'admin.backup',
-    'auth' => 'admin',
+    'auth' => 'manage_settings',
 ]);
 
 Router::post('/admin/backup', fn() => require ESSE_ROOT . '/admin/backup.php', [
     'name' => 'admin.backup.post',
-    'auth' => 'admin',
+    'auth' => 'manage_settings',
 ]);
 
 Router::get('/admin/backup/download/{file}', function (string $file) {
     $fileParam = $file;
     require ESSE_ROOT . '/admin/backup-download.php';
-}, ['name' => 'admin.backup.download', 'auth' => 'admin']);
+}, ['name' => 'admin.backup.download', 'auth' => 'manage_settings']);
 
 Router::get('/admin/update', fn() => require ESSE_ROOT . '/admin/updater.php', [
     'name' => 'admin.update',
-    'auth' => 'admin',
+    'auth' => 'manage_settings',
 ]);
 
 Router::post('/admin/update', fn() => require ESSE_ROOT . '/admin/updater.php', [
     'name' => 'admin.update.post',
-    'auth' => 'admin',
+    'auth' => 'manage_settings',
 ]);
 
 Router::get('/admin/update/run', fn() => require ESSE_ROOT . '/admin/updater-run.php', [
     'name' => 'admin.update.run',
-    'auth' => 'admin',
+    'auth' => 'manage_settings',
 ]);
 
 // -- Installer --

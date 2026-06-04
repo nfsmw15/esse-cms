@@ -22,9 +22,13 @@ if ($isEdit) {
 }
 
 // Available roles depending on current user's role
-$availableRoles = Auth::role() === 'forge'
-    ? ['forge' => 'Forge', 'admin' => 'Admin', 'editor' => 'Editor', 'author' => 'Author', 'member' => 'Member']
-    : ['admin' => 'Admin', 'editor' => 'Editor', 'author' => 'Author', 'member' => 'Member'];
+$availableRoles = ['editor' => 'Editor', 'author' => 'Author', 'member' => 'Member'];
+if (Auth::can('manage_admins')) {
+    $availableRoles = ['admin' => 'Admin'] + $availableRoles;
+}
+if (Auth::role() === 'forge') {
+    $availableRoles = ['forge' => 'Forge'] + $availableRoles;
+}
 
 // -- POST handling --
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

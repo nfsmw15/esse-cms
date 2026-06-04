@@ -113,16 +113,19 @@
         </a>
     </div>
     <nav>
+        <?php $canContent = \Esse\Auth::can('manage_content'); ?>
         <div class="nav-section">Inhalt</div>
         <a href="/admin" class="<?= ($activeNav ?? '') === 'dashboard' ? 'active' : '' ?>">
             <i class="bi bi-speedometer2"></i> Dashboard
         </a>
+        <?php if ($canContent): ?>
         <a href="/admin/pages" class="<?= ($activeNav ?? '') === 'pages' ? 'active' : '' ?>">
             <i class="bi bi-file-earmark-text"></i> Seiten
         </a>
         <a href="/admin/menus" class="<?= ($activeNav ?? '') === 'menus' ? 'active' : '' ?>">
             <i class="bi bi-list-nested"></i> Menüs
         </a>
+        <?php endif ?>
 
         <?php
         // Plugin-registered nav items
@@ -140,31 +143,44 @@
         <?php endif ?>
 
         <div class="nav-section">System</div>
+        <?php if (\Esse\Auth::can('manage_users')): ?>
         <a href="/admin/users" class="<?= ($activeNav ?? '') === 'users' ? 'active' : '' ?>">
             <i class="bi bi-people"></i> Benutzer
         </a>
+        <?php endif ?>
+        <?php if (\Esse\Auth::can('manage_admins') || \Esse\Auth::meetsRole('forge')): ?>
+        <a href="/admin/roles" class="<?= ($activeNav ?? '') === 'roles' ? 'active' : '' ?>">
+            <i class="bi bi-shield-lock"></i> Rollen & Rechte
+        </a>
+        <?php endif ?>
         <?php if (\Esse\Auth::can('manage_settings')): ?>
         <a href="/admin/settings" class="<?= ($activeNav ?? '') === 'settings' ? 'active' : '' ?>">
             <i class="bi bi-gear"></i> Einstellungen
         </a>
         <?php endif ?>
+        <?php if (\Esse\Auth::can('manage_plugins')): ?>
         <a href="/admin/plugins" class="<?= ($activeNav ?? '') === 'plugins' ? 'active' : '' ?>">
             <i class="bi bi-puzzle"></i> Plugins
         </a>
+        <?php endif ?>
+        <?php if (\Esse\Auth::can('manage_themes')): ?>
         <a href="/admin/themes" class="<?= ($activeNav ?? '') === 'themes' ? 'active' : '' ?>">
             <i class="bi bi-palette"></i> Themes
         </a>
+        <?php endif ?>
         <?php if (\Esse\Auth::can('view_logs')): ?>
         <a href="/admin/logs" class="<?= ($activeNav ?? '') === 'logs' ? 'active' : '' ?>">
             <i class="bi bi-terminal"></i> Logs
         </a>
         <?php endif ?>
+        <?php if (\Esse\Auth::can('manage_settings')): ?>
         <a href="/admin/backup" class="<?= ($activeNav ?? '') === 'backup' ? 'active' : '' ?>">
             <i class="bi bi-shield-check"></i> Backups
         </a>
         <a href="/admin/update" class="<?= ($activeNav ?? '') === 'update' ? 'active' : '' ?>">
             <i class="bi bi-cloud-arrow-up"></i> System-Update
         </a>
+        <?php endif ?>
     </nav>
     <div class="user-info">
         <strong><?= htmlspecialchars(\Esse\Auth::user()['display_name'] ?? '') ?></strong>

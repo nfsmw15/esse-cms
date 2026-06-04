@@ -128,22 +128,26 @@ function runSetup(array $data, string $displayName, string $email, string $passw
         $pdo->exec("ALTER TABLE `{$p}users` DROP INDEX `uq_username`");
     }
 
-    // Default permissions
-    $permissions = [
-        ['php_upload',      'PHP/HTML hochladen',       'Eigene PHP- und HTML-Dateien als Seiten hochladen'],
-        ['manage_users',    'Benutzer verwalten',        'Benutzer anlegen, bearbeiten und deaktivieren'],
-        ['manage_admins',   'Admins verwalten',          'Benutzer zur Admin-Rolle befördern'],
-        ['manage_plugins',  'Plugins verwalten',         'Plugins installieren, aktualisieren und entfernen'],
-        ['manage_themes',   'Themes verwalten',          'Themes installieren und wechseln'],
-        ['manage_repos',    'Repos verwalten',           'Plugin- und Theme-Repos hinzufügen und entfernen'],
-        ['manage_settings', 'Einstellungen verwalten',   'Systemeinstellungen ändern'],
-        ['manage_content',  'Inhalte verwalten',         'Seiten und Inhalte erstellen, bearbeiten, löschen'],
-        ['manage_files',    'Dateien verwalten',         'Dateien hochladen und verwalten'],
-        ['view_logs',       'Logs einsehen',             'System- und Zugriffslogs anzeigen'],
-    ];
+    // Default permissions and role grants
+    $permissions = \Esse\Auth::PERMISSIONS;
     $stmt = $pdo->prepare("INSERT IGNORE INTO `{$p}permissions` (slug, label, description) VALUES (?, ?, ?)");
-    foreach ($permissions as $perm) {
-        $stmt->execute($perm);
+    foreach ($permissions as $slug => [$label, $description]) {
+        $stmt->execute([$slug, $label, $description]);
+    }
+
+    $roleStmt = $pdo->prepare(
+        "INSERT INTO `{$p}roles` (slug, label, is_default) VALUES (?, ?, 1)
+         ON DUPLICATE KEY UPDATE label = VALUES(label), is_default = 1"
+    );
+    foreach (\Esse\Auth::DEFAULT_ROLE_PERMISSIONS as $role => $rolePermissions) {
+        $roleStmt->execute([$role, ucfirst($role)]);
+        foreach ($rolePermissions as $permission) {
+            $pdo->prepare(
+                "INSERT IGNORE INTO `{$p}role_permissions` (role_id, permission_id)
+                 SELECT r.id, pe.id FROM `{$p}roles` r, `{$p}permissions` pe
+                  WHERE r.slug = ? AND pe.slug = ?"
+            )->execute([$role, $permission]);
+        }
     }
 
     // Default settings — update if already exist

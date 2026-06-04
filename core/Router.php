@@ -125,9 +125,10 @@ class Router
         return array_filter($matches, fn($k) => !is_int($k), ARRAY_FILTER_USE_KEY);
     }
 
-    private static function checkAuth(string $required): bool
+    private static function checkAuth(string|array $required): bool
     {
         if ($required === 'public') return true;
+        if (is_array($required)) return Auth::canAny($required);
 
         // Named roles: check hierarchy
         if (in_array($required, Auth::ROLES, true)) {

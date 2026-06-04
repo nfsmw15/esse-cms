@@ -2,6 +2,31 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Admin → Rollen & Rechte**: neue Verwaltungsseite für Rollen und Permissions
+  - Alle Standard-Rollen (member, author, editor, admin) als Übersicht mit zugewiesenen Rechten
+  - Eigene Rollen anlegen und löschen
+  - Permissions per Checkbox für eigene Rollen konfigurierbar
+  - Standard-Rollen sind read-only (werden durch `Auth::DEFAULT_ROLE_PERMISSIONS` verwaltet)
+  - Nur Forge und Nutzer mit `manage_admins` haben Zugriff
+
+### Changed
+
+- Admin routes now use granular permissions instead of broad `admin` role checks
+- Admin sidebar only shows sections the current user is allowed to access
+- Default role permissions are centralized in `Auth` and synchronized for existing installations
+- Installer now seeds default roles and role-permission grants from the shared permission matrix
+
+### Security
+
+- Editor uploads require `manage_files` or `manage_content` instead of relying on role hierarchy
+- Admin role assignment now requires `manage_admins`; Forge remains required for Forge accounts
+
+---
+
 ## [0.1.4-alpha] - 2026-06-03
 
 ### Security
