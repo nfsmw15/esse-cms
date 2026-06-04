@@ -165,6 +165,54 @@ $theme->assetUrl('css/style.css')
 
 ---
 
+## esse-ui — CSS laden
+
+Jedes Theme **muss** `/public/vendor/esse-ui/esse-ui.css` laden damit Plugins korrekt dargestellt werden:
+
+```html
+<link rel="stylesheet" href="/public/vendor/esse-ui/esse-ui.css">
+<link rel="stylesheet" href="<?= $theme->assetUrl('css/mein-theme.css') ?>">
+```
+
+Die esse-ui.css definiert CSS-Variablen die das Theme überschreiben kann:
+
+```css
+/* In der Theme-CSS-Datei: */
+:root {
+  --esse-bg:          #050508;      /* Hintergrund */
+  --esse-surface:     #0d0d14;      /* Karten-/Panel-Hintergrund */
+  --esse-border:      rgba(255,255,255,0.06); /* Rahmenfarbe */
+  --esse-text:        #e8e6e0;      /* Haupttextfarbe */
+  --esse-text-muted:  #9a9aa8;      /* Gedämpfte Textfarbe */
+  --esse-radius:      0;            /* Border-Radius (0 = eckig) */
+  --esse-primary:     #e8640a;      /* Akzentfarbe */
+  --esse-success:     #22c55e;
+  --esse-warning:     #eab308;
+  --esse-danger:      #ef4444;
+  --esse-info:        #38bdf8;
+}
+```
+
+Darüber hinaus können einzelne esse-* Klassen gezielt überschrieben werden:
+
+```css
+/* Beispiel: esse-panel im Cyber-Stil */
+.esse-panel {
+  border-left: 2px solid var(--esse-primary);
+  border-radius: 0;
+  background: var(--esse-surface);
+}
+.esse-panel-header {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--esse-primary);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  font-size: .7rem;
+}
+```
+
+---
+
 ## esse-grid — Pflicht-Implementierung
 
 Jedes Theme **muss** die esse-grid-Klassen implementieren damit Plugins theme-agnostisch funktionieren.
@@ -305,6 +353,8 @@ Gleich wie bei Plugins — `version` in `theme.json` wird mit dem GitHub-Release
 - [ ] `Theme.php` mit korrektem Namespace und `boot()` + `renderPage()`
 - [ ] `templates/layout.php` vorhanden
 - [ ] `templates/error.php` vorhanden (404/403)
+- [ ] `/public/vendor/esse-ui/esse-ui.css` geladen (vor Theme-CSS)
+- [ ] CSS-Variablen (`--esse-*`) für Theme-Farben gesetzt
 - [ ] **esse-grid Klassen implementiert** (Pflicht für Plugin-Kompatibilität)
 - [ ] `$theme->assetUrl()` für CSS/Font-Pfade verwendet
 - [ ] Login-geschützte Themes haben `templates/login.php`

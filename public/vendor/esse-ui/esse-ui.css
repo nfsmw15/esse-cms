@@ -1,0 +1,198 @@
+/*
+ * esse-ui.css — Theme-agnostic UI component base styles
+ * Every theme MUST load this file (or provide equivalent styles for all esse-* classes).
+ * Themes override/extend these styles to match their visual identity.
+ */
+
+/* ── Variables (themes override these) ───────────────────────────────────── */
+:root {
+  --esse-bg:          #ffffff;
+  --esse-surface:     #f8f9fa;
+  --esse-border:      #dee2e6;
+  --esse-text:        #212529;
+  --esse-text-muted:  #6c757d;
+  --esse-radius:      0.375rem;
+  --esse-shadow:      0 1px 3px rgba(0,0,0,0.1);
+
+  --esse-primary:     #0d6efd;
+  --esse-success:     #198754;
+  --esse-warning:     #ffc107;
+  --esse-danger:      #dc3545;
+  --esse-info:        #0dcaf0;
+}
+
+/* ── esse-panel ───────────────────────────────────────────────────────────── */
+.esse-panel {
+  background: var(--esse-surface);
+  border: 1px solid var(--esse-border);
+  border-radius: var(--esse-radius);
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+
+.esse-panel-header {
+  padding: .625rem 1rem;
+  border-bottom: 1px solid var(--esse-border);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.esse-panel-body {
+  padding: 1rem;
+}
+
+.esse-panel-footer {
+  padding: .625rem 1rem;
+  border-top: 1px solid var(--esse-border);
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+
+.esse-panel--success { border-top: 3px solid var(--esse-success); }
+.esse-panel--warning { border-top: 3px solid var(--esse-warning); }
+.esse-panel--danger  { border-top: 3px solid var(--esse-danger); }
+.esse-panel--info    { border-top: 3px solid var(--esse-info); }
+
+/* ── esse-btn ─────────────────────────────────────────────────────────────── */
+.esse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem .9rem;
+  border-radius: var(--esse-radius);
+  border: 1px solid transparent;
+  font-size: .9rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  transition: opacity .15s, background .15s;
+  line-height: 1.4;
+}
+.esse-btn:disabled, .esse-btn[disabled] { opacity: .55; pointer-events: none; }
+
+.esse-btn--primary   { background: var(--esse-primary);  color: #fff; border-color: var(--esse-primary); }
+.esse-btn--success   { background: var(--esse-success);  color: #fff; border-color: var(--esse-success); }
+.esse-btn--danger    { background: var(--esse-danger);   color: #fff; border-color: var(--esse-danger); }
+.esse-btn--secondary { background: var(--esse-surface);  color: var(--esse-text); border-color: var(--esse-border); }
+.esse-btn--ghost     { background: transparent; color: var(--esse-text-muted); border-color: var(--esse-border); }
+.esse-btn--link      { background: transparent; color: var(--esse-primary); border-color: transparent; padding-left: 0; padding-right: 0; }
+
+.esse-btn--sm { padding: .2rem .6rem; font-size: .8rem; }
+.esse-btn--lg { padding: .6rem 1.25rem; font-size: 1rem; }
+
+.esse-btn--primary:hover   { opacity: .88; }
+.esse-btn--secondary:hover { background: var(--esse-border); }
+.esse-btn--ghost:hover     { background: var(--esse-surface); }
+
+.esse-btn-form { display: inline; }
+
+/* ── esse-alert ───────────────────────────────────────────────────────────── */
+.esse-alert {
+  padding: .75rem 1rem;
+  border-radius: var(--esse-radius);
+  border-left: 4px solid transparent;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  position: relative;
+}
+.esse-alert--success { background: #d1e7dd; border-color: var(--esse-success); color: #0a3622; }
+.esse-alert--danger  { background: #f8d7da; border-color: var(--esse-danger);  color: #58151c; }
+.esse-alert--warning { background: #fff3cd; border-color: var(--esse-warning); color: #664d03; }
+.esse-alert--info    { background: #cff4fc; border-color: var(--esse-info);    color: #055160; }
+
+.esse-alert-icon  { flex-shrink: 0; }
+.esse-alert-close {
+  position: absolute; top: .5rem; right: .75rem;
+  background: none; border: none; cursor: pointer;
+  font-size: 1.1rem; line-height: 1; opacity: .6;
+}
+.esse-alert-close:hover { opacity: 1; }
+
+/* ── esse-badge ───────────────────────────────────────────────────────────── */
+.esse-badge {
+  display: inline-block;
+  padding: .2em .5em;
+  border-radius: .25rem;
+  font-size: .75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.esse-badge--default { background: var(--esse-surface);  color: var(--esse-text-muted); border: 1px solid var(--esse-border); }
+.esse-badge--success { background: var(--esse-success);  color: #fff; }
+.esse-badge--warning { background: var(--esse-warning);  color: #000; }
+.esse-badge--danger  { background: var(--esse-danger);   color: #fff; }
+.esse-badge--info    { background: var(--esse-info);     color: #000; }
+
+/* ── esse-empty-state ─────────────────────────────────────────────────────── */
+.esse-empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--esse-text-muted);
+}
+.esse-empty-icon  { font-size: 2.5rem; margin-bottom: .75rem; opacity: .4; }
+.esse-empty-title { font-size: 1.1rem; font-weight: 600; margin-bottom: .5rem; color: var(--esse-text); }
+.esse-empty-message { margin-bottom: 1rem; font-size: .9rem; }
+.esse-empty-action  { margin-top: 1rem; }
+
+/* ── esse-section ─────────────────────────────────────────────────────────── */
+.esse-section { margin-bottom: 2rem; }
+.esse-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .75rem;
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--esse-border);
+}
+.esse-section-title { font-size: 1.1rem; font-weight: 600; margin: 0; }
+.esse-section-action { display: flex; gap: .5rem; }
+
+/* ── esse-table ───────────────────────────────────────────────────────────── */
+.esse-table-wrap { overflow-x: auto; }
+.esse-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.esse-table th {
+  text-align: left;
+  padding: .5rem .75rem;
+  border-bottom: 2px solid var(--esse-border);
+  font-weight: 600;
+  color: var(--esse-text-muted);
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.esse-table td { padding: .5rem .75rem; border-bottom: 1px solid var(--esse-border); }
+.esse-table tbody tr:hover { background: var(--esse-surface); }
+.esse-table--striped tbody tr:nth-child(even) { background: var(--esse-surface); }
+
+/* ── esse-tabs ────────────────────────────────────────────────────────────── */
+.esse-tabs-nav {
+  list-style: none;
+  padding: 0; margin: 0 0 1rem;
+  display: flex;
+  border-bottom: 2px solid var(--esse-border);
+  gap: .25rem;
+}
+.esse-tabs-nav-item { margin-bottom: -2px; }
+.esse-tabs-btn {
+  background: none;
+  border: 2px solid transparent;
+  border-bottom: none;
+  padding: .4rem .9rem;
+  cursor: pointer;
+  font-size: .9rem;
+  color: var(--esse-text-muted);
+  border-radius: var(--esse-radius) var(--esse-radius) 0 0;
+}
+.esse-tabs-nav-item--active .esse-tabs-btn {
+  color: var(--esse-primary);
+  border-color: var(--esse-border) var(--esse-border) var(--esse-surface);
+  background: var(--esse-surface);
+}
+.esse-tabs-panel { display: none; }
+.esse-tabs-panel--active { display: block; }

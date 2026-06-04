@@ -1,5 +1,30 @@
 /* esse-base theme */
 
+/* Override esse-ui variables for dark Bootstrap 5 theme */
+:root {
+  --esse-bg:          #0f0f0f;
+  --esse-surface:     #1a1a1a;
+  --esse-border:      #2d2d2d;
+  --esse-text:        #dee2e6;
+  --esse-text-muted:  #6c757d;
+  --esse-radius:      0.375rem;
+  --esse-primary:     #6ea8fe;
+  --esse-success:     #198754;
+  --esse-warning:     #ffc107;
+  --esse-danger:      #dc3545;
+  --esse-info:        #0dcaf0;
+}
+
+/* Dark-mode alert overrides */
+.esse-alert--success { background: rgba(25,135,84,.15);  color: #75b798; border-color: #198754; }
+.esse-alert--danger  { background: rgba(220,53,69,.15);  color: #ea868f; border-color: #dc3545; }
+.esse-alert--warning { background: rgba(255,193,7,.15);  color: #ffda6a; border-color: #ffc107; }
+.esse-alert--info    { background: rgba(13,202,240,.15); color: #6edff6; border-color: #0dcaf0; }
+
+.esse-btn--secondary { background: #2d2d2d; color: #dee2e6; border-color: #444; }
+.esse-btn--ghost     { color: #adb5bd; border-color: #444; }
+.esse-btn--ghost:hover { background: #2d2d2d; }
+
 /* ── esse-grid standard classes ────────────────────── */
 .esse-grid-wrap { width: 100%; }
 .esse-grid { display: flex; flex-wrap: wrap; margin: 0 -.5rem; }

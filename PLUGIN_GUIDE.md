@@ -760,6 +760,111 @@ class Plugin extends \Esse\Plugin
 
 ---
 
+## Ui-Klasse — Theme-agnostische Komponenten
+
+ESSE CMS stellt eine zentrale `Ui`-Klasse bereit. Plugins sollen **keine** Bootstrap-Klassen
+mehr direkt ausgeben, sondern `Ui::*`-Methoden verwenden. Themes stylen die esse-* CSS-Klassen
+nach ihrem eigenen Design.
+
+```php
+use Esse\Ui;
+
+// Panel (Container mit Titel)
+echo Ui::panel('Meine Alben', $content);
+echo Ui::panel('Fehler', $msg, ['variant' => 'danger']);
+echo Ui::panel('Galerie', $grid, [
+    'icon'   => 'bi bi-images',
+    'footer' => Ui::button('Album hinzufügen', '/gallery/create', ['variant' => 'primary']),
+]);
+
+// Buttons
+echo Ui::button('Speichern', '/gallery/save', ['method' => 'post', 'icon' => 'bi bi-floppy']);
+echo Ui::button('Löschen',   '/gallery/delete', ['variant' => 'danger', 'method' => 'post', 'csrf' => true]);
+echo Ui::button('Abbrechen', '/gallery', ['variant' => 'ghost']);
+echo Ui::button('Details',   '/gallery/1', ['size' => 'sm']);
+
+// Alerts / Benachrichtigungen
+echo Ui::alert('success', 'Album gespeichert.');
+echo Ui::alert('danger',  'Fehler beim Hochladen.', ['dismissible' => true]);
+
+// Badges
+echo Ui::badge('NEU', 'success');
+echo Ui::badge('Entwurf', 'warning');
+echo Ui::badge('7 Fotos');
+
+// Grid (nutzt esse-grid unter der Haube)
+$cards = ['<div>Bild 1</div>', '<div>Bild 2</div>', '<div>Bild 3</div>'];
+echo Ui::grid($cards, ['cols' => 4]);
+
+// Empty State
+echo Ui::emptyState(
+    'Noch keine Alben',
+    'Erstelle dein erstes Album um Fotos zu organisieren.',
+    [
+        'icon'   => 'bi bi-images',
+        'action' => Ui::button('Album erstellen', '/gallery/create'),
+    ]
+);
+
+// Section (Abschnitt mit Titel)
+echo Ui::section('Letzte Uploads', $imageList, [
+    'action' => Ui::button('Alle anzeigen', '/gallery', ['size' => 'sm', 'variant' => 'ghost']),
+]);
+
+// Tabelle
+echo Ui::table(
+    ['Name', 'Größe', 'Datum'],
+    [
+        ['foto.jpg', '2,1 MB', '01.06.2026'],
+        ['banner.png', '540 KB', '02.06.2026'],
+    ]
+);
+
+// Tabs
+echo Ui::tabs([
+    ['label' => 'Alben',   'content' => $albumGrid,  'active' => true],
+    ['label' => 'Uploads', 'content' => $uploadList],
+]);
+
+// Icons (icon-pack-agnostisch)
+echo Ui::icon('house');          // → <i class="bi bi-house"></i> (Bootstrap Icons default)
+echo Ui::icon('images');         // → <i class="bi bi-images"></i>
+```
+
+### Verfügbare Methoden
+
+| Methode | Parameter | Beschreibung |
+|---|---|---|
+| `Ui::panel()` | title, content, opts | Container mit Header/Body/Footer |
+| `Ui::button()` | label, url, opts | Link oder POST-Formular-Button |
+| `Ui::alert()` | type, message, opts | Hinweis-/Fehlermeldung |
+| `Ui::badge()` | label, type | Kleines Status-Label |
+| `Ui::grid()` | items[], opts | Responsives Grid (nutzt esse-grid) |
+| `Ui::emptyState()` | title, message, opts | Leerer Zustand mit CTA |
+| `Ui::section()` | title, content, opts | Abschnitt mit Titel + optionaler Aktion |
+| `Ui::table()` | headers[], rows[], opts | Datentabelle |
+| `Ui::tabs()` | tabs[], opts | Tab-Navigation |
+| `Ui::icon()` | name, fallback | Icon (icon-pack-agnostisch) |
+
+### variant-Werte
+`'default'` · `'success'` · `'warning'` · `'danger'` · `'info'`
+
+### Theme-Override via Hook
+
+Themes können jede Komponente überschreiben:
+```php
+// In Theme::boot():
+\Esse\Hooks::on('ui.panel', function(string $defaultHtml, array $props): string {
+    // Eigenes HTML rendern
+    return '<article class="my-card">...</article>';
+});
+```
+
+### Rückwärtskompatibilität
+
+Bestehende Plugins die noch Bootstrap-Klassen nutzen **brechen nicht** — sofern das aktive
+Theme Bootstrap lädt. Der Wechsel auf `Ui::*` ist empfohlen aber nicht erzwungen.
+
 ## Theme-agnostische Ausgabe
 
 Plugins dürfen **keine** Framework-spezifischen Klassen direkt ausgeben (z.B. Bootstrap `container`, `row`, `col-*`). Das macht das Plugin abhängig vom aktiven Theme.

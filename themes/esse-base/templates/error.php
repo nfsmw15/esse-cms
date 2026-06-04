@@ -18,6 +18,7 @@ $message = $page['error_message'] ?? '';
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= $code ?> — <?= htmlspecialchars($title) ?> — <?= htmlspecialchars($siteName) ?></title>
     <link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/public/vendor/esse-ui/esse-ui.css">
     <link rel="stylesheet" href="<?= $theme->assetUrl('css/esse-base.css') ?>">
 </head>
 <body>
