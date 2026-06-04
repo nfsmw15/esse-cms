@@ -7,6 +7,8 @@ All notable changes to ESSE CMS will be documented in this file.
 ### Added
 
 - **Admin → Rollen & Rechte**: neue Verwaltungsseite für Rollen und Permissions
+- **Benutzer-Formular**: Per-User Permission Overrides — zusätzliche Rechte unabhängig von der Rolle vergeben
+- **`php_upload` sichtbar**: erscheint in Benutzer-Permissions mit "Gefährlich"-Badge
   - Alle Standard-Rollen (member, author, editor, admin) als Übersicht mit zugewiesenen Rechten
   - Eigene Rollen anlegen und löschen
   - Permissions per Checkbox für eigene Rollen konfigurierbar
@@ -15,6 +17,8 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ### Changed
 
+- `role`-Spalte in `esse_users` von `ENUM` auf `VARCHAR(50)` — Custom-Rollen können jetzt zugewiesen werden
+- `manage_admins` zum Admin-Standard-Rechte-Set hinzugefügt
 - Admin routes now use granular permissions instead of broad `admin` role checks
 - Admin sidebar only shows sections the current user is allowed to access
 - Default role permissions are centralized in `Auth` and synchronized for existing installations

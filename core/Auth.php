@@ -31,6 +31,7 @@ class Auth
         'editor' => ['manage_content', 'manage_files'],
         'admin'  => [
             'manage_users',
+            'manage_admins',
             'manage_plugins',
             'manage_themes',
             'manage_repos',
@@ -174,9 +175,13 @@ class Auth
         if (self::$defaultsSynced) return;
 
         try {
+            $tu  = DB::table('users');
             $tp  = DB::table('permissions');
             $tr  = DB::table('roles');
             $trp = DB::table('role_permissions');
+
+            // Migrate role column from ENUM to VARCHAR if needed (one-time, idempotent)
+            DB::query("ALTER TABLE `{$tu}` MODIFY COLUMN `role` VARCHAR(50) NOT NULL DEFAULT 'member'");
 
             foreach (self::PERMISSIONS as $slug => [$label, $description]) {
                 DB::query(

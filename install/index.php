@@ -210,7 +210,7 @@ function schema(string $p): array
             `display_name` VARCHAR(100) NOT NULL,
             `email`        VARCHAR(255) NOT NULL,
             `password`     VARCHAR(255) NOT NULL,
-            `role`         ENUM('forge','admin','editor','author','member') NOT NULL DEFAULT 'member',
+            `role`         VARCHAR(50) NOT NULL DEFAULT 'member',
             `active`       TINYINT(1)   NOT NULL DEFAULT 1,
             `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
             `updated_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

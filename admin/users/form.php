@@ -100,9 +100,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($isEdit) {
                 DB::update($tu, $data, ['id' => $userId]);
+
+                // Save per-user permission overrides
+                $tup = DB::table('user_permissions');
+                DB::query("DELETE FROM `{$tup}` WHERE user_id = ?", [$userId]);
+                foreach ($_POST['user_permissions'] ?? [] as $slug) {
+                    $slug = preg_replace('/[^a-z_]/', '', $slug);
+                    if ($slug) DB::insert($tup, ['user_id' => $userId, 'permission_slug' => $slug, 'granted' => 1]);
+                }
+
                 $_SESSION['flash'] = ['type' => 'success', 'message' => 'Benutzer gespeichert.'];
             } else {
-                DB::insert($tu, array_merge($data, ['active' => 1]));
+                $newId = DB::insert($tu, array_merge($data, ['active' => 1]));
+
+                // Save per-user permissions for new user
+                $tup = DB::table('user_permissions');
+                foreach ($_POST['user_permissions'] ?? [] as $slug) {
+                    $slug = preg_replace('/[^a-z_]/', '', $slug);
+                    if ($slug) DB::insert($tup, ['user_id' => $newId, 'permission_slug' => $slug, 'granted' => 1]);
+                }
+
                 $_SESSION['flash'] = ['type' => 'success', 'message' => "Benutzer '{$displayName}' erstellt."];
             }
             header('Location: /admin/users');
@@ -195,7 +212,7 @@ ob_start();
                         <input type="password" name="password_confirm" class="form-control"
                                autocomplete="new-password">
                     </div>
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label class="form-label">Rolle</label>
                         <select name="role" class="form-select">
                             <?php foreach ($availableRoles as $val => $label): ?>
@@ -206,6 +223,43 @@ ob_start();
                             <?php endforeach ?>
                         </select>
                     </div>
+
+                    <?php
+                    // Per-user permission overrides — only Forge and manage_admins users can set these
+                    if (Auth::meetsRole('forge') || Auth::can('manage_admins')):
+                        $tup = DB::table('user_permissions');
+                        $userPerms = [];
+                        if ($isEdit) {
+                            $rows = DB::fetchAll("SELECT permission_slug FROM `{$tup}` WHERE user_id = ? AND granted = 1", [$userId]);
+                            $userPerms = array_column($rows, 'permission_slug');
+                        }
+                    ?>
+                    <div class="mb-3">
+                        <label class="form-label">Zusätzliche Berechtigungen
+                            <small class="text-secondary">(zusätzlich zur Rolle)</small>
+                        </label>
+                        <div class="card p-2" style="background:#111">
+                            <?php foreach (Auth::PERMISSIONS as $slug => [$permLabel, $permDesc]): ?>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox"
+                                       name="user_permissions[]"
+                                       value="<?= htmlspecialchars($slug) ?>"
+                                       id="up_<?= $slug ?>"
+                                       <?= in_array($slug, $userPerms, true) ? 'checked' : '' ?>>
+                                <label class="form-check-label small" for="up_<?= $slug ?>"
+                                       title="<?= htmlspecialchars($permDesc) ?>">
+                                    <?= htmlspecialchars($permLabel) ?>
+                                    <?php if ($slug === 'php_upload'): ?>
+                                    <span class="badge bg-danger ms-1" style="font-size:.6rem">Gefährlich</span>
+                                    <?php endif ?>
+                                </label>
+                            </div>
+                            <?php endforeach ?>
+                        </div>
+                        <div class="form-text">Diese Rechte gelten zusätzlich zu den Rechten der Rolle.</div>
+                    </div>
+                    <?php endif ?>
+
                     <button class="btn btn-primary w-100">
                         <?= $isEdit ? 'Speichern' : 'Benutzer erstellen' ?>
                     </button>
