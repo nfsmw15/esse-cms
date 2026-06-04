@@ -54,9 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['login_block_until'] = $now + 60;
             $_SESSION['login_failures'] = 0;
         }
-        // If the login came from the navbar dropdown, go back with error param
-        $redirect = sanitizeRedirect($_POST['redirect'] ?? '/');
-        if ($redirect !== '/admin/login' && !str_starts_with($redirect, '/admin')) {
+        // If the login came from the navbar dropdown (not the admin login page), go back with error param
+        $redirect   = sanitizeRedirect($_POST['redirect'] ?? '/');
+        $fromAdmin  = ($_POST['_form'] ?? '') === 'admin_login'
+                      || str_starts_with($redirect, '/admin');
+        if (!$fromAdmin) {
             header('Location: ' . $redirect . (str_contains($redirect, '?') ? '&' : '?') . 'login_error=1#navbar-login-form');
             exit;
         }
@@ -109,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card-body p-4">
             <form method="post" action="/admin/login">
                 <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
+                <input type="hidden" name="_form"    value="admin_login">
                 <input type="hidden" name="redirect" value="<?= htmlspecialchars($_GET['redirect'] ?? '/') ?>">
                 <div class="mb-3">
                     <label class="form-label">E-Mail</label>
