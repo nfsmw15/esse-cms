@@ -22,7 +22,16 @@ if ($isEdit) {
 }
 
 // Available roles depending on current user's role
+// Start with built-in roles
 $availableRoles = ['editor' => 'Editor', 'author' => 'Author', 'member' => 'Member'];
+
+// Add custom roles from DB
+$tr = DB::table('roles');
+$customRoles = DB::fetchAll("SELECT slug, label FROM `{$tr}` WHERE is_default = 0 ORDER BY label ASC");
+foreach ($customRoles as $cr) {
+    $availableRoles[$cr['slug']] = $cr['label'] . ' (Eigene Rolle)';
+}
+
 if (Auth::can('manage_admins')) {
     $availableRoles = ['admin' => 'Admin'] + $availableRoles;
 }
