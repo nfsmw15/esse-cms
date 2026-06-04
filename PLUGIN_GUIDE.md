@@ -833,6 +833,28 @@ echo Ui::breadcrumb([
     ['label' => 'Datei.zip'],   // Letzter Eintrag = aktuell, kein Link
 ]);
 
+// Divider / Trennlinie
+echo Ui::divider();                              // Standard-Abstand
+echo Ui::divider(['spacing' => 'lg']);           // Mehr Abstand
+echo Ui::divider(['label' => 'Oder so']);        // Mit zentriertem Label
+echo Ui::divider(['spacing' => 'none']);         // Kein Margin
+
+// Icons mit Farbe und Größe
+echo Ui::icon('images', '', ['color' => 'primary', 'size' => 'xl']);
+echo Ui::icon('check-circle', '', ['color' => 'success']);
+echo Ui::icon('exclamation-triangle', '', ['color' => 'warning', 'size' => 'lg']);
+
+// Grid-Items als Links (klickbare Kacheln)
+$items = [
+    ['content' => '<img src="..."> ', 'label' => 'Ordner A', 'href' => '/downloads/ordner-a'],
+    ['content' => '<img src="..."> ', 'label' => 'Ordner B', 'href' => '/downloads/ordner-b'],
+];
+echo Ui::grid($items, ['cols' => 4]);
+
+// Spacing-Utilities (für <hr>, Abstände etc.)
+// Klassen: esse-mt-sm/md/lg/xl, esse-mb-sm/md/lg/xl, esse-my-sm/md/lg
+// → <hr class="esse-my-lg">  statt  <hr class="mt-4 mb-4">
+
 // Submit-Button innerhalb eines bestehenden Formulars
 // (kein eigenes <form> — nur der Button)
 echo Ui::button('Hochladen', '#', ['type' => 'submit', 'icon' => 'bi bi-upload']);
@@ -856,8 +878,9 @@ echo Ui::icon('images');         // → <i class="bi bi-images"></i>
 | `Ui::section()` | title, content, opts | Abschnitt mit Titel + optionaler Aktion |
 | `Ui::table()` | headers[], rows[], opts | Datentabelle |
 | `Ui::tabs()` | tabs[], opts | Tab-Navigation |
+| `Ui::divider()` | opts | Trennlinie mit optionalem Spacing/Label |
 | `Ui::breadcrumb()` | items[] | Navigations-Breadcrumb |
-| `Ui::icon()` | name, fallback | Icon (icon-pack-agnostisch) |
+| `Ui::icon()` | name, fallback, opts | Icon mit Farb- und Größen-Option |
 
 ### variant-Werte
 `'default'` · `'success'` · `'warning'` · `'danger'` · `'info'`

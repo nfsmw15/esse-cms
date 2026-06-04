@@ -198,6 +198,88 @@
 .esse-tabs-panel { display: none; }
 .esse-tabs-panel--active { display: block; }
 
+/* ── esse-divider ─────────────────────────────────────────────────────────── */
+.esse-divider {
+  border: none;
+  border-top: 1px solid var(--esse-border);
+  margin: var(--esse-spacing-md, 1rem) 0;
+}
+.esse-divider--none { margin: 0; }
+.esse-divider--sm   { margin: var(--esse-spacing-sm, .5rem) 0; }
+.esse-divider--md   { margin: var(--esse-spacing-md, 1rem) 0; }
+.esse-divider--lg   { margin: var(--esse-spacing-lg, 1.5rem) 0; }
+.esse-divider--xl   { margin: var(--esse-spacing-xl, 2rem) 0; }
+
+.esse-divider--labeled {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  border: none;
+  margin: var(--esse-spacing-md, 1rem) 0;
+}
+.esse-divider--labeled::before,
+.esse-divider--labeled::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--esse-border);
+}
+.esse-divider-label { font-size: .8rem; color: var(--esse-text-muted); white-space: nowrap; }
+
+/* ── Spacing utilities ────────────────────────────────────────────────────── */
+:root {
+  --esse-spacing-xs: 0.25rem;
+  --esse-spacing-sm: 0.5rem;
+  --esse-spacing-md: 1rem;
+  --esse-spacing-lg: 1.5rem;
+  --esse-spacing-xl: 2rem;
+}
+.esse-mt-xs { margin-top: var(--esse-spacing-xs); }
+.esse-mt-sm { margin-top: var(--esse-spacing-sm); }
+.esse-mt-md { margin-top: var(--esse-spacing-md); }
+.esse-mt-lg { margin-top: var(--esse-spacing-lg); }
+.esse-mt-xl { margin-top: var(--esse-spacing-xl); }
+
+.esse-mb-xs { margin-bottom: var(--esse-spacing-xs); }
+.esse-mb-sm { margin-bottom: var(--esse-spacing-sm); }
+.esse-mb-md { margin-bottom: var(--esse-spacing-md); }
+.esse-mb-lg { margin-bottom: var(--esse-spacing-lg); }
+.esse-mb-xl { margin-bottom: var(--esse-spacing-xl); }
+
+.esse-my-sm { margin-top: var(--esse-spacing-sm); margin-bottom: var(--esse-spacing-sm); }
+.esse-my-md { margin-top: var(--esse-spacing-md); margin-bottom: var(--esse-spacing-md); }
+.esse-my-lg { margin-top: var(--esse-spacing-lg); margin-bottom: var(--esse-spacing-lg); }
+
+/* ── Color utilities ──────────────────────────────────────────────────────── */
+.esse-color--primary { color: var(--esse-primary); }
+.esse-color--success { color: var(--esse-success); }
+.esse-color--warning { color: var(--esse-warning); }
+.esse-color--danger  { color: var(--esse-danger);  }
+.esse-color--info    { color: var(--esse-info);    }
+.esse-color--muted   { color: var(--esse-text-muted); }
+
+/* ── Size utilities (for icons and text) ──────────────────────────────────── */
+.esse-size--sm { font-size: .875rem; }
+.esse-size--md { font-size: 1rem; }
+.esse-size--lg { font-size: 1.5rem; }
+.esse-size--xl { font-size: 2rem; }
+
+/* ── esse-grid link items ─────────────────────────────────────────────────── */
+.esse-grid-item--link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+.esse-grid-item--link:hover { color: inherit; }
+.esse-grid-item-label {
+  display: block;
+  margin-top: .4rem;
+  font-size: .875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── esse-breadcrumb ──────────────────────────────────────────────────────── */
 .esse-breadcrumb { margin-bottom: 1rem; }
 .esse-breadcrumb-list {

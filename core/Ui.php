@@ -151,10 +151,23 @@ class Ui
     public static function grid(array $items, array $opts = []): string
     {
         $cols = (int) ($opts['cols'] ?? 4);
-        $cells = implode('', array_map(
-            fn($item) => '<div class="esse-grid-item">' . $item . '</div>',
-            $items
-        ));
+
+        // $items may be plain HTML strings OR arrays with ['content'=>..., 'href'=>..., 'label'=>...]
+        $cells = implode('', array_map(function($item) {
+            if (is_array($item)) {
+                $content = $item['content'] ?? '';
+                $href    = $item['href']    ?? null;
+                $label   = isset($item['label'])
+                    ? '<span class="esse-grid-item-label">' . self::e($item['label']) . '</span>'
+                    : '';
+                if ($href) {
+                    return '<a href="' . self::e($href) . '" class="esse-grid-item esse-grid-item--link">'
+                         . $content . $label . '</a>';
+                }
+                return '<div class="esse-grid-item">' . $content . $label . '</div>';
+            }
+            return '<div class="esse-grid-item">' . $item . '</div>';
+        }, $items));
         $html = '<div class="esse-grid-wrap">'
               . '<div class="esse-grid" data-cols="' . $cols . '">' . $cells . '</div>'
               . '</div>';
@@ -248,12 +261,20 @@ class Ui
      *   → Bootstrap Icons: <i class="bi bi-house"></i>
      *   → Phosphor:        <i class="ph ph-house"></i>
      */
-    public static function icon(string $name, string $fallbackClass = ''): string
+    /**
+     * Options:
+     *   color  string  'primary'|'success'|'warning'|'danger'|'info'|'muted'
+     *   size   string  'sm'|'md'|'lg'|'xl'  (sm=0.875rem, md=1rem, lg=1.5rem, xl=2rem)
+     */
+    public static function icon(string $name, string $fallbackClass = '', array $opts = []): string
     {
-        $prefix = self::iconPrefix();
-        $class  = $prefix ? $prefix . $name : ($fallbackClass ?: 'esse-icon');
-        $html   = '<i class="' . self::e($class) . '"></i>';
-        return self::hook('icon', $html, compact('name', 'prefix'));
+        $prefix    = self::iconPrefix();
+        $iconClass = $prefix ? $prefix . $name : ($fallbackClass ?: 'esse-icon');
+        $extra     = '';
+        if (!empty($opts['color'])) $extra .= ' esse-color--' . self::e($opts['color']);
+        if (!empty($opts['size']))  $extra .= ' esse-size--'  . self::e($opts['size']);
+        $html = '<i class="' . self::e($iconClass) . $extra . '"></i>';
+        return self::hook('icon', $html, compact('name', 'opts'));
     }
 
     // ── Tabs ──────────────────────────────────────────────────────────────────
@@ -293,6 +314,32 @@ class Ui
               . '<script>(function(){document.querySelectorAll("[data-esse-tab]").forEach(function(btn){btn.addEventListener("click",function(){var id=this.getAttribute("data-esse-tab"),tabs=this.closest(".esse-tabs");tabs.querySelectorAll(".esse-tabs-panel").forEach(function(p){p.classList.remove("esse-tabs-panel--active")});tabs.querySelectorAll(".esse-tabs-btn").forEach(function(b){b.closest(".esse-tabs-nav-item").classList.remove("esse-tabs-nav-item--active")});document.getElementById(id).classList.add("esse-tabs-panel--active");this.closest(".esse-tabs-nav-item").classList.add("esse-tabs-nav-item--active")})})})();</script>';
 
         return self::hook('tabs', $html, compact('tabs', 'opts'));
+    }
+
+    // ── Divider ───────────────────────────────────────────────────────────────
+
+    /**
+     * A horizontal rule / section separator.
+     *
+     * Options:
+     *   spacing string  'sm' | 'md' (default) | 'lg' | 'xl' | 'none'
+     *   label   string  Optional centered label text on the divider
+     */
+    public static function divider(array $opts = []): string
+    {
+        $spacing = $opts['spacing'] ?? 'md';
+        $class   = 'esse-divider esse-divider--' . self::e($spacing);
+        $label   = $opts['label'] ?? '';
+
+        if ($label) {
+            $html = '<div class="' . $class . ' esse-divider--labeled">'
+                  . '<span class="esse-divider-label">' . self::e($label) . '</span>'
+                  . '</div>';
+        } else {
+            $html = '<hr class="' . $class . '">';
+        }
+
+        return self::hook('divider', $html, compact('opts'));
     }
 
     // ── Breadcrumb ────────────────────────────────────────────────────────────
@@ -343,7 +390,7 @@ class Ui
         if (class_exists('\Esse\DB') && defined('ESSE_DB_NAME')) {
             try {
                 $ts    = DB::table('settings');
-                $theme = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'active_theme'") ?? '';
+                DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'active_theme'"); // reserved for future theme-specific icon pack
                 $pack  = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'icon_pack'") ?? '';
                 // Default prefixes for common packs
                 $prefixes = [
