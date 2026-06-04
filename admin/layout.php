@@ -58,12 +58,35 @@
             color: #444;
         }
         #sidebar .user-info {
-            padding: 1rem 1.5rem;
+            padding: .75rem 1rem;
             border-top: 1px solid #1e1e1e;
-            font-size: .8rem;
-            color: #666;
         }
-        #sidebar .user-info strong { color: #bbb; display: block; }
+        #sidebar .user-menu {
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: .8rem;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .4rem .75rem;
+            border-radius: .375rem;
+            transition: background .15s, color .15s;
+        }
+        #sidebar .user-menu:hover { background: #1a1a1a; color: #ccc; }
+        #sidebar .user-menu::after { margin-left: auto; }
+        #sidebar .user-menu span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        #sidebar .dropdown-menu {
+            background: #1a1a1a;
+            border-color: #2d2d2d;
+            font-size: .85rem;
+        }
+        #sidebar .dropdown-item { color: #adb5bd; padding: .45rem 1rem; }
+        #sidebar .dropdown-item:hover { background: #2d2d2d; color: #fff; }
+        #sidebar .dropdown-item form button { background: none; border: none; width: 100%; text-align: left; color: #adb5bd; padding: 0; }
+        #sidebar .dropdown-item form button:hover { color: #fff; }
+        #sidebar .dropdown-divider { border-color: #2d2d2d; }
 
         /* Main */
         #main {
@@ -198,17 +221,34 @@
         <?php endif ?>
     </nav>
     <div class="user-info">
-        <strong><?= htmlspecialchars(\Esse\Auth::user()['display_name'] ?? '') ?></strong>
-        <span class="badge badge-<?= \Esse\Auth::role() ?> rounded-pill" style="font-size:.65rem">
-            <?= ucfirst(\Esse\Auth::role()) ?>
-        </span>
-        &nbsp;
-        <form method="post" action="/admin/logout" class="d-inline">
-            <input type="hidden" name="_csrf" value="<?= \Esse\Auth::csrfToken() ?>">
-            <button type="submit" class="btn btn-link p-0 text-secondary text-decoration-none" style="font-size:.75rem">
-                <i class="bi bi-box-arrow-right"></i> Abmelden
+        <div class="dropdown">
+            <button class="btn user-menu dropdown-toggle w-100" type="button"
+                    data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                <i class="bi bi-person-circle"></i>
+                <span><?= htmlspecialchars(\Esse\Auth::user()['display_name'] ?? '') ?></span>
             </button>
-        </form>
+            <ul class="dropdown-menu dropdown-menu-end shadow w-100">
+                <li>
+                    <a class="dropdown-item" href="/profil">
+                        <i class="bi bi-person me-2"></i>Profil
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="/">
+                        <i class="bi bi-arrow-left me-2"></i>Zur Website
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form method="post" action="/admin/logout">
+                        <input type="hidden" name="_csrf" value="<?= \Esse\Auth::csrfToken() ?>">
+                        <button class="dropdown-item" type="submit">
+                            <i class="bi bi-box-arrow-right me-2"></i>Abmelden
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
     </div>
 </div>
 
