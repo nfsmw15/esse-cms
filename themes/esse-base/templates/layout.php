@@ -7,6 +7,7 @@
  * @var array          $footMenu
  * @var \EsseBase\Theme $theme
  */
+$loginFailed = !empty($_GET['login_error']);
 ?>
 <!DOCTYPE html>
 <html lang="de" data-bs-theme="dark">
@@ -116,12 +117,18 @@
                 </li>
                 <?php else: ?>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"
-                       data-bs-auto-close="outside" aria-expanded="false">
+                    <a id="navbar-login-toggle"
+                       class="nav-link dropdown-toggle<?= $loginFailed ? ' show' : '' ?>"
+                       href="#"
+                       data-bs-toggle="dropdown"
+                       data-bs-auto-close="outside"
+                       aria-expanded="<?= $loginFailed ? 'true' : 'false' ?>">
                         <i class="bi bi-person me-1"></i>Anmelden
                     </a>
-                    <div class="dropdown-menu dropdown-menu-dark dropdown-menu-end p-3" style="min-width:280px">
-                        <?php if (!empty($_GET['login_error'])): ?>
+                    <div class="dropdown-menu dropdown-menu-dark dropdown-menu-end p-3<?= $loginFailed ? ' show' : '' ?>"
+                         style="min-width:280px"
+                         <?= $loginFailed ? 'data-bs-popper="static"' : '' ?>>
+                        <?php if ($loginFailed): ?>
                         <div class="alert alert-danger py-1 px-2 small mb-2">
                             E-Mail oder Passwort falsch.
                         </div>
@@ -238,19 +245,20 @@
 <?php endif ?>
 
 <script src="/public/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<?php if (!empty($_GET['login_error'])): ?>
+<?php if ($loginFailed): ?>
 <script>
-// Auto-open login dropdown when login failed
 document.addEventListener('DOMContentLoaded', function() {
-    var toggle = document.querySelector('[data-bs-target="#navbar-login-form"]') ||
-                 document.querySelector('.dropdown-toggle[href="#"]:last-of-type');
-    var form   = document.getElementById('navbar-login-form');
-    if (form) {
-        var dropdownEl = form.closest('.dropdown');
-        var dropdownToggle = dropdownEl ? dropdownEl.querySelector('.dropdown-toggle') : null;
-        if (dropdownToggle) {
-            new bootstrap.Dropdown(dropdownToggle).show();
-        }
+    var toggle = document.getElementById('navbar-login-toggle');
+    var form = document.getElementById('navbar-login-form');
+    if (!toggle || !form) return;
+
+    bootstrap.Dropdown.getOrCreateInstance(toggle, {
+        autoClose: 'outside'
+    }).show();
+
+    var password = form.querySelector('input[name="password"]');
+    if (password) {
+        password.focus();
     }
 });
 </script>
