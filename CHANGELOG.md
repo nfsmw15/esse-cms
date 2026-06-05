@@ -2,6 +2,33 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [0.1.6-alpha] - 2026-06-05
+
+### Added
+
+- **Ui-Komponentenschicht** (`core/Ui.php`, `esse-ui.css`): Plugin-seitige Ausgabe über theme-agnostische `Ui::*`-Methoden statt Bootstrap-Klassen — Panel, Button, Alert, Badge, Grid, EmptyState, Section, Table, Tabs, Breadcrumb, Divider, Icon
+- **Icon-Picker**: Suchmodal in Seiten-Formular und Menü-Editor mit statischer Deutsch→Englisch-Übersetzungstabelle (~130 Begriffe)
+- **Icon-Pack-Verwaltung**: Admin → Icon-Packs — Packs per ZIP installieren, aktivieren, löschen; Standard `iconpack.json` mit `name`, `version`, `prefix`, `css`
+- **`Ui::iconPackCssTag()` / `Ui::iconPackCssUrl()`**: Theme-seitige Helfer für `<link>`-Tag des aktiven Icon-Packs (esse-base nutzt diese)
+- **Admin-Sidebar**: User-Dropdown mit Profil, "← Zur Website" und Abmelden direkt in der Sidebar
+- **`PageRenderer::renderFile()`**: optionaler `$icon`-Parameter übergibt Icon an das Theme-`$page`-Array
+
+### Changed
+
+- `Ui::icon()` liest Prefix aus aktiver `iconpack.json` — Plugins übergeben nur den Icon-Namen (ohne Pack-Prefix), Theme und CSS-Klasse werden automatisch aufgelöst
+- Plugin-Nav-Icons: Pack-Prefix wird beim Rendern automatisch entfernt (`bi-newspaper` → `newspaper`) — Rückwärtskompatibilität
+- Seiten-Icons in esse-base über `Ui::icon()` gerendert (pack-agnostisch); volle CSS-Klassen weiterhin unterstützt
+
+### Fixed
+
+- esse-base: Login-Dropdown bleibt bei Fehler geöffnet und öffnet sich automatisch wenn ein `login_error` vorhanden ist
+- Admin-Login: Fehler werden inline auf der Login-Seite angezeigt statt zur Homepage umzuleiten
+- `admin/layout.php`: fehlendes `endif` beim `manage_themes`-Block
+- esse-base: `.esse-content a` überschrieb Textfarbe von `.esse-btn--primary` (blauer Text auf blauem Hintergrund)
+- esse-base: `.esse-table tbody tr:hover` zeigte weißen Hintergrund statt dunklem Hover-Ton
+
+---
+
 ## [0.1.5-alpha] - 2026-06-04
 
 ### Added

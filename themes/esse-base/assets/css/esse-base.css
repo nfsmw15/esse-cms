@@ -24,6 +24,8 @@
 .esse-btn--secondary { background: #2d2d2d; color: #dee2e6; border-color: #444; }
 .esse-btn--ghost     { color: #adb5bd; border-color: #444; }
 .esse-btn--ghost:hover { background: #2d2d2d; }
+.esse-content .esse-btn--primary       { color: #fff; }
+.esse-content .esse-btn--primary:hover { color: #fff; }
 
 /* ── esse-grid standard classes ────────────────────── */
 .esse-grid-wrap { width: 100%; }
@@ -102,3 +104,5 @@ main {
 }
 
 .esse-content th { background: #1a1a1a; }
+.esse-content .esse-table tbody tr:hover              { background: #252525; }
+.esse-content .esse-table--striped tr:nth-child(even) { background: #1e1e1e; }
