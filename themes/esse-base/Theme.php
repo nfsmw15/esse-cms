@@ -33,7 +33,7 @@ class Theme extends \Esse\Theme
         $theme    = $this;
 
         // Error pages use a dedicated template
-        if (!empty($page['error_code'])) {
+        if (!empty($page['error_code']) && empty($page['custom_error_page'])) {
             require $this->basePath('templates/error.php');
             return;
         }

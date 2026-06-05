@@ -10,7 +10,12 @@ Router::get('/', function () {
     $ts   = \Esse\DB::table('settings');
     $slug = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'homepage_slug'");
     if ($slug) {
-        \Esse\PageRenderer::render((string) $slug);
+        $slug = (string) $slug;
+        if (str_starts_with($slug, '/') || \Esse\Plugin::isPluginSlug($slug)) {
+            header('Location: ' . \Esse\PageTargets::redirectUrl($slug, '/'));
+            exit;
+        }
+        \Esse\PageRenderer::render($slug);
     } else {
         echo '<p style="font-family:sans-serif;padding:2rem">ESSE CMS — Startseite nicht konfiguriert. '
            . '<a href="/admin/settings">Einstellungen öffnen</a></p>';
@@ -46,7 +51,9 @@ Router::post('/registrieren', function () {
 Router::post('/abmelden', function () {
     if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); exit; }
     \Esse\Auth::logout();
-    header('Location: /');
+    $ts = \Esse\DB::table('settings');
+    $target = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'logout_page_slug'") ?: '/';
+    header('Location: ' . \Esse\PageTargets::redirectUrl((string) $target, '/'));
     exit;
 }, ['name' => 'logout', 'auth' => 'public']);
 
@@ -106,7 +113,9 @@ Router::post('/admin/settings/test-mail', function () {
 Router::post('/admin/logout', function () {
     if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); exit; }
     \Esse\Auth::logout();
-    header('Location: /admin/login');
+    $ts = \Esse\DB::table('settings');
+    $target = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'logout_page_slug'") ?: '/admin/login';
+    header('Location: ' . \Esse\PageTargets::redirectUrl((string) $target, '/admin/login'));
     exit;
 }, ['name' => 'admin.logout', 'auth' => 'public']);
 

@@ -39,7 +39,7 @@ class Menu
     public static function itemUrl(array $item): string
     {
         return match ($item['type']) {
-            'page'   => '/' . ltrim($item['page_slug'] ?? '', '/'),
+            'page'   => PageTargets::redirectUrl((string) ($item['page_slug'] ?? ''), '#'),
             'url'    => $item['url'] ?? '#',
             default  => '#',
         };
@@ -54,6 +54,9 @@ class Menu
 
         // Plugin-registered pages are not in the DB — always show
         if (Plugin::isPluginSlug($slug)) return true;
+
+        // Core pages like /admin/login or /registrieren are not stored in the pages table
+        if (str_starts_with((string) $slug, '/')) return true;
 
         // Page not found in DB → show anyway (clicking may 404, admin's responsibility)
         if (empty($item['page_visibility'])) return true;

@@ -2,6 +2,27 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [0.1.7-alpha] - 2026-06-05
+
+### Added
+
+- **Admin → Einstellungen → Seitenzuordnung**: Startseite, Startseite nach Login, Logoutseite und Fehlerseite können zentral gewählt werden.
+- **Standardseiten in Seitenauswahlen**: Loginseite, Registrierungsseite und Profilseite erscheinen neben CMS- und Plugin-Seiten in Einstellungen und Menü-Editor.
+- **`PageTargets`**: gemeinsame Hilfsklasse für auswählbare Seitenziele und sichere interne Redirect-URLs.
+
+### Changed
+
+- Login ohne konkreten Redirect führt nun auf die konfigurierte Startseite nach Login.
+- Frontend- und Admin-Logout verwenden die konfigurierte Logoutseite.
+- Die globale Startseite kann nun auch auf Standard- oder Plugin-Seiten zeigen.
+
+### Fixed
+
+- Menü-URLs für Standardseiten mit führendem Slash werden korrekt gerendert.
+- Benutzerdefinierte Fehlerseiten verwenden nur veröffentlichte Standard-CMS-Seiten und respektieren Sichtbarkeit.
+
+---
+
 ## [0.1.6-alpha] - 2026-06-05
 
 ### Added

@@ -173,6 +173,24 @@ class Router
         $title   = $titles[$code]   ?? (string) $code;
         $message = $messages[$code] ?? '';
 
+        $customPage = self::customErrorPage();
+        if ($customPage) {
+            $customPage['error_code'] = $code;
+            $customPage['error_title'] = $title;
+            $customPage['error_message'] = $message;
+            $customPage['custom_error_page'] = true;
+            $content = Hooks::filter('page.content', $customPage['content'] ?? '', $customPage);
+
+            if (Hooks::has('page.render')) {
+                Hooks::fire('page.render', $customPage, $content);
+                return;
+            }
+
+            header('Content-Type: text/html; charset=utf-8');
+            echo '<div class="esse-content">' . $content . '</div>';
+            return;
+        }
+
         // Let the active theme render the error page
         if (Hooks::has('page.render')) {
             $fakePage = [
@@ -203,5 +221,27 @@ class Router
            . '<p class="text-secondary mb-4">' . htmlspecialchars($message) . '</p>'
            . '<a href="' . htmlspecialchars($siteUrl) . '" class="btn btn-outline-light">Startseite</a>'
            . '</div></body></html>';
+    }
+
+    private static function customErrorPage(): ?array
+    {
+        $ts = DB::table('settings');
+        $slug = (string) (DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'error_page_slug'") ?? '');
+        if ($slug === '' || str_starts_with($slug, '/')) return null;
+
+        $tp = DB::table('pages');
+        $page = DB::fetch(
+            "SELECT * FROM `{$tp}` WHERE slug = ? AND status = 'published' AND type = 'standard'",
+            [$slug]
+        );
+
+        if (!$page) return null;
+
+        return match ($page['visibility'] ?? 'public') {
+            'public'  => $page,
+            'members' => Auth::check() ? $page : null,
+            'admin'   => Auth::meetsRole('admin') ? $page : null,
+            default   => Auth::meetsRole((string) $page['visibility']) ? $page : null,
+        };
     }
 }

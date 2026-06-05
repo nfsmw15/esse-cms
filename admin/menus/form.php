@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\PageTargets;
 
 $menuId ??= 0;
 $tm = DB::table('menus');
@@ -211,8 +212,9 @@ foreach ($topItems as &$top) {
 }
 unset($top);
 
-$pages         = DB::fetchAll("SELECT slug, title FROM `{$tp}` WHERE status = 'published' ORDER BY title ASC");
-$pluginPages   = \Esse\Plugin::getRegisteredPages();
+$pages         = PageTargets::publishedPages();
+$corePages     = PageTargets::corePages();
+$pluginPages   = PageTargets::pluginPages();
 $allTopItems   = $topItems; // passed to itemEditForm for parent selector
 
 function itemButtons(array $item, int $menuId): string
@@ -250,6 +252,16 @@ function itemEditForm(array $item, int $menuId, array $pages, array $allTopItems
     if ($pages) {
         $pageOpts .= "<optgroup label='CMS-Seiten'>";
         foreach ($pages as $p) {
+            $sel = $item['page_slug'] === $p['slug'] ? ' selected' : '';
+            $pageOpts .= "<option value='" . htmlspecialchars($p['slug']) . "'{$sel}>"
+                       . htmlspecialchars($p['title']) . "</option>";
+        }
+        $pageOpts .= "</optgroup>";
+    }
+    $corePages = PageTargets::corePages();
+    if ($corePages) {
+        $pageOpts .= "<optgroup label='Standardseiten'>";
+        foreach ($corePages as $p) {
             $sel = $item['page_slug'] === $p['slug'] ? ' selected' : '';
             $pageOpts .= "<option value='" . htmlspecialchars($p['slug']) . "'{$sel}>"
                        . htmlspecialchars($p['title']) . "</option>";
@@ -358,7 +370,7 @@ ob_start();
                             <span class="fw-semibold flex-grow-1 <?= empty($item['active']) ? 'text-decoration-line-through text-secondary' : '' ?>">
                                 <?= htmlspecialchars($item['label']) ?>
                                 <?php if ($item['type'] === 'page' && $item['page_slug']): ?>
-                                    <small class="text-secondary fw-normal">/<?= htmlspecialchars($item['page_slug']) ?></small>
+                                    <small class="text-secondary fw-normal"><?= htmlspecialchars(PageTargets::redirectUrl((string) $item['page_slug'])) ?></small>
                                 <?php elseif ($item['type'] === 'url' && $item['url']): ?>
                                     <small class="text-secondary fw-normal"><?= htmlspecialchars($item['url']) ?></small>
                                 <?php endif ?>
@@ -413,7 +425,7 @@ ob_start();
                             <span class="small flex-grow-1 <?= empty($child['active']) ? 'text-decoration-line-through text-secondary' : '' ?>">
                                 <?= htmlspecialchars($child['label']) ?>
                                 <?php if ($child['page_slug']): ?>
-                                    <small class="text-secondary">/<?= htmlspecialchars($child['page_slug']) ?></small>
+                                    <small class="text-secondary"><?= htmlspecialchars(PageTargets::redirectUrl((string) $child['page_slug'])) ?></small>
                                 <?php elseif ($child['url']): ?>
                                     <small class="text-secondary"><?= htmlspecialchars($child['url']) ?></small>
                                 <?php endif ?>
@@ -535,6 +547,15 @@ ob_start();
                             <?php if ($pages): ?>
                             <optgroup label="CMS-Seiten">
                             <?php foreach ($pages as $p): ?>
+                            <option value="<?= htmlspecialchars($p['slug']) ?>">
+                                <?= htmlspecialchars($p['title']) ?>
+                            </option>
+                            <?php endforeach ?>
+                            </optgroup>
+                            <?php endif ?>
+                            <?php if ($corePages): ?>
+                            <optgroup label="Standardseiten">
+                            <?php foreach ($corePages as $p): ?>
                             <option value="<?= htmlspecialchars($p['slug']) ?>">
                                 <?= htmlspecialchars($p['title']) ?>
                             </option>

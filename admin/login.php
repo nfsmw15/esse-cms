@@ -14,9 +14,19 @@ function sanitizeRedirect(string $url): string
     return $url;
 }
 
+function configuredLoginTarget(): string
+{
+    if (!defined('ESSE_DB_NAME')) return '/';
+
+    $ts = DB::table('settings');
+    $target = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'login_homepage_slug'") ?: '/';
+    return \Esse\PageTargets::redirectUrl((string) $target, '/');
+}
+
 // Already logged in → go to intended destination or homepage
 if (Auth::check()) {
-    header('Location: ' . sanitizeRedirect($_GET['redirect'] ?? '/'));
+    $redirect = trim($_GET['redirect'] ?? '');
+    header('Location: ' . ($redirect !== '' ? sanitizeRedirect($redirect) : configuredLoginTarget()));
     exit;
 }
 
@@ -46,7 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (Auth::attempt($login, $password)) {
             unset($_SESSION['login_failures'], $_SESSION['login_block_until']);
-            header('Location: ' . sanitizeRedirect($_POST['redirect'] ?? $_GET['redirect'] ?? '/'));
+            $redirect = trim($_POST['redirect'] ?? $_GET['redirect'] ?? '');
+            header('Location: ' . ($redirect !== '' ? sanitizeRedirect($redirect) : configuredLoginTarget()));
             exit;
         }
         $_SESSION['login_failures']++;
@@ -112,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="post" action="/admin/login">
                 <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
                 <input type="hidden" name="_form"    value="admin_login">
-                <input type="hidden" name="redirect" value="<?= htmlspecialchars($_GET['redirect'] ?? '/') ?>">
+                <input type="hidden" name="redirect" value="<?= htmlspecialchars($_GET['redirect'] ?? '') ?>">
                 <div class="mb-3">
                     <label class="form-label">E-Mail</label>
                     <input type="email" name="login" class="form-control" autocomplete="username" autofocus required>

@@ -23,6 +23,7 @@ Most capable CMS platforms require a commercial license for non-personal use. ES
 - **Plugin system** — apt-style repos (GitHub-based), install/update/remove
 - **Theme system** — framework-agnostic frontend themes, Bootstrap 5 admin panel
 - **Custom PHP pages** — upload your own PHP files as first-class pages (admin permission required)
+- **Configurable page targets** — homepage, post-login page, logout page and error page can point to CMS, core or plugin pages
 - **Role system** — Forge / Admin / Editor / Author / Member / Guest + custom roles
 - **Granular permissions** — e.g. `php_upload` is a separate right, not automatic for admins
 - **SSE-based updater** — live terminal output during updates
@@ -52,6 +53,8 @@ Each page has a visibility level:
 - `members` — logged-in users (Member+)
 - `admin` — admins only
 - or any custom role
+
+Global page targets can be configured under Admin → Einstellungen → Seitenzuordnung. Standard pages such as `/admin/login`, `/registrieren` and `/profil` are available alongside CMS pages and plugin-registered pages.
 
 ---
 

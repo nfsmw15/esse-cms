@@ -4,19 +4,59 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\PageTargets;
 
 if (!Auth::can('manage_settings')) {
     http_response_code(403); echo '403 Forbidden'; exit;
 }
 
 $ts = DB::table('settings');
-$tp = DB::table('pages');
 
 // Load all settings into a flat array
 $rows     = DB::fetchAll("SELECT `key`, `value` FROM `{$ts}`");
 $settings = array_column($rows, 'value', 'key');
 
-$pages  = DB::fetchAll("SELECT slug, title FROM `{$tp}` WHERE status = 'published' ORDER BY title ASC");
+$pages       = PageTargets::publishedPages();
+$corePages   = PageTargets::corePages();
+$pluginPages = PageTargets::pluginPages();
+
+function pageTargetSelect(string $name, string $selected, array $pages, array $corePages, array $pluginPages, string $emptyLabel = '— keine —'): string
+{
+    $out = '<select name="' . htmlspecialchars($name) . '" class="form-select">';
+    $out .= '<option value="">' . htmlspecialchars($emptyLabel) . '</option>';
+
+    if ($pages) {
+        $out .= '<optgroup label="CMS-Seiten">';
+        foreach ($pages as $page) {
+            $value = (string) $page['slug'];
+            $out .= '<option value="' . htmlspecialchars($value) . '"' . ($selected === $value ? ' selected' : '') . '>'
+                 . htmlspecialchars($page['title']) . ' (' . htmlspecialchars($value) . ')</option>';
+        }
+        $out .= '</optgroup>';
+    }
+
+    if ($corePages) {
+        $out .= '<optgroup label="Standardseiten">';
+        foreach ($corePages as $page) {
+            $value = (string) $page['slug'];
+            $out .= '<option value="' . htmlspecialchars($value) . '"' . ($selected === $value ? ' selected' : '') . '>'
+                 . htmlspecialchars($page['title']) . ' (' . htmlspecialchars($value) . ')</option>';
+        }
+        $out .= '</optgroup>';
+    }
+
+    if ($pluginPages) {
+        $out .= '<optgroup label="Plugin-Seiten">';
+        foreach ($pluginPages as $page) {
+            $value = (string) $page['slug'];
+            $out .= '<option value="' . htmlspecialchars($value) . '"' . ($selected === $value ? ' selected' : '') . '>'
+                 . htmlspecialchars($page['title']) . ' (' . htmlspecialchars($page['plugin_name'] ?? 'Plugin') . ')</option>';
+        }
+        $out .= '</optgroup>';
+    }
+
+    return $out . '</select>';
+}
 
 
 $errors = [];
@@ -34,6 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'site_name'        => trim($_POST['site_name']        ?? ''),
         'site_url'         => rtrim(trim($_POST['site_url']   ?? ''), '/'),
         'homepage_slug'    => trim($_POST['homepage_slug']    ?? ''),
+        'login_homepage_slug' => trim($_POST['login_homepage_slug'] ?? ''),
+        'logout_page_slug' => trim($_POST['logout_page_slug'] ?? ''),
+        'error_page_slug'  => trim($_POST['error_page_slug']  ?? ''),
         'admin_email'           => trim($_POST['admin_email']           ?? ''),
         'registration_enabled'  => isset($_POST['registration_enabled']) ? '1' : '0',
         'smtp_host'        => trim($_POST['smtp_host']        ?? ''),
@@ -108,20 +151,26 @@ ob_start();
             </div>
 
             <div class="card mb-4">
-                <div class="card-header py-2"><small class="text-secondary">Startseite</small></div>
+                <div class="card-header py-2"><small class="text-secondary">Seitenzuordnung</small></div>
                 <div class="card-body">
-                    <label class="form-label">Welche Seite erscheint unter <code>/</code>?</label>
-                    <select name="homepage_slug" class="form-select">
-                        <option value="">— keine (Platzhalter) —</option>
-                        <?php foreach ($pages as $page): ?>
-                        <option value="<?= htmlspecialchars($page['slug']) ?>"
-                            <?= ($settings['homepage_slug'] ?? '') === $page['slug'] ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($page['title']) ?>
-                            (<?= htmlspecialchars($page['slug']) ?>)
-                        </option>
-                        <?php endforeach ?>
-                    </select>
-                    <div class="form-text">Die gewählte Seite wird unter der Hauptdomain angezeigt.</div>
+                    <div class="mb-3">
+                        <label class="form-label">Startseite</label>
+                        <?= pageTargetSelect('homepage_slug', $settings['homepage_slug'] ?? '', $pages, $corePages, $pluginPages, '— keine (Platzhalter) —') ?>
+                        <div class="form-text">Die gewählte Seite erscheint unter <code>/</code>.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Startseite nach Login</label>
+                        <?= pageTargetSelect('login_homepage_slug', $settings['login_homepage_slug'] ?? '', $pages, $corePages, $pluginPages, '— Standard: angefragte Seite oder / —') ?>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Logoutseite</label>
+                        <?= pageTargetSelect('logout_page_slug', $settings['logout_page_slug'] ?? '', $pages, $corePages, $pluginPages, '— Standard: / —') ?>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Fehlerseite</label>
+                        <?= pageTargetSelect('error_page_slug', $settings['error_page_slug'] ?? '', $pages, $corePages, $pluginPages, '— Standard-Fehlerseite —') ?>
+                        <div class="form-text">Wird für 403/404/500 verwendet, wenn eine CMS-Seite gewählt ist.</div>
+                    </div>
                 </div>
             </div>
 
