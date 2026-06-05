@@ -277,6 +277,49 @@ class Ui
         return self::hook('icon', $html, compact('name', 'opts'));
     }
 
+    /**
+     * Return the URL of the active icon pack's CSS file.
+     * Themes must include this in their <head> for Ui::icon() output to render correctly.
+     */
+    public static function iconPackCssUrl(): string
+    {
+        static $url = null;
+        if ($url !== null) return $url;
+
+        $fallback = '/public/vendor/bootstrap-icons/bootstrap-icons.min.css';
+
+        if (!class_exists('\Esse\DB') || !defined('ESSE_DB_NAME')) {
+            return $url = $fallback;
+        }
+
+        try {
+            $ts       = DB::table('settings');
+            $packName = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'icon_pack'") ?? 'bootstrap-icons';
+            $packDir  = '/public/vendor/' . preg_replace('/[^a-z0-9\-]/', '', $packName);
+            $packJson = ESSE_ROOT . $packDir . '/iconpack.json';
+
+            if (file_exists($packJson)) {
+                $meta = json_decode(file_get_contents($packJson), true);
+                $url  = $packDir . '/' . ($meta['css'] ?? '');
+            } else {
+                $url = $fallback;
+            }
+        } catch (\Throwable) {
+            $url = $fallback;
+        }
+
+        return $url;
+    }
+
+    /**
+     * Return a <link> tag for the active icon pack's CSS.
+     * Drop this into <head> and Ui::icon() will render correctly regardless of which pack is active.
+     */
+    public static function iconPackCssTag(): string
+    {
+        return '<link rel="stylesheet" href="' . self::e(self::iconPackCssUrl()) . '">';
+    }
+
     // ── Tabs ──────────────────────────────────────────────────────────────────
 
     /**

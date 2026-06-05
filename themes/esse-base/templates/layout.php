@@ -17,6 +17,7 @@ $loginFailed = !empty($_GET['login_error']);
     <title><?= htmlspecialchars($page['title'] . ' — ' . $siteName) ?></title>
     <link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/public/vendor/esse-ui/esse-ui.css">
+    <?= \Esse\Ui::iconPackCssTag() ?>
     <link rel="stylesheet" href="<?= $theme->assetUrl('css/esse-base.css') ?>">
 </head>
 <body>

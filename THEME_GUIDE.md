@@ -147,6 +147,31 @@ $item['active']     // true wenn aktuelle Seite
 
 ---
 
+## Icon-Pack-CSS einbinden
+
+`\Esse\Ui::icon()` erzeugt nur das HTML-Markup (z.B. `<i class="bi bi-house"></i>`). Die zugehörige CSS-Datei lädt der CMS-Core **nicht** automatisch — das Theme muss sie selbst in den `<head>` einbinden.
+
+Dafür steht `\Esse\Ui::iconPackCssTag()` bereit. Es liest das aktive Pack aus der Datenbank und gibt den passenden `<link>`-Tag zurück:
+
+```php
+<head>
+    ...
+    <?= \Esse\Ui::iconPackCssTag() ?>
+    ...
+</head>
+```
+
+Falls nur die URL benötigt wird (z.B. für eigenes Markup oder preload):
+
+```php
+<link rel="preload" as="style" href="<?= \Esse\Ui::iconPackCssUrl() ?>">
+<link rel="stylesheet" href="<?= \Esse\Ui::iconPackCssUrl() ?>">
+```
+
+Beide Methoden fallen auf Bootstrap Icons zurück wenn kein Pack aktiv ist.
+
+> **Wichtig:** Themes die ihren kompletten `<head>` selbst rendern, müssen `iconPackCssTag()` einbinden — sonst bleiben alle Icons leer, egal ob `Ui::icon()` verwendet wird oder nicht.
+
 ## Icons rendern
 
 `$page['icon']` enthält entweder einen pack-agnostischen Icon-Namen (`speedometer2`) oder — für Rückwärtskompatibilität — eine volle CSS-Klasse (`bi bi-speedometer2`). Themes müssen **beide Formen** unterstützen.
@@ -164,9 +189,7 @@ echo str_contains($pi, ' ')
 <?php endif ?>
 ```
 
-`Ui::icon()` liest den Prefix aus der aktiven `iconpack.json` und baut die CSS-Klasse zusammen — das Theme muss das aktive Icon-Pack nicht selbst kennen.
-
-Die Icon-Pack-CSS-Datei wird vom CMS-Core im `<head>` geladen — das Theme muss sie **nicht** selbst einbinden.
+`Ui::icon()` liest den Prefix aus der aktiven `iconpack.json` — das Theme muss das Pack nicht selbst kennen. Die CSS dafür muss aber (wie oben beschrieben) im `<head>` stehen.
 
 ---
 
@@ -184,6 +207,10 @@ Die Icon-Pack-CSS-Datei wird vom CMS-Core im `<head>` geladen — das Theme muss
 // Theme-eigene Assets
 $theme->assetUrl('css/style.css')
 // → https://example.com/themes/mein-theme/assets/css/style.css
+
+// Icon-Pack (im <head> einbinden!)
+\Esse\Ui::iconPackCssTag()   // → <link rel="stylesheet" href="/public/vendor/bootstrap-icons/...">
+\Esse\Ui::iconPackCssUrl()   // → '/public/vendor/bootstrap-icons/bootstrap-icons.min.css'
 ```
 
 ---
@@ -382,6 +409,7 @@ Gleich wie bei Plugins — `version` in `theme.json` wird mit dem GitHub-Release
 - [ ] `$theme->assetUrl()` für CSS/Font-Pfade verwendet
 - [ ] Login-geschützte Themes haben `templates/login.php`
 - [ ] Menüpositionen in `theme.json` unter `menus` deklariert
+- [ ] `\Esse\Ui::iconPackCssTag()` im `<head>` eingebunden (Pflicht — Core lädt die CSS nicht automatisch)
 - [ ] `$page['icon']` wird pack-agnostisch über `Ui::icon()` gerendert (volle CSS-Klassen als Fallback)
 - [ ] `data-bs-theme="dark"` auf `<html>` wenn Bootstrap mit dunklem Hintergrund
 - [ ] README.md vorhanden
