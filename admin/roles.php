@@ -27,25 +27,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $action = $_POST['_action'] ?? '';
 
-    // Save permission assignments for a role
-    if ($action === 'save_role_permissions') {
-        $roleId  = (int) ($_POST['role_id'] ?? 0);
-        $role    = DB::fetch("SELECT * FROM `{$tr}` WHERE id = ?", [$roleId]);
+    // AJAX: toggle a single permission for a role
+    if ($action === 'toggle_permission') {
+        header('Content-Type: application/json');
+        $roleId = (int) ($_POST['role_id'] ?? 0);
+        $permSlug = preg_replace('/[^a-z_]/', '', $_POST['permission'] ?? '');
+        $role = DB::fetch("SELECT * FROM `{$tr}` WHERE id = ?", [$roleId]);
 
-        if ($role && $role['slug'] !== 'forge') {
-            DB::query("DELETE FROM `{$trp}` WHERE role_id = ?", [$roleId]);
-            foreach ($_POST['permissions'] ?? [] as $slug) {
-                $slug = preg_replace('/[^a-z_]/', '', $slug);
-                DB::query(
-                    "INSERT IGNORE INTO `{$trp}` (role_id, permission_id)
-                     SELECT ?, p.id FROM `{$tp}` p WHERE p.slug = ?",
-                    [$roleId, $slug]
-                );
-            }
-            $_SESSION['flash'] = ['type' => 'success', 'message' => "Rechte für Rolle '{$role['label']}' gespeichert."];
+        if (!$role || $role['slug'] === 'forge' || !$permSlug) {
+            echo json_encode(['error' => 'invalid']); exit;
         }
-        header('Location: /admin/roles');
-        exit;
+
+        $exists = DB::fetch(
+            "SELECT 1 FROM `{$trp}` rp
+               JOIN `{$tp}` p ON p.id = rp.permission_id
+              WHERE rp.role_id = ? AND p.slug = ?",
+            [$roleId, $permSlug]
+        );
+
+        if ($exists) {
+            DB::query(
+                "DELETE rp FROM `{$trp}` rp
+                   JOIN `{$tp}` p ON p.id = rp.permission_id
+                  WHERE rp.role_id = ? AND p.slug = ?",
+                [$roleId, $permSlug]
+            );
+            echo json_encode(['granted' => false]); exit;
+        } else {
+            DB::query(
+                "INSERT IGNORE INTO `{$trp}` (role_id, permission_id)
+                 SELECT ?, p.id FROM `{$tp}` p WHERE p.slug = ?",
+                [$roleId, $permSlug]
+            );
+            echo json_encode(['granted' => true]); exit;
+        }
     }
 
     // Create new custom role
@@ -107,11 +122,11 @@ ob_start();
     <div class="col-lg-8">
 
         <?php foreach ($roles as $role):
-            $isDefault  = (bool) $role['is_default'];
-            $isForge    = $role['slug'] === 'forge';
-            $assigned   = $rolePerms[$role['id']] ?? [];
+            $isDefault = (bool) $role['is_default'];
+            $isForge   = $role['slug'] === 'forge';
+            $assigned  = $rolePerms[$role['id']] ?? [];
         ?>
-        <div class="card mb-3 <?= $isDefault ? '' : 'border-secondary' ?>">
+        <div class="card mb-3">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-2">
                     <strong><?= htmlspecialchars($role['label']) ?></strong>
@@ -125,50 +140,36 @@ ob_start();
                 </div>
                 <?php if (!$isDefault && !$isForge): ?>
                 <form method="post" onsubmit="return confirm('Rolle löschen?')">
-                    <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
-                    <input type="hidden" name="_action"  value="delete_role">
-                    <input type="hidden" name="role_id"  value="<?= $role['id'] ?>">
+                    <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+                    <input type="hidden" name="_action" value="delete_role">
+                    <input type="hidden" name="role_id" value="<?= $role['id'] ?>">
                     <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                 </form>
                 <?php endif ?>
             </div>
             <div class="card-body">
                 <?php if ($isForge): ?>
-                <p class="text-secondary small mb-0">
-                    Forge hat immer alle Rechte — unabhängig von der Tabelle.
-                </p>
+                <p class="text-secondary small mb-0">Forge hat immer alle Rechte — unabhängig von der Tabelle.</p>
                 <?php else: ?>
                 <?php if ($isDefault): ?>
                 <p class="text-secondary small mb-2">
                     Standard-Rolle — Standardrechte werden beim Erst-Install gesetzt und danach nicht mehr überschrieben.
                 </p>
                 <?php endif ?>
-                <form method="post">
-                    <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
-                    <input type="hidden" name="_action"  value="save_role_permissions">
-                    <input type="hidden" name="role_id"  value="<?= $role['id'] ?>">
-                    <div class="row g-2 mb-3">
-                        <?php foreach ($permissions as $perm): ?>
-                        <div class="col-sm-6 col-lg-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox"
-                                       name="permissions[]"
-                                       value="<?= htmlspecialchars($perm['slug']) ?>"
-                                       id="perm_<?= $role['id'] ?>_<?= $perm['slug'] ?>"
-                                       <?= in_array($perm['slug'], $assigned, true) ? 'checked' : '' ?>>
-                                <label class="form-check-label small"
-                                       for="perm_<?= $role['id'] ?>_<?= $perm['slug'] ?>"
-                                       title="<?= htmlspecialchars($perm['description'] ?? '') ?>">
-                                    <?= htmlspecialchars($perm['label'] ?? $perm['slug']) ?>
-                                </label>
-                            </div>
-                        </div>
-                        <?php endforeach ?>
-                    </div>
-                    <button class="btn btn-sm btn-primary">
-                        <i class="bi bi-floppy"></i> Rechte speichern
+                <div class="d-flex flex-wrap gap-2">
+                    <?php foreach ($permissions as $perm):
+                        $active = in_array($perm['slug'], $assigned, true);
+                    ?>
+                    <button type="button"
+                            class="perm-toggle badge border-0 <?= $active ? 'bg-success' : 'bg-dark border' ?>"
+                            style="cursor:pointer;font-size:.8rem;padding:.35em .6em"
+                            data-role="<?= $role['id'] ?>"
+                            data-perm="<?= htmlspecialchars($perm['slug']) ?>"
+                            title="<?= htmlspecialchars($perm['description'] ?? $perm['slug']) ?>">
+                        <?= htmlspecialchars($perm['slug']) ?>
                     </button>
-                </form>
+                    <?php endforeach ?>
+                </div>
                 <?php endif ?>
             </div>
         </div>
@@ -201,7 +202,7 @@ ob_start();
             <div class="card-header py-2"><small class="text-secondary">Hinweis</small></div>
             <div class="card-body small text-secondary">
                 <p><strong class="text-white">Standard-Rollen</strong> (member, author, editor, admin)
-                werden durch den CMS-Code verwaltet und bei jedem Login synchronisiert.</p>
+                werden beim Erst-Install mit Standardrechten befüllt und können danach frei angepasst werden.</p>
                 <p class="mb-0"><strong class="text-white">Eigene Rollen</strong> können frei konfiguriert
                 werden. Benutzer werden im Benutzer-Menü einer Rolle zugewiesen.</p>
             </div>
@@ -211,4 +212,27 @@ ob_start();
 </div>
 <?php
 $content = ob_get_clean();
+
+$extraScripts = '<script>
+const CSRF = ' . json_encode(Auth::csrfToken()) . ';
+document.querySelectorAll(".perm-toggle").forEach(btn => {
+    btn.addEventListener("click", async () => {
+        const fd = new FormData();
+        fd.append("_csrf",       CSRF);
+        fd.append("_action",     "toggle_permission");
+        fd.append("role_id",     btn.dataset.role);
+        fd.append("permission",  btn.dataset.perm);
+        const res = await fetch("/admin/roles", { method: "POST", body: fd });
+        const data = await res.json();
+        if (data.granted) {
+            btn.classList.replace("bg-dark", "bg-success");
+            btn.classList.remove("border");
+        } else {
+            btn.classList.replace("bg-success", "bg-dark");
+            btn.classList.add("border");
+        }
+    });
+});
+</script>';
+
 require __DIR__ . '/layout.php';
