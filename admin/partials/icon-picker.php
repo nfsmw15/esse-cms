@@ -72,10 +72,112 @@ if (file_exists($_packJson)) {
         document.getElementById('esseIconGrid').innerHTML = '';
     }
 
+    // German keyword → English icon name patterns
+    const DE_MAP = {
+        'haus': ['house'], 'zuhause': ['house'], 'gebäude': ['building','house'],
+        'einstellung': ['gear','sliders'], 'einstellungen': ['gear','sliders'],
+        'konfiguration': ['gear','wrench'], 'zahnrad': ['gear'],
+        'werkzeug': ['wrench','tools'],
+        'nutzer': ['person'], 'benutzer': ['person'], 'gruppe': ['people'],
+        'personen': ['people'],
+        'kalender': ['calendar'], 'datum': ['calendar'],
+        'uhr': ['clock'], 'zeit': ['clock'],
+        'suche': ['search'], 'lupe': ['search','zoom'],
+        'bild': ['image'], 'foto': ['image','camera'], 'kamera': ['camera'],
+        'video': ['video','camera-video'],
+        'musik': ['music'], 'note': ['music-note'],
+        'datei': ['file'], 'ordner': ['folder'],
+        'papierkorb': ['trash'], 'löschen': ['trash','x'],
+        'bearbeiten': ['pencil'], 'stift': ['pencil'],
+        'hinzufügen': ['plus'], 'neu': ['plus'],
+        'schließen': ['x'],
+        'fertig': ['check'], 'häkchen': ['check'],
+        'warnung': ['exclamation','triangle'], 'achtung': ['exclamation','triangle'],
+        'fehler': ['x-circle','exclamation'], 'info': ['info'],
+        'pfeil': ['arrow'],
+        'stern': ['star'], 'favorit': ['star','heart'],
+        'herz': ['heart'], 'gefällt': ['heart','hand-thumbs'],
+        'flagge': ['flag'],
+        'schloss': ['lock'], 'sperren': ['lock'], 'schlüssel': ['key'],
+        'email': ['envelope'], 'mail': ['envelope'], 'brief': ['envelope'],
+        'telefon': ['telephone'], 'handy': ['phone'],
+        'karte': ['map','credit-card'], 'landkarte': ['map'],
+        'standort': ['geo','pin-map'], 'ort': ['geo'],
+        'einkauf': ['cart','bag'], 'warenkorb': ['cart'],
+        'geld': ['currency','cash','coin'],
+        'dokument': ['file-text'],
+        'tabelle': ['table'], 'diagramm': ['bar-chart','graph'],
+        'statistik': ['bar-chart','graph'], 'analyse': ['graph-up'],
+        'drucken': ['printer'],
+        'teilen': ['share'],
+        'download': ['download'], 'upload': ['upload'],
+        'neuigkeit': ['newspaper'], 'nachrichten': ['newspaper','chat'],
+        'news': ['newspaper'],
+        'kommentar': ['chat'], 'nachricht': ['chat','envelope'],
+        'benachrichtigung': ['bell'], 'glocke': ['bell'],
+        'lautsprecher': ['speaker','volume'], 'lautstärke': ['volume'],
+        'stumm': ['volume-mute'],
+        'abspielen': ['play'], 'pause': ['pause'], 'stopp': ['stop'],
+        'sortieren': ['sort'], 'filter': ['filter','funnel'],
+        'liste': ['list'], 'raster': ['grid'],
+        'menü': ['list'], 'navigation': ['compass'],
+        'seite': ['file-earmark'], 'artikel': ['file-text','newspaper'],
+        'kategorie': ['collection','folder'], 'archiv': ['archive'],
+        'speichern': ['floppy'],
+        'anmelden': ['box-arrow-in-right'], 'einloggen': ['box-arrow-in-right'],
+        'abmelden': ['box-arrow-right'], 'ausloggen': ['box-arrow-right'],
+        'registrieren': ['person-plus'],
+        'profil': ['person-circle'], 'konto': ['person-gear'],
+        'passwort': ['key','lock'],
+        'sicherheit': ['shield'], 'berechtigung': ['shield-check'],
+        'dashboard': ['speedometer'], 'bericht': ['file-earmark-bar-chart'],
+        'welt': ['globe'], 'sprache': ['translate','globe'],
+        'hilfe': ['question-circle'], 'anleitung': ['book'],
+        'plugin': ['puzzle'], 'erweiterung': ['puzzle'],
+        'farbe': ['palette'],
+        'aktualisieren': ['arrow-repeat'], 'synchronisieren': ['arrow-repeat'],
+        'rückgängig': ['arrow-counterclockwise'],
+        'kopieren': ['copy','files'], 'ausschneiden': ['scissors'],
+        'einfügen': ['clipboard'],
+        'link': ['link'], 'extern': ['box-arrow-up-right'],
+        'ausblenden': ['eye-slash'], 'anzeigen': ['eye'], 'sichtbar': ['eye'],
+        'vollbild': ['fullscreen'],
+        'mikrofon': ['mic'], 'wlan': ['wifi'], 'netzwerk': ['wifi','ethernet'],
+        'batterie': ['battery'],
+        'sonne': ['sun'], 'mond': ['moon'], 'nacht': ['moon'],
+        'etikett': ['tag'], 'preis': ['tag'],
+        'produkt': ['box'], 'paket': ['box'],
+        'lieferung': ['truck'], 'versand': ['truck'],
+    };
+
+    function searchIcons(q) {
+        if (!_icons) return [];
+        if (!q) return _icons;
+
+        // Direct English name match
+        const byName = _icons.filter(n => n.includes(q));
+
+        // German keyword expansion: find all DE keys that contain the query
+        const patterns = new Set();
+        for (const [de, pats] of Object.entries(DE_MAP)) {
+            if (de.startsWith(q) || de.includes(q)) {
+                pats.forEach(p => patterns.add(p));
+            }
+        }
+
+        if (!patterns.size) return byName;
+
+        const nameSet = new Set(byName);
+        const extra   = _icons.filter(n =>
+            !nameSet.has(n) && [...patterns].some(p => n.includes(p))
+        );
+        return [...byName, ...extra];
+    }
+
     function renderGrid(filter) {
         const grid = document.getElementById('esseIconGrid');
         const q    = filter.toLowerCase().trim();
-        const list = _icons ? (q ? _icons.filter(n => n.includes(q)) : _icons) : [];
+        const list = searchIcons(q);
 
         if (!list.length) {
             setStatus(q ? 'Keine Icons gefunden.' : 'Keine Icons verfügbar.');
