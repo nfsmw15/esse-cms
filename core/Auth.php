@@ -201,13 +201,23 @@ class Auth
                     [$role, ucfirst($role)]
                 );
 
-                foreach ($permissions as $permission) {
-                    DB::query(
-                        "INSERT IGNORE INTO `{$trp}` (role_id, permission_id)
-                         SELECT r.id, p.id FROM `{$tr}` r, `{$tp}` p
-                          WHERE r.slug = ? AND p.slug = ?",
-                        [$role, $permission]
-                    );
+                // Only seed role permissions on first use (empty role).
+                // After that the DB is authoritative — manual changes are never overwritten.
+                $hasPerms = (int) DB::value(
+                    "SELECT COUNT(*) FROM `{$trp}` rp
+                       JOIN `{$tr}` r ON r.id = rp.role_id
+                      WHERE r.slug = ?",
+                    [$role]
+                );
+                if ($hasPerms === 0) {
+                    foreach ($permissions as $permission) {
+                        DB::query(
+                            "INSERT IGNORE INTO `{$trp}` (role_id, permission_id)
+                             SELECT r.id, p.id FROM `{$tr}` r, `{$tp}` p
+                              WHERE r.slug = ? AND p.slug = ?",
+                            [$role, $permission]
+                        );
+                    }
                 }
             }
             self::$defaultsSynced = true;

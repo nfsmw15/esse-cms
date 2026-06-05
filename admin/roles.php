@@ -32,8 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $roleId  = (int) ($_POST['role_id'] ?? 0);
         $role    = DB::fetch("SELECT * FROM `{$tr}` WHERE id = ?", [$roleId]);
 
-        if ($role && !$role['is_default']) {
-            // Custom role: full control
+        if ($role && $role['slug'] !== 'forge') {
             DB::query("DELETE FROM `{$trp}` WHERE role_id = ?", [$roleId]);
             foreach ($_POST['permissions'] ?? [] as $slug) {
                 $slug = preg_replace('/[^a-z_]/', '', $slug);
@@ -44,8 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
             }
             $_SESSION['flash'] = ['type' => 'success', 'message' => "Rechte für Rolle '{$role['label']}' gespeichert."];
-        } elseif ($role && $role['is_default']) {
-            $_SESSION['flash'] = ['type' => 'warning', 'message' => 'Standard-Rollen werden automatisch verwaltet und können nicht manuell geändert werden.'];
         }
         header('Location: /admin/roles');
         exit;
@@ -140,20 +137,12 @@ ob_start();
                 <p class="text-secondary small mb-0">
                     Forge hat immer alle Rechte — unabhängig von der Tabelle.
                 </p>
-                <?php elseif ($isDefault): ?>
-                <p class="text-secondary small mb-2">
-                    Standard-Rollen werden durch <code>Auth::DEFAULT_ROLE_PERMISSIONS</code> verwaltet.
-                    Änderungen hier werden bei jedem Login überschrieben.
-                </p>
-                <div class="d-flex flex-wrap gap-2">
-                    <?php foreach ($permissions as $perm): ?>
-                    <span class="badge <?= in_array($perm['slug'], $assigned, true) ? 'bg-success' : 'bg-dark border' ?>"
-                          title="<?= htmlspecialchars($perm['description'] ?? '') ?>">
-                        <?= htmlspecialchars($perm['slug']) ?>
-                    </span>
-                    <?php endforeach ?>
-                </div>
                 <?php else: ?>
+                <?php if ($isDefault): ?>
+                <p class="text-secondary small mb-2">
+                    Standard-Rolle — Standardrechte werden beim Erst-Install gesetzt und danach nicht mehr überschrieben.
+                </p>
+                <?php endif ?>
                 <form method="post">
                     <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
                     <input type="hidden" name="_action"  value="save_role_permissions">
