@@ -291,8 +291,17 @@ function itemEditForm(array $item, int $menuId, array $pages, array $allTopItems
          . "</select></div>"
          . "<div class='col-sm-3'><label class='form-label small'>Label</label>"
          . "<input type='text' name='label' class='form-control form-control-sm' value='{$label}' required></div>"
-         . "<div class='col-sm-3'><label class='form-label small'>Icon <small class=\"text-secondary\">(optional)</small></label>"
-         . "<input type='text' name='icon' class='form-control form-control-sm font-monospace' value='{$icon}' placeholder='bi bi-house'></div>"
+         . "<div class='col-sm-3'><label class='form-label small'>Icon <small class=\"text-secondary\">(opt.)</small></label>"
+         . "<div class='input-group input-group-sm'>"
+         . "<span class='input-group-text esse-icon-preview px-1' data-for='icon-{$id}'"
+         .      " style='cursor:pointer;min-width:34px;justify-content:center'"
+         .      " onclick='esseOpenIconPicker(document.getElementById(\"icon-{$id}\"))'"
+         .      " title='Icon wählen'>"
+         . "<i class='bi bi-grid-3x3-gap' style='opacity:.35'></i>"
+         . "</span>"
+         . "<input type='text' name='icon' id='icon-{$id}' class='form-control form-control-sm font-monospace'"
+         .      " value='{$icon}' placeholder='z.B. house' data-icon-preview='1' oninput='esseUpdatePreview(this)'>"
+         . "</div></div>"
          . "<div class='col-sm-4 field-page" . ($type !== 'page' ? ' d-none' : '') . "'>"
          . "<label class='form-label small'>Seite</label>"
          . "<select name='page_slug' class='form-select form-select-sm'>{$pageOpts}</select></div>"
@@ -504,9 +513,20 @@ ob_start();
                     </div>
                     <div class="mb-2">
                         <label class="form-label">Icon <small class="text-secondary">(optional)</small></label>
-                        <input type="text" name="icon" class="form-control form-control-sm font-monospace"
-                               placeholder="bi bi-house">
-                        <div class="form-text">CSS-Klasse, z.B. <code>bi bi-house</code> oder <code>ph ph-house</code></div>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text esse-icon-preview px-2"
+                                  data-for="add-item-icon"
+                                  style="cursor:pointer;min-width:34px;justify-content:center"
+                                  onclick="esseOpenIconPicker(document.getElementById('add-item-icon'))"
+                                  title="Icon wählen">
+                                <i class="bi bi-grid-3x3-gap" style="opacity:.35"></i>
+                            </span>
+                            <input type="text" name="icon" id="add-item-icon"
+                                   class="form-control form-control-sm font-monospace"
+                                   placeholder="z.B. house"
+                                   data-icon-preview="1"
+                                   oninput="esseUpdatePreview(this)">
+                        </div>
                     </div>
                     <div class="mb-2" id="field-page">
                         <label class="form-label">Seite</label>
@@ -592,6 +612,7 @@ document.addEventListener('change', e => {
 });
 
 </script>
+<?php require __DIR__ . '/../partials/icon-picker.php'; ?>
 <?php
 $content = ob_get_clean();
 $csrf    = Auth::csrfToken();

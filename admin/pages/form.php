@@ -155,15 +155,25 @@ ob_start();
                     <div class="mb-3">
                         <label class="form-label">Titel</label>
                         <div class="input-group">
-                            <input type="text" name="icon" class="form-control font-monospace"
-                                   style="max-width:160px"
-                                   placeholder="Icon-Name (z.B. house)"
-                                   value="<?= htmlspecialchars($page['icon'] ?? '') ?>">
+                            <span class="input-group-text esse-icon-preview px-2"
+                                  data-for="page-icon"
+                                  style="cursor:pointer;min-width:38px;justify-content:center"
+                                  onclick="esseOpenIconPicker(document.getElementById('page-icon'))"
+                                  title="Icon wählen">
+                                <i class="bi bi-grid-3x3-gap" style="opacity:.35;font-size:.95rem"></i>
+                            </span>
+                            <input type="text" name="icon" id="page-icon"
+                                   class="form-control font-monospace"
+                                   style="max-width:120px"
+                                   placeholder="z.B. house"
+                                   value="<?= htmlspecialchars($page['icon'] ?? '') ?>"
+                                   data-icon-preview="1"
+                                   oninput="esseUpdatePreview(this)">
                             <input type="text" name="title" id="title" class="form-control"
                                    value="<?= htmlspecialchars($page['title'] ?? '') ?>"
                                    required autofocus placeholder="Seitentitel">
                         </div>
-                        <div class="form-text">Optional: nur Icon-Name, z.B. <code>house</code> — pack-agnostisch</div>
+                        <div class="form-text">Optional: Icon-Name, z.B. <code>house</code> — oder Klick auf das Icon-Feld zum Suchen</div>
                     </div>
                     <div class="mb-0">
                         <label class="form-label">Slug</label>
@@ -302,6 +312,7 @@ function updateType() {
 typeEl?.addEventListener('change', updateType);
 updateType();
 </script>
+<?php require __DIR__ . '/../partials/icon-picker.php'; ?>
 <?php
 $content      = ob_get_clean();
 $extraHead    = '<link rel="stylesheet" href="/public/vendor/summernote/summernote-bs5.min.css">

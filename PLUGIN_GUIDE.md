@@ -187,7 +187,7 @@ return;
 $this->addAdminNav(
     'News',           // Label in der Sidebar
     '/admin/news',    // URL
-    'bi-newspaper',   // Bootstrap Icons Klasse
+    'newspaper',      // Icon-Name (ohne Pack-Prefix)
     'admin.news'      // activeSlug — MUSS mit $activeNav in den Admin-Templates übereinstimmen!
 );
 ```
@@ -201,8 +201,8 @@ Damit die Seite in der Seiten-Liste erscheint, im Menü-Dropdown auswählbar ist
 und Slug-Konflikte erkannt werden:
 
 ```php
-$this->registerPage('/news',      'News-Liste',  'bi-newspaper');
-$this->registerPage('/news/{id}', 'News-Detail', 'bi-newspaper');
+$this->registerPage('/news',      'News-Liste',  'newspaper');
+$this->registerPage('/news/{id}', 'News-Detail', 'newspaper');
 ```
 
 ### Hooks verwenden
@@ -576,14 +576,14 @@ $.fn.popover = function(opt) {
 
 ## Icon-Felder
 
-Seiten und Menü-Einträge haben ein optionales `icon`-Feld (volle CSS-Klasse):
+Seiten und Menü-Einträge haben ein optionales `icon`-Feld:
 
 ```php
 // Seite programmatisch mit Icon anlegen:
 DB::insert(DB::table('pages'), [
     'slug'       => 'dashboard',
     'title'      => 'Dashboard',
-    'icon'       => 'bi bi-speedometer2',  // optional
+    'icon'       => 'speedometer2',  // optional — nur Icon-Name, kein Pack-Prefix
     'content'    => '',
     'type'       => 'standard',
     'visibility' => 'members',
@@ -596,7 +596,7 @@ DB::insert(DB::table('menu_items'), [
     'menu_id'    => $menuId,
     'type'       => 'page',
     'label'      => 'Dashboard',
-    'icon'       => 'bi bi-speedometer2',  // optional
+    'icon'       => 'bi bi-speedometer2',  // Menüs: volle CSS-Klasse
     'page_slug'  => 'dashboard',
     'sort_order' => 10,
     'active'     => 1,
@@ -604,7 +604,11 @@ DB::insert(DB::table('menu_items'), [
 ```
 
 Themes rendern das Icon automatisch vor Label/Titel wenn `icon` gesetzt ist.
-Funktioniert mit allen selbst gehosteten Icon-Packs — einfach die volle CSS-Klasse angeben.
+
+**Seiten-Icons:** Nur den Icon-Namen angeben (`speedometer2`), das aktive Icon-Pack liefert den Prefix.
+Volle CSS-Klassen (`bi bi-speedometer2`) funktionieren weiterhin (Rückwärtskompatibilität).
+
+**Menü-Icons:** esse-base rendert `$item['icon']` direkt als CSS-Klasse — hier volle Klasse angeben.
 
 ---
 
@@ -722,6 +726,60 @@ zip -r esse-news-v1.0.0.zip esse-news/ \
 
 ---
 
+## Eigenes Icon-Pack bereitstellen
+
+Icon-Packs werden über **Admin → Icon-Packs** als ZIP installiert und sind vom Plugin-System getrennt — ein Plugin kann kein Icon-Pack automatisch mitinstallieren.
+
+### iconpack.json
+
+```json
+{
+    "name": "mein-iconpack",
+    "version": "1.0.0",
+    "description": "Kurzbeschreibung.",
+    "prefix": "mi mi-",
+    "css": "mein-iconpack.min.css"
+}
+```
+
+| Feld | Pflicht | Bedeutung |
+|---|---|---|
+| `name` | ✓ | Eindeutiger Bezeichner (= Verzeichnisname unter `public/vendor/`) |
+| `version` | ✓ | Semantic Versioning |
+| `description` | | Kurzbeschreibung |
+| `prefix` | ✓ | CSS-Klassen-Prefix inkl. Leerzeichen, z.B. `bi bi-` oder `fa-solid fa-` |
+| `css` | ✓ | Dateiname der CSS-Datei im Pack-Verzeichnis |
+
+### ZIP-Struktur
+
+```
+mein-iconpack/
+├── iconpack.json
+├── mein-iconpack.min.css
+└── fonts/
+    ├── mein-iconpack.woff
+    └── mein-iconpack.woff2
+```
+
+Root-Ordner wird beim Installieren automatisch erkannt und entfernt. Nach der Installation liegt das Pack unter `public/vendor/mein-iconpack/`.
+
+### Wie `Ui::icon()` den Pack nutzt
+
+`Ui::icon('house')` liest den Prefix aus der aktiven `iconpack.json` und baut daraus die CSS-Klasse:
+
+```php
+// Bootstrap Icons aktiv (prefix: "bi bi-"):
+Ui::icon('house')  // → <i class="bi bi-house"></i>
+
+// Eigenes Pack aktiv (prefix: "mi mi-"):
+Ui::icon('house')  // → <i class="mi mi-house"></i>
+```
+
+Deshalb: immer nur den Icon-Namen übergeben — nie die volle CSS-Klasse.
+Volle Klassen (`bi bi-house`) werden als Rückwärtskompatibilität noch erkannt, sind aber nicht empfohlen.
+
+---
+
 ## Komplettes Beispiel
 
 `Plugin.php`:
@@ -738,9 +796,9 @@ class Plugin extends \Esse\Plugin
     {
         NewsRepository::migrate();  // DB-Migration IMMER hier
 
-        $this->addAdminNav('News', '/admin/news', 'bi-newspaper', 'admin.news');
-        $this->registerPage('/news',      'News',        'bi-newspaper');
-        $this->registerPage('/news/{id}', 'News-Detail', 'bi-newspaper');
+        $this->addAdminNav('News', '/admin/news', 'newspaper', 'admin.news');
+        $this->registerPage('/news',      'News',        'newspaper');
+        $this->registerPage('/news/{id}', 'News-Detail', 'newspaper');
 
         $base = $this->basePath();
         Router::get('/news', fn() => require "{$base}/frontend/list.php",
@@ -860,7 +918,7 @@ echo Ui::grid($items, ['cols' => 4]);
 echo Ui::button('Hochladen', '#', ['type' => 'submit', 'icon' => 'upload']);
 echo Ui::button('Ordner erstellen', '#', ['type' => 'submit', 'variant' => 'secondary']);
 
-// Icons (icon-pack-agnostisch)
+// Icons (pack-agnostisch — Prefix kommt vom aktiven Icon-Pack)
 echo Ui::icon('house');          // → <i class="bi bi-house"></i> (Bootstrap Icons default)
 echo Ui::icon('images');         // → <i class="bi bi-images"></i>
 ```

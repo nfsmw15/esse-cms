@@ -120,7 +120,7 @@ Die folgenden Variablen stehen in `layout.php`, `error.php` und `login.php` zur 
 |---|---|---|
 | `slug` | `string` | URL-Slug der Seite |
 | `title` | `string` | Seitentitel |
-| `icon` | `string\|null` | CSS-Klasse für Icon (z.B. `bi bi-house`) |
+| `icon` | `string\|null` | Icon-Name (z.B. `house`) oder volle CSS-Klasse für Rückwärtskompatibilität |
 | `visibility` | `string` | `public`, `members`, `admin` |
 | `status` | `string` | `published`, `draft` |
 | `type` | `string` | `standard`, `php` |
@@ -136,7 +136,7 @@ $mainMenu = Menu::get($slug);  // gibt Array mit Items zurück
 // Item-Felder:
 $item['label']      // Anzeigetext
 $item['type']       // 'page', 'url', 'header'
-$item['icon']       // CSS-Klasse (optional)
+$item['icon']       // CSS-Klasse (optional, direkt als class-Attribut)
 $item['target']     // '_self' oder '_blank'
 $item['children']   // Array mit Untereinträgen
 $item['active']     // true wenn aktuelle Seite
@@ -144,6 +144,29 @@ $item['active']     // true wenn aktuelle Seite
 // URL auflösen:
 \Esse\Menu::itemUrl($item)  // gibt '/slug' oder 'https://...' zurück
 ```
+
+---
+
+## Icons rendern
+
+`$page['icon']` enthält entweder einen pack-agnostischen Icon-Namen (`speedometer2`) oder — für Rückwärtskompatibilität — eine volle CSS-Klasse (`bi bi-speedometer2`). Themes müssen **beide Formen** unterstützen.
+
+Empfohlenes Muster (wie esse-base):
+
+```php
+<?php if (!empty($page['icon'])): ?>
+<?php
+$pi = $page['icon'];
+echo str_contains($pi, ' ')
+    ? '<i class="' . htmlspecialchars($pi) . '"></i> '       // volle Klasse (Rückwärtskompatibilität)
+    : \Esse\Ui::icon(preg_replace('/^(bi|ph|ti|lucide|ri)-/', '', $pi)) . ' '; // pack-agnostisch
+?>
+<?php endif ?>
+```
+
+`Ui::icon()` liest den Prefix aus der aktiven `iconpack.json` und baut die CSS-Klasse zusammen — das Theme muss das aktive Icon-Pack nicht selbst kennen.
+
+Die Icon-Pack-CSS-Datei wird vom CMS-Core im `<head>` geladen — das Theme muss sie **nicht** selbst einbinden.
 
 ---
 
@@ -359,6 +382,7 @@ Gleich wie bei Plugins — `version` in `theme.json` wird mit dem GitHub-Release
 - [ ] `$theme->assetUrl()` für CSS/Font-Pfade verwendet
 - [ ] Login-geschützte Themes haben `templates/login.php`
 - [ ] Menüpositionen in `theme.json` unter `menus` deklariert
+- [ ] `$page['icon']` wird pack-agnostisch über `Ui::icon()` gerendert (volle CSS-Klassen als Fallback)
 - [ ] `data-bs-theme="dark"` auf `<html>` wenn Bootstrap mit dunklem Hintergrund
 - [ ] README.md vorhanden
 - [ ] ZIP ohne `.git/`, `.vscode/`, `node_modules/`
