@@ -74,80 +74,164 @@ if (file_exists($_packJson)) {
 
     // German keyword → English icon name patterns
     const DE_MAP = {
+        // Haus & Gebäude
         'haus': ['house'], 'zuhause': ['house'], 'gebäude': ['building','house'],
+        'wohnung': ['house'], 'büro': ['building'],
+
+        // Einstellungen & Werkzeuge
         'einstellung': ['gear','sliders'], 'einstellungen': ['gear','sliders'],
         'konfiguration': ['gear','wrench'], 'zahnrad': ['gear'],
-        'werkzeug': ['wrench','tools'],
-        'nutzer': ['person'], 'benutzer': ['person'], 'gruppe': ['people'],
-        'personen': ['people'],
-        'kalender': ['calendar'], 'datum': ['calendar'],
-        'uhr': ['clock'], 'zeit': ['clock'],
+        'werkzeug': ['wrench','tools'], 'schraubenzieher': ['wrench'],
+        'hammer': ['hammer'],
+
+        // Geometrische Formen
+        'kreis': ['circle'], 'punkt': ['circle','dot','record'],
+        'kugel': ['circle'], 'ring': ['circle'],
+        'quadrat': ['square'], 'rechteck': ['rectangle'],
+        'dreieck': ['triangle'], 'raute': ['diamond'],
+        'stern': ['star'], 'achteck': ['octagon'],
+        'linie': ['dash','hr'], 'strich': ['dash'],
+
+        // Pfeile & Richtungen
+        'pfeil': ['arrow'], 'zurück': ['arrow-left'],
+        'weiter': ['arrow-right'], 'vor': ['arrow-right'],
+        'oben': ['arrow-up','chevron-up'], 'unten': ['arrow-down','chevron-down'],
+        'links': ['arrow-left','chevron-left'], 'rechts': ['arrow-right','chevron-right'],
+        'hoch': ['arrow-up'], 'runter': ['arrow-down'],
+        'doppelpfeil': ['arrows'], 'expandieren': ['arrows-fullscreen'],
+        'ausklappen': ['chevron-down','caret-down'],
+        'einklappen': ['chevron-up','caret-up'],
+
+        // Personen & Nutzer
+        'nutzer': ['person'], 'benutzer': ['person'],
+        'gruppe': ['people'], 'personen': ['people'], 'team': ['people'],
+        'autor': ['person','pencil'], 'kontakt': ['person-lines-fill'],
+        'kontakte': ['people'],
+
+        // Zeit & Kalender
+        'kalender': ['calendar'], 'datum': ['calendar'], 'termin': ['calendar'],
+        'uhr': ['clock'], 'zeit': ['clock'], 'stoppuhr': ['stopwatch'],
+        'sanduhr': ['hourglass'], 'wecker': ['alarm'], 'timer': ['stopwatch'],
+
+        // Suche & Ansicht
         'suche': ['search'], 'lupe': ['search','zoom'],
+        'ausblenden': ['eye-slash'], 'anzeigen': ['eye'], 'sichtbar': ['eye'],
+        'vollbild': ['fullscreen'], 'zoom': ['zoom'],
+
+        // Medien
         'bild': ['image'], 'foto': ['image','camera'], 'kamera': ['camera'],
-        'video': ['video','camera-video'],
-        'musik': ['music'], 'note': ['music-note'],
+        'video': ['video','camera-video'], 'film': ['film','camera-video'],
+        'musik': ['music'], 'ton': ['volume-up','music'],
+        'abspielen': ['play'], 'pause': ['pause'], 'stopp': ['stop'],
+        'lautsprecher': ['speaker','volume'], 'lautstärke': ['volume'],
+        'stumm': ['volume-mute'], 'mikrofon': ['mic'],
+
+        // Dateien & Ordner
         'datei': ['file'], 'ordner': ['folder'],
-        'papierkorb': ['trash'], 'löschen': ['trash','x'],
+        'dokument': ['file-text'], 'textdatei': ['file-text'],
+        'pdf': ['file-pdf'], 'bild datei': ['file-image'],
+        'zip': ['file-zip'], 'anhang': ['paperclip'],
+        'büroklammer': ['paperclip'],
+
+        // Aktionen
+        'löschen': ['trash','x'], 'papierkorb': ['trash'],
         'bearbeiten': ['pencil'], 'stift': ['pencil'],
         'hinzufügen': ['plus'], 'neu': ['plus'],
-        'schließen': ['x'],
+        'schließen': ['x'], 'abbrechen': ['x'],
         'fertig': ['check'], 'häkchen': ['check'],
+        'speichern': ['floppy'], 'kopieren': ['copy','files'],
+        'ausschneiden': ['scissors'], 'einfügen': ['clipboard'],
+        'rückgängig': ['arrow-counterclockwise'],
+        'wiederholen': ['arrow-clockwise'],
+        'aktualisieren': ['arrow-repeat'], 'synchronisieren': ['arrow-repeat'],
+        'laden': ['arrow-repeat'], 'neuladen': ['arrow-clockwise'],
+        'drucken': ['printer'], 'teilen': ['share'],
+        'download': ['download'], 'upload': ['upload'],
+        'exportieren': ['box-arrow-up'], 'importieren': ['box-arrow-in-down'],
+        'senden': ['send'], 'weiterleiten': ['forward'],
+
+        // Status & Feedback
         'warnung': ['exclamation','triangle'], 'achtung': ['exclamation','triangle'],
         'fehler': ['x-circle','exclamation'], 'info': ['info'],
-        'pfeil': ['arrow'],
-        'stern': ['star'], 'favorit': ['star','heart'],
-        'herz': ['heart'], 'gefällt': ['heart','hand-thumbs'],
-        'flagge': ['flag'],
-        'schloss': ['lock'], 'sperren': ['lock'], 'schlüssel': ['key'],
+        'erfolg': ['check-circle'], 'ok': ['check-circle'],
+        'gesperrt': ['lock','slash'], 'freigegeben': ['unlock'],
+        'aktiv': ['check-circle'], 'inaktiv': ['dash-circle'],
+        'warten': ['hourglass','three-dots'], 'abgeschlossen': ['check-all'],
+        'wichtig': ['exclamation','star'], 'dringend': ['exclamation-triangle'],
+
+        // Kommunikation
         'email': ['envelope'], 'mail': ['envelope'], 'brief': ['envelope'],
-        'telefon': ['telephone'], 'handy': ['phone'],
-        'karte': ['map','credit-card'], 'landkarte': ['map'],
-        'standort': ['geo','pin-map'], 'ort': ['geo'],
-        'einkauf': ['cart','bag'], 'warenkorb': ['cart'],
-        'geld': ['currency','cash','coin'],
-        'dokument': ['file-text'],
-        'tabelle': ['table'], 'diagramm': ['bar-chart','graph'],
-        'statistik': ['bar-chart','graph'], 'analyse': ['graph-up'],
-        'drucken': ['printer'],
-        'teilen': ['share'],
-        'download': ['download'], 'upload': ['upload'],
-        'neuigkeit': ['newspaper'], 'nachrichten': ['newspaper','chat'],
-        'news': ['newspaper'],
-        'kommentar': ['chat'], 'nachricht': ['chat','envelope'],
+        'nachricht': ['chat','envelope'], 'nachrichten': ['chat','inbox'],
+        'kommentar': ['chat'], 'antwort': ['reply'],
         'benachrichtigung': ['bell'], 'glocke': ['bell'],
-        'lautsprecher': ['speaker','volume'], 'lautstärke': ['volume'],
-        'stumm': ['volume-mute'],
-        'abspielen': ['play'], 'pause': ['pause'], 'stopp': ['stop'],
-        'sortieren': ['sort'], 'filter': ['filter','funnel'],
-        'liste': ['list'], 'raster': ['grid'],
+        'telefon': ['telephone'], 'handy': ['phone'],
+
+        // Navigation & Struktur
+        'link': ['link'], 'extern': ['box-arrow-up-right'],
         'menü': ['list'], 'navigation': ['compass'],
+        'liste': ['list'], 'raster': ['grid'], 'kacheln': ['grid'],
+        'sortieren': ['sort'], 'filter': ['filter','funnel'],
         'seite': ['file-earmark'], 'artikel': ['file-text','newspaper'],
         'kategorie': ['collection','folder'], 'archiv': ['archive'],
-        'speichern': ['floppy'],
+
+        // Login & Nutzerbereich
         'anmelden': ['box-arrow-in-right'], 'einloggen': ['box-arrow-in-right'],
         'abmelden': ['box-arrow-right'], 'ausloggen': ['box-arrow-right'],
         'registrieren': ['person-plus'],
         'profil': ['person-circle'], 'konto': ['person-gear'],
         'passwort': ['key','lock'],
         'sicherheit': ['shield'], 'berechtigung': ['shield-check'],
+
+        // Inhalt & Medien
+        'neuigkeit': ['newspaper'], 'news': ['newspaper'],
+        'buch': ['book'], 'anleitung': ['book'],
+        'notiz': ['sticky','journal'], 'notizbuch': ['journal'],
+        'klemmbrett': ['clipboard'],
+        'zitat': ['quote'], 'aufzählung': ['list-ul'],
+
+        // Analyse & Berichte
         'dashboard': ['speedometer'], 'bericht': ['file-earmark-bar-chart'],
-        'welt': ['globe'], 'sprache': ['translate','globe'],
-        'hilfe': ['question-circle'], 'anleitung': ['book'],
+        'statistik': ['bar-chart','graph'], 'diagramm': ['bar-chart','graph'],
+        'analyse': ['graph-up'], 'tabelle': ['table'],
+
+        // Technik
+        'computer': ['pc','laptop'], 'laptop': ['laptop'],
+        'tablet': ['tablet'], 'smartphone': ['phone'],
+        'bildschirm': ['display','monitor'], 'server': ['server','hdd'],
+        'datenbank': ['database'], 'cloud': ['cloud'],
+        'code': ['code','braces'], 'terminal': ['terminal'],
+        'wlan': ['wifi'], 'netzwerk': ['wifi','ethernet'],
+        'batterie': ['battery'], 'usb': ['usb-drive'],
+        'mikrofon': ['mic'],
+
+        // Einstellungen & System
         'plugin': ['puzzle'], 'erweiterung': ['puzzle'],
-        'farbe': ['palette'],
-        'aktualisieren': ['arrow-repeat'], 'synchronisieren': ['arrow-repeat'],
-        'rückgängig': ['arrow-counterclockwise'],
-        'kopieren': ['copy','files'], 'ausschneiden': ['scissors'],
-        'einfügen': ['clipboard'],
-        'link': ['link'], 'extern': ['box-arrow-up-right'],
-        'ausblenden': ['eye-slash'], 'anzeigen': ['eye'], 'sichtbar': ['eye'],
-        'vollbild': ['fullscreen'],
-        'mikrofon': ['mic'], 'wlan': ['wifi'], 'netzwerk': ['wifi','ethernet'],
-        'batterie': ['battery'],
-        'sonne': ['sun'], 'mond': ['moon'], 'nacht': ['moon'],
-        'etikett': ['tag'], 'preis': ['tag'],
+        'farbe': ['palette'], 'design': ['palette'],
+        'hilfe': ['question-circle'], 'faq': ['question-square'],
+        'welt': ['globe'], 'sprache': ['translate','globe'],
+
+        // Favoriten & Bewertung
+        'favorit': ['star','heart'], 'herz': ['heart'],
+        'gefällt': ['heart','hand-thumbs'], 'bewertung': ['star'],
+        'flagge': ['flag'], 'etikett': ['tag'], 'preis': ['tag'],
+
+        // Schloss & Sicherheit
+        'schloss': ['lock'], 'sperren': ['lock'], 'schlüssel': ['key'],
+
+        // Shopping & Geld
+        'einkauf': ['cart','bag'], 'warenkorb': ['cart'],
+        'geld': ['currency','cash','coin'], 'euro': ['currency-euro'],
+        'dollar': ['currency-dollar'], 'rechnung': ['receipt'],
+        'gutschein': ['gift'], 'geschenk': ['gift'],
         'produkt': ['box'], 'paket': ['box'],
         'lieferung': ['truck'], 'versand': ['truck'],
+
+        // Geografie & Natur
+        'karte': ['map','credit-card'], 'landkarte': ['map'],
+        'standort': ['geo','pin-map'], 'ort': ['geo'],
+        'sonne': ['sun'], 'mond': ['moon'], 'nacht': ['moon'],
+        'wolke': ['cloud'], 'regen': ['cloud-rain'],
+        'blitz': ['lightning'],
     };
 
     function searchIcons(q) {
