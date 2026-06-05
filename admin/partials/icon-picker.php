@@ -19,7 +19,7 @@ if (file_exists($_packJson)) {
             </div>
             <div class="modal-body p-2">
                 <p id="esseIconStatus" class="text-center text-secondary py-4 mb-0">Lade Icon-Liste…</p>
-                <div id="esseIconGrid" class="d-flex flex-wrap gap-1"></div>
+<div id="esseIconGrid" class="d-flex flex-wrap gap-1"></div>
             </div>
         </div>
     </div>
