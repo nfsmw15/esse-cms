@@ -1,6 +1,6 @@
 {
     "name": "esse-base",
-    "version": "1.0.0",
+    "version": "0.1.6-alpha",
     "description": "Bootstrap 5 theme with dark navbar, responsive menu and content layout.",
     "author": "ESSE CMS",
     "class": "EsseBase\\Theme",
