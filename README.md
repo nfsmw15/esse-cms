@@ -54,7 +54,7 @@ Each page has a visibility level:
 - `admin` — admins only
 - or any custom role
 
-Global page targets can be configured under Admin → Einstellungen → Seitenzuordnung. Standard pages such as `/admin/login`, `/registrieren` and `/profil` are available alongside CMS pages and plugin-registered pages.
+Global page targets can be configured under Admin → Einstellungen → Seitenzuordnung. Standard pages such as `/login`, `/registrieren` and `/profil` are available alongside CMS pages and plugin-registered pages.
 
 ---
 

@@ -11,7 +11,7 @@ use Esse\Auth;
 use Esse\DB;
 
 if (!Auth::check()) {
-    header('Location: /admin/login?redirect=/profil');
+    header('Location: /login?redirect=/profil');
     exit;
 }
 

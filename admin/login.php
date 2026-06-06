@@ -120,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="card">
         <div class="card-body p-4">
-            <form method="post" action="/admin/login">
+            <form method="post" action="/login">
                 <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
                 <input type="hidden" name="_form"    value="admin_login">
                 <input type="hidden" name="redirect" value="<?= htmlspecialchars($_GET['redirect'] ?? '') ?>">

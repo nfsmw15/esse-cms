@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if ($done): ?>
         <div class="alert alert-success">
-            Account erstellt! Du kannst dich jetzt <a href="/admin/login">anmelden</a>.
+            Account erstellt! Du kannst dich jetzt <a href="/login">anmelden</a>.
         </div>
         <?php else: ?>
 
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button class="btn btn-primary w-100">Account erstellen</button>
         </form>
         <div class="text-center mt-3">
-            <a href="/admin/login" class="text-secondary small">Bereits registriert? Anmelden</a>
+            <a href="/login" class="text-secondary small">Bereits registriert? Anmelden</a>
         </div>
         <?php endif ?>
     </div>

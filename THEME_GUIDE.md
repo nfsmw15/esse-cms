@@ -330,7 +330,7 @@ $redirect = $_SERVER['REQUEST_URI'] ?? '/';
 <!DOCTYPE html>
 <html lang="de">
 ...
-<form method="post" action="/admin/login">
+<form method="post" action="/login">
     <input type="hidden" name="_csrf"    value="<?= \Esse\Auth::csrfToken() ?>">
     <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirect) ?>">
     <input type="email"    name="login"    autocomplete="username" required>

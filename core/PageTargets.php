@@ -9,7 +9,7 @@ class PageTargets
     public static function corePages(): array
     {
         return [
-            ['slug' => '/admin/login', 'title' => 'Loginseite'],
+            ['slug' => '/login', 'title' => 'Loginseite'],
             ['slug' => '/registrieren', 'title' => 'Registrierungsseite'],
             ['slug' => '/profil', 'title' => 'Profilseite'],
         ];

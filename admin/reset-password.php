@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
     <div class="alert alert-success">
         Passwort erfolgreich geändert. Du kannst dich jetzt anmelden.
     </div>
-    <a href="/admin/login" class="btn btn-primary w-100">Zum Login</a>
+    <a href="/login" class="btn btn-primary w-100">Zum Login</a>
 
     <?php elseif (!$token || !$reset): ?>
     <div class="alert alert-danger">

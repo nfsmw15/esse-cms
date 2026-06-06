@@ -135,7 +135,7 @@ $loginFailed = !empty($_GET['login_error']);
                             E-Mail oder Passwort falsch.
                         </div>
                         <?php endif ?>
-                        <form method="post" action="/admin/login" id="navbar-login-form">
+                        <form method="post" action="/login" id="navbar-login-form">
                             <input type="hidden" name="_csrf"    value="<?= \Esse\Auth::csrfToken() ?>">
                             <input type="hidden" name="redirect" value="<?= htmlspecialchars($_SERVER['REQUEST_URI'] ?? '/') ?>">
                             <div class="mb-2">

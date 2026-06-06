@@ -165,8 +165,8 @@ ob_start();
                             style="cursor:pointer;font-size:.8rem;padding:.35em .6em"
                             data-role="<?= $role['id'] ?>"
                             data-perm="<?= htmlspecialchars($perm['slug']) ?>"
-                            title="<?= htmlspecialchars($perm['description'] ?? $perm['slug']) ?>">
-                        <?= htmlspecialchars($perm['slug']) ?>
+                            title="<?= htmlspecialchars($perm['slug'] . ': ' . ($perm['description'] ?? '')) ?>">
+                        <?= htmlspecialchars($perm['label'] ?? $perm['slug']) ?>
                     </button>
                     <?php endforeach ?>
                 </div>

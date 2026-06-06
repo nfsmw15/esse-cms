@@ -55,13 +55,15 @@ abstract class Plugin
     final protected function registerPage(
         string $slug,
         string $label,
-        string $icon = 'puzzle'
+        string $icon = 'puzzle',
+        string $visibility = ''
     ): void {
         self::$registeredPages[ltrim($slug, '/')] = [
             'slug'        => ltrim($slug, '/'),
             'title'       => $label,
             'icon'        => $icon,
             'plugin_name' => $this->meta['name'] ?? basename($this->basePath()),
+            'visibility'  => $visibility,
         ];
     }
 

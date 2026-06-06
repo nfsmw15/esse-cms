@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         Falls ein Account mit dieser E-Mail-Adresse existiert, wurde ein Reset-Link versendet.
         Bitte prüfe deinen Posteingang.
     </div>
-    <a href="/admin/login" class="btn btn-outline-secondary w-100">Zurück zum Login</a>
+    <a href="/login" class="btn btn-outline-secondary w-100">Zurück zum Login</a>
 
     <?php else: ?>
 
@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
     <div class="text-center mt-3">
-        <a href="/admin/login" class="text-secondary small">Zurück zum Login</a>
+        <a href="/login" class="text-secondary small">Zurück zum Login</a>
     </div>
     <?php endif ?>
 </div>
