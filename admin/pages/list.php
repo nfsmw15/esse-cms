@@ -50,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$slug) { echo json_encode(['error' => 'invalid']); exit; }
 
         $ts = DB::table('settings');
+
         foreach ($allowed as $key) {
             if (in_array($key, $targets, true)) {
                 DB::query(
@@ -64,6 +65,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         echo json_encode(['success' => true, 'assigned' => $targets]); exit;
+    }
+
+    // AJAX: save icon override for plugin/standard page
+    if ($action === 'save_page_icon') {
+        header('Content-Type: application/json');
+        $slug = preg_replace('/[^a-z0-9\-]/', '', ltrim($_POST['slug'] ?? '', '/'));
+        $icon = preg_replace('/[^a-z0-9\-]/', '', trim($_POST['icon'] ?? ''));
+
+        if (!$slug) { echo json_encode(['error' => 'invalid']); exit; }
+
+        PageVisibility::saveIcon($slug, $icon ?: null);
+        echo json_encode(['success' => true, 'icon' => $icon]); exit;
     }
 
     http_response_code(400); exit;
@@ -149,6 +162,22 @@ function visBadge(string $slug, string $pageType, string $vis, array $roles, str
          . "{$label}</span>";
 }
 
+function iconOverrideBadge(string $slug, string $icon, string $title): string
+{
+    $slugH  = htmlspecialchars($slug);
+    $titleJ = htmlspecialchars(addslashes($title));
+    $iconH  = htmlspecialchars($icon);
+
+    $iconHtml = $icon
+        ? "<i class=\"bi bi-{$iconH}\" style=\"font-size:1rem\"></i>"
+        : "<i class=\"bi bi-image text-secondary\" style=\"opacity:.25;font-size:1rem\" title=\"Kein Icon\"></i>";
+
+    return "<span class=\"icon-override-btn me-1\" style=\"cursor:pointer\""
+         . " data-icon-slug=\"{$slugH}\" data-icon-current=\"{$iconH}\""
+         . " onclick=\"openIconModal('{$slugH}','{$titleJ}','{$iconH}')\">"
+         . "{$iconHtml}</span>";
+}
+
 function targetBadge(string $slug, array $slugTargets): string
 {
     $defs     = [
@@ -223,6 +252,11 @@ ob_start();
             ?>
             <tr>
                 <td>
+                    <?php if (!empty($p['icon'])): ?>
+                    <i class="bi bi-<?= htmlspecialchars($p['icon']) ?> me-1"></i>
+                    <?php else: ?>
+                    <i class="bi bi-image text-secondary me-1" style="opacity:.25" title="Kein Icon"></i>
+                    <?php endif ?>
                     <a href="/admin/pages/edit/<?= htmlspecialchars($p['slug']) ?>"
                        class="text-white text-decoration-none fw-semibold">
                         <?= htmlspecialchars($p['title']) ?>
@@ -275,12 +309,14 @@ ob_start();
                 </td>
             </tr>
             <?php foreach ($pluginPages as $pp):
-                $ppVis   = PageVisibility::forPage($pp['slug'], $pp['visibility'] ?: 'public');
-                $ppRoles = $allPageRoles[$pp['slug']] ?? [];
+                $ppVis      = PageVisibility::forPage($pp['slug'], $pp['visibility'] ?: 'public');
+                $ppRoles    = $allPageRoles[$pp['slug']] ?? [];
+                $ppIconRaw  = PageVisibility::stripIconPrefix($pp['icon'] ?? '');
+                $ppIcon     = PageVisibility::getIcon($pp['slug'], $ppIconRaw);
             ?>
             <tr>
                 <td>
-                    <i class="bi <?= htmlspecialchars($pp['icon']) ?> text-secondary me-1"></i>
+                    <?= iconOverrideBadge($pp['slug'], $ppIcon, $pp['title']) ?>
                     <?= htmlspecialchars($pp['title']) ?>
                 </td>
                 <td><code class="text-secondary small">/<?= htmlspecialchars($pp['slug']) ?></code></td>
@@ -310,10 +346,11 @@ ob_start();
             <?php foreach ($standardPages as $sp):
                 $spVis   = PageVisibility::forPage($sp['slug'], $sp['default_vis']);
                 $spRoles = $allPageRoles[$sp['slug']] ?? [];
+                $spIcon  = PageVisibility::getIcon($sp['slug'], $sp['icon']);
             ?>
             <tr>
                 <td>
-                    <i class="bi bi-<?= htmlspecialchars($sp['icon']) ?> text-secondary me-1"></i>
+                    <?= iconOverrideBadge($sp['slug'], $spIcon, $sp['title']) ?>
                     <?= htmlspecialchars($sp['title']) ?>
                 </td>
                 <td><code class="text-secondary small">/<?= htmlspecialchars($sp['slug']) ?></code></td>
@@ -368,6 +405,38 @@ ob_start();
     </div>
 </div>
 
+<!-- ── Icon-Override-Modal ──────────────────────────────────────────────────── -->
+<div class="modal fade" id="iconModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Icon: <span id="im-title" class="text-white"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="im-slug">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text esse-icon-preview px-2"
+                          data-for="im-icon"
+                          style="cursor:pointer;min-width:34px;justify-content:center"
+                          onclick="esseOpenIconPicker(document.getElementById('im-icon'))"
+                          title="Icon wählen">
+                        <i class="bi bi-grid-3x3-gap" style="opacity:.35"></i>
+                    </span>
+                    <input type="text" id="im-icon" class="form-control form-control-sm font-monospace"
+                           placeholder="z.B. people" data-icon-preview="1"
+                           oninput="esseUpdatePreview(this)">
+                </div>
+                <div class="form-text">Leer lassen = Plugin-Standard</div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary btn-sm" id="im-save" onclick="imSave()">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ── Verwendungs-Modal ────────────────────────────────────────────────────── -->
 <div class="modal fade" id="targetModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
@@ -405,6 +474,8 @@ ob_start();
         </div>
     </div>
 </div>
+
+<?php require dirname(__DIR__) . '/partials/icon-picker.php'; ?>
 
 <?php
 $content = ob_get_clean();
@@ -513,6 +584,42 @@ async function tmSave() {
                     : `<span class="text-secondary" style="font-size:.8rem">—</span>`;
             }
             bootstrap.Modal.getInstance(document.getElementById("targetModal")).hide();
+        } else { alert(data.error || "Fehler."); }
+    } finally { btn.disabled = false; }
+}
+
+// ── Icon override modal ───────────────────────────────────────────────────────
+
+function openIconModal(slug, title, currentIcon) {
+    document.getElementById("im-slug").value = slug;
+    document.getElementById("im-title").textContent = title;
+    const input = document.getElementById("im-icon");
+    input.value = currentIcon;
+    esseUpdatePreview(input);
+    new bootstrap.Modal(document.getElementById("iconModal")).show();
+}
+
+async function imSave() {
+    const slug = document.getElementById("im-slug").value;
+    const icon = document.getElementById("im-icon").value.trim();
+    const btn  = document.getElementById("im-save");
+    btn.disabled = true;
+
+    const fd = new FormData();
+    fd.append("_csrf", CSRF); fd.append("_action", "save_page_icon");
+    fd.append("slug", slug); fd.append("icon", icon);
+
+    try {
+        const data = await fetch("/admin/pages", {method:"POST", body:fd}).then(r => r.json());
+        if (data.success) {
+            const el = document.querySelector(`[data-icon-slug="${slug}"]`);
+            if (el) {
+                el.dataset.iconCurrent = icon;
+                el.innerHTML = icon
+                    ? `<i class="bi bi-${icon}" style="font-size:1rem"></i>`
+                    : `<i class="bi bi-image text-secondary" style="opacity:.25;font-size:1rem" title="Kein Icon"></i>`;
+            }
+            bootstrap.Modal.getInstance(document.getElementById("iconModal")).hide();
         } else { alert(data.error || "Fehler."); }
     } finally { btn.disabled = false; }
 }

@@ -366,7 +366,11 @@ ob_start();
                             <span class="drag-handle text-secondary" style="cursor:grab" title="Verschieben">
                                 <i class="bi bi-grip-vertical"></i>
                             </span>
-                            <i class="bi bi-<?= $item['type'] === 'header' ? 'dash-lg' : 'link-45deg' ?> text-secondary"></i>
+                            <?php if (!empty($item['icon'])): ?>
+                            <i class="bi bi-<?= htmlspecialchars($item['icon']) ?>" style="font-size:1rem" title="<?= htmlspecialchars($item['icon']) ?>"></i>
+                            <?php else: ?>
+                            <i class="bi bi-image text-secondary" style="opacity:.25;font-size:1rem" title="Kein Icon"></i>
+                            <?php endif ?>
                             <span class="fw-semibold flex-grow-1 <?= empty($item['active']) ? 'text-decoration-line-through text-secondary' : '' ?>">
                                 <?= htmlspecialchars($item['label']) ?>
                                 <?php if ($item['type'] === 'page' && $item['page_slug']): ?>
@@ -422,6 +426,11 @@ ob_start();
                                 <i class="bi bi-grip-vertical"></i>
                             </span>
                             <i class="bi bi-arrow-return-right text-secondary small"></i>
+                            <?php if (!empty($child['icon'])): ?>
+                            <i class="bi bi-<?= htmlspecialchars($child['icon']) ?>" style="font-size:.9rem" title="<?= htmlspecialchars($child['icon']) ?>"></i>
+                            <?php else: ?>
+                            <i class="bi bi-image text-secondary" style="opacity:.25;font-size:.9rem" title="Kein Icon"></i>
+                            <?php endif ?>
                             <span class="small flex-grow-1 <?= empty($child['active']) ? 'text-decoration-line-through text-secondary' : '' ?>">
                                 <?= htmlspecialchars($child['label']) ?>
                                 <?php if ($child['page_slug']): ?>

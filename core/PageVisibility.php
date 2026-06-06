@@ -43,6 +43,25 @@ class PageVisibility
         return $row !== null ? self::normalize((string) $row) : self::normalize($pluginDefault);
     }
 
+    // Icon override for plugin/standard pages (returns override or pluginDefault).
+    public static function getIcon(string $slug, string $pluginDefault = ''): string
+    {
+        $slug = ltrim($slug, '/');
+        $tv   = DB::table('page_visibility');
+        try {
+            $icon = DB::value("SELECT `icon` FROM `{$tv}` WHERE `slug` = ?", [$slug]);
+            return ($icon !== null && $icon !== '') ? (string) $icon : $pluginDefault;
+        } catch (\Exception) {
+            return $pluginDefault;
+        }
+    }
+
+    // Strip 'bi-' / 'bi bi-' prefix from a plugin-registered icon class to get bare name.
+    public static function stripIconPrefix(string $icon): string
+    {
+        return (string) preg_replace('/^(bi\s+)?bi-/', '', $icon);
+    }
+
     // Allowed roles for a slug (used when visibility = 'roles').
     public static function getRoles(string $slug): array
     {
@@ -96,6 +115,18 @@ class PageVisibility
         self::saveRoles($slug, $visibility, $roles);
     }
 
+    // Save icon override for a plugin/standard page.
+    public static function saveIcon(string $slug, ?string $icon): void
+    {
+        $slug = ltrim($slug, '/');
+        $tv   = DB::table('page_visibility');
+        DB::query(
+            "INSERT INTO `{$tv}` (`slug`, `visibility`, `icon`) VALUES (?, 'public', ?)
+             ON DUPLICATE KEY UPDATE `icon` = VALUES(`icon`)",
+            [$slug, $icon]
+        );
+    }
+
     private static function saveRoles(string $slug, string $visibility, array $roles): void
     {
         $tr = DB::table('page_roles');
@@ -129,8 +160,15 @@ class PageVisibility
         DB::query("CREATE TABLE IF NOT EXISTS `{$tv}` (
             `slug`       VARCHAR(200) NOT NULL,
             `visibility` VARCHAR(20)  NOT NULL DEFAULT 'public',
+            `icon`       VARCHAR(100) NULL,
             PRIMARY KEY (`slug`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        // Add icon column to existing installations
+        $cols = DB::fetchAll("SHOW COLUMNS FROM `{$tv}`");
+        if (!in_array('icon', array_column($cols, 'Field'), true)) {
+            DB::query("ALTER TABLE `{$tv}` ADD COLUMN `icon` VARCHAR(100) NULL");
+        }
 
         // Migrate legacy 'members' → 'registered'
         DB::query("UPDATE `{$tp}` SET `visibility` = 'registered' WHERE `visibility` = 'members'");
