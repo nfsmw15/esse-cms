@@ -9,8 +9,13 @@ use Esse\DB;
 $editSlug ??= null;
 $isEdit   = $editSlug !== null;
 $t        = DB::table('pages');
+$tr       = DB::table('roles');
 $page     = null;
 $errors   = [];
+
+$formRoles = DB::fetchAll(
+    "SELECT `slug`, `label` FROM `{$tr}` WHERE `slug` NOT IN ('forge','guest') ORDER BY `is_default` DESC, `label` ASC"
+);
 
 if ($isEdit) {
     $page = DB::fetch("SELECT * FROM `{$t}` WHERE slug = ?", [$editSlug]);
@@ -20,6 +25,9 @@ if ($isEdit) {
         exit;
     }
 }
+
+$currentVis      = \Esse\PageVisibility::normalize($page['visibility'] ?? 'public');
+$currentVisRoles = $isEdit ? \Esse\PageVisibility::getRoles($page['slug'] ?? '') : [];
 
 // -- POST handling --
 
@@ -33,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $content    = $_POST['content']         ?? '';
         $type       = $_POST['type']            ?? 'standard';
         $visibility = $_POST['visibility']      ?? 'public';
+        $visRoles   = is_array($_POST['vis_roles'] ?? null) ? $_POST['vis_roles'] : [];
         $status     = $_POST['status']          ?? 'draft';
 
         // Normalize slug
@@ -43,9 +52,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$title) $errors[] = 'Titel ist Pflichtfeld.';
         if (!$slug)  $errors[] = 'Slug ist Pflichtfeld.';
 
-        if (!in_array($type,       ['standard', 'php'],            true)) $type       = 'standard';
-        if (!in_array($visibility, ['public', 'members', 'admin'], true)) $visibility = 'public';
-        if (!in_array($status,     ['published', 'draft'],         true)) $status     = 'draft';
+        if (!in_array($type,       ['standard', 'php'],                 true)) $type       = 'standard';
+        if (!in_array($visibility, \Esse\PageVisibility::VALUES,         true)) $visibility = 'public';
+        if (!in_array($status,     ['published', 'draft'],               true)) $status     = 'draft';
+        $visRoles = array_values(array_filter(array_map(
+            fn($r) => preg_replace('/[^a-z0-9\-]/', '', (string) $r),
+            $visRoles
+        )));
 
         // PHP type requires php_upload permission
         if ($type === 'php' && !Auth::can('php_upload')) {
@@ -110,12 +123,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['flash'] = ['type' => 'success', 'message' => "Seite '{$title}' erstellt."];
             }
 
+            \Esse\PageVisibility::saveCmsPage($slug, $visibility, $visRoles);
+
             header('Location: /admin/pages');
             exit;
         }
 
         // Re-populate on error
         $page = array_merge($page ?? [], compact('title', 'slug', 'content', 'type', 'visibility', 'status'));
+        $currentVis      = $visibility;
+        $currentVisRoles = $visRoles;
     }
 }
 
@@ -233,13 +250,29 @@ ob_start();
             <div class="card mb-3">
                 <div class="card-header py-2"><small class="text-secondary">Sichtbarkeit</small></div>
                 <div class="card-body">
-                    <select name="visibility" class="form-select">
-                        <?php foreach (['public' => 'Öffentlich', 'members' => 'Nur Mitglieder', 'admin' => 'Nur Admins'] as $val => $label): ?>
-                        <option value="<?= $val ?>" <?= ($page['visibility'] ?? 'public') === $val ? 'selected' : '' ?>>
-                            <?= $label ?>
+                    <select name="visibility" id="form-vis-select" class="form-select mb-2"
+                            onchange="formUpdateVisRoles()">
+                        <?php foreach (\Esse\PageVisibility::LABELS as $val => $label): ?>
+                        <option value="<?= $val ?>" <?= $currentVis === $val ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($label) ?>
                         </option>
                         <?php endforeach ?>
                     </select>
+                    <div id="form-vis-roles" style="<?= $currentVis === 'roles' ? '' : 'display:none' ?>">
+                        <small class="text-secondary d-block mb-1">Erlaubte Rollen:</small>
+                        <?php foreach ($formRoles as $role): ?>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="vis_roles[]"
+                                   value="<?= htmlspecialchars($role['slug']) ?>"
+                                   id="fvr-<?= htmlspecialchars($role['slug']) ?>"
+                                   <?= in_array($role['slug'], $currentVisRoles, true) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="fvr-<?= htmlspecialchars($role['slug']) ?>">
+                                <?= htmlspecialchars($role['label']) ?>
+                            </label>
+                        </div>
+                        <?php endforeach ?>
+                    </div>
                 </div>
             </div>
 
@@ -274,6 +307,11 @@ ob_start();
 </form>
 
 <script>
+function formUpdateVisRoles() {
+    const panel = document.getElementById('form-vis-roles');
+    if (panel) panel.style.display = document.getElementById('form-vis-select').value === 'roles' ? '' : 'none';
+}
+
 // Auto-generate slug from title (only when slug is still empty or unchanged)
 const titleEl = document.getElementById('title');
 const slugEl  = document.getElementById('slug');

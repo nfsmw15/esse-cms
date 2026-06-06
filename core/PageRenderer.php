@@ -20,12 +20,16 @@ class PageRenderer
         }
 
         // Visibility check
-        $vis = $page['visibility'];
-        if ($vis === 'members' && !Auth::check()) {
-            header('Location: /admin/login');
-            exit;
-        }
-        if ($vis === 'admin' && !Auth::meetsRole('admin')) {
+        $vis = PageVisibility::forCmsPage($page);
+        if (!PageVisibility::check($page['slug'], $vis)) {
+            if ($vis === 'guest_only') {
+                header('Location: /');
+                exit;
+            }
+            if (!Auth::check()) {
+                header('Location: /login?redirect=/' . rawurlencode($page['slug']));
+                exit;
+            }
             Router::abort(403);
             return;
         }
@@ -64,13 +68,30 @@ class PageRenderer
             return;
         }
 
+        $slug = ltrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/', '/');
+
+        // Override table takes precedence over plugin/route default
+        $vis = PageVisibility::forPage($slug, $visibility);
+        if (!PageVisibility::check($slug, $vis)) {
+            if ($vis === 'guest_only') {
+                header('Location: /');
+                exit;
+            }
+            if (!Auth::check()) {
+                header('Location: /login?redirect=/' . rawurlencode($slug));
+                exit;
+            }
+            Router::abort(403);
+            return;
+        }
+
         $fakePage = [
-            'slug'       => ltrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/', '/'),
+            'slug'       => $slug,
             'title'      => $title,
             'icon'       => $icon,
             'content'    => '',
             'type'       => 'standard',
-            'visibility' => $visibility,
+            'visibility' => $vis,
             'status'     => 'published',
         ];
 

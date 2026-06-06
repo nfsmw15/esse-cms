@@ -74,7 +74,7 @@ class Router
                 if (!Auth::check()) {
                     // Not logged in → send to login with redirect back
                     $redirect = urlencode($_SERVER['REQUEST_URI'] ?? '/');
-                    header('Location: /admin/login?redirect=' . $redirect);
+                    header('Location: /login?redirect=' . $redirect);
                     exit;
                 }
                 self::abort(403);
@@ -237,11 +237,7 @@ class Router
 
         if (!$page) return null;
 
-        return match ($page['visibility'] ?? 'public') {
-            'public'  => $page,
-            'members' => Auth::check() ? $page : null,
-            'admin'   => Auth::meetsRole('admin') ? $page : null,
-            default   => Auth::meetsRole((string) $page['visibility']) ? $page : null,
-        };
+        $vis = PageVisibility::forCmsPage($page);
+        return PageVisibility::check($page['slug'] ?? '', $vis) ? $page : null;
     }
 }

@@ -2,6 +2,37 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Rollenbasierte Seitenzugangs-Steuerung**: Neue Sichtbarkeitsoptionen `public`, `guest_only`, `registered`, `roles` ersetzen das bisherige `public/members/admin`-System.
+- **`PageVisibility`-Klasse** (`core/PageVisibility.php`): zentrale Hilfsfunktionen für get/check/save der Sichtbarkeit.
+- **`esse_page_roles`-Tabelle**: ordnet Seiten bestimmten Rollen zu (wenn Sichtbarkeit = `roles`).
+- **`esse_page_visibility`-Tabelle**: speichert Sichtbarkeits-Overrides für Plugin- und Standardseiten.
+- **Admin → Seiten**: drei Abschnitte (CMS-, Plugin-, Standardseiten); Sichtbarkeits-Badge per Klick editierbar ohne Seite zu verlassen.
+- **Standardseiten editierbar**: Sichtbarkeit von `/profil` und `/registrieren` im Admin überschreibbar.
+
+### Changed
+
+- Admin → Seiten-Formular: Sichtbarkeits-Dropdown auf neue Werte umgestellt, mit Rollen-Checkboxen wenn `roles` gewählt.
+- `PageRenderer::renderFile()`: prüft Sichtbarkeit jetzt automatisch über die Override-Tabelle (Plugins und Standardseiten).
+- `Menu::isVisible()`: nutzt `PageVisibility` für alle Seitentypen (CMS, Plugin, Standard).
+- `/profil`-Route: hardcoded Auth-Check entfernt — Sichtbarkeit über `PageVisibility` gesteuert (Standard: `registered`).
+- `/registrieren`-Route: Standard-Sichtbarkeit `guest_only`.
+- Installer: `esse_pages.visibility` von `ENUM` auf `VARCHAR(20)` geändert.
+
+### Migration
+
+- Bestehende Seiten mit `visibility = 'members'` werden automatisch auf `registered` migriert.
+- Bestehende Seiten mit `visibility = 'admin'` werden auf `roles` migriert; `admin`-Rolle wird in `esse_page_roles` eingetragen.
+
+---
+
+## [0.1.7-alpha] - 2026-06-05
+
+---
+
 ## [0.1.7-alpha] - 2026-06-05
 
 ### Added

@@ -257,7 +257,7 @@ function schema(string $p): array
             `icon`       VARCHAR(100) DEFAULT NULL,
             `type`       ENUM('standard','php') NOT NULL DEFAULT 'standard',
             `file_path`  VARCHAR(500) DEFAULT NULL,
-            `visibility` ENUM('public','members','admin') NOT NULL DEFAULT 'public',
+            `visibility` VARCHAR(20) NOT NULL DEFAULT 'public',
             `status`     ENUM('published','draft')        NOT NULL DEFAULT 'draft',
             `author_id`  INT UNSIGNED DEFAULT NULL,
             `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -50,27 +50,28 @@ class Menu
         // Non-page items (URL, header) are always shown
         if ($item['type'] !== 'page') return true;
 
-        $slug = $item['page_slug'] ?? '';
+        $slug = ltrim((string) ($item['page_slug'] ?? ''), '/');
+        if (!$slug) return true;
 
-        // Plugin-registered pages are not in the DB — always show
-        if (Plugin::isPluginSlug($slug)) return true;
+        // Draft CMS pages → hide from menu
+        if (!empty($item['page_status']) && $item['page_status'] !== 'published') return false;
 
-        // Core pages like /admin/login or /registrieren are not stored in the pages table
-        if (str_starts_with((string) $slug, '/')) return true;
+        // Plugin page: override table takes precedence over plugin-registered default
+        if (Plugin::isPluginSlug($slug)) {
+            $pluginDefault = Plugin::getRegisteredPages()[$slug]['visibility'] ?? 'public';
+            $vis = PageVisibility::forPage($slug, PageVisibility::normalize($pluginDefault ?: 'public'));
+            return PageVisibility::check($slug, $vis);
+        }
 
-        // Page not found in DB → show anyway (clicking may 404, admin's responsibility)
-        if (empty($item['page_visibility'])) return true;
+        // Standard pages not in esse_pages (e.g. /login, /registrieren stored as bare slug)
+        if (empty($item['page_visibility'])) {
+            $vis = PageVisibility::forPage($slug, 'public');
+            return PageVisibility::check($slug, $vis);
+        }
 
-        // Draft pages → hide from menu
-        if (($item['page_status'] ?? '') !== 'published') return false;
-
-        // Check visibility for published pages
-        return match ($item['page_visibility']) {
-            'public'  => true,
-            'members' => Auth::check(),
-            'admin'   => Auth::meetsRole('admin'),
-            default   => Auth::meetsRole($item['page_visibility']),
-        };
+        // CMS page — visibility stored in esse_pages
+        $vis = PageVisibility::forCmsPage(['visibility' => $item['page_visibility']]);
+        return PageVisibility::check($slug, $vis);
     }
 
     private static function buildTree(array $rows): array

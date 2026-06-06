@@ -23,28 +23,22 @@ Router::get('/', function () {
 }, ['name' => 'home', 'auth' => 'public']);
 
 
-// Frontend: profile (all logged-in users)
+// Frontend: profile (default: registered — overridable via admin)
 Router::get('/profil', function () {
-    if (!\Esse\Auth::check()) {
-        header('Location: /admin/login?redirect=/profil'); exit;
-    }
-    \Esse\PageRenderer::renderFile(ESSE_ROOT . '/pages/profil.php', 'Mein Profil');
+    \Esse\PageRenderer::renderFile(ESSE_ROOT . '/pages/profil.php', 'Mein Profil', 'registered');
 }, ['name' => 'profil', 'auth' => 'public']);
 
 Router::post('/profil', function () {
-    if (!\Esse\Auth::check()) {
-        header('Location: /admin/login?redirect=/profil'); exit;
-    }
-    \Esse\PageRenderer::renderFile(ESSE_ROOT . '/pages/profil.php', 'Mein Profil');
+    \Esse\PageRenderer::renderFile(ESSE_ROOT . '/pages/profil.php', 'Mein Profil', 'registered');
 }, ['name' => 'profil.post', 'auth' => 'public']);
 
-// Frontend: registration
+// Frontend: registration (default: guest_only — overridable via admin)
 Router::get('/registrieren', function () {
-    \Esse\PageRenderer::renderFile(ESSE_ROOT . '/pages/registrieren.php', 'Registrieren');
+    \Esse\PageRenderer::renderFile(ESSE_ROOT . '/pages/registrieren.php', 'Registrieren', 'guest_only');
 }, ['name' => 'register', 'auth' => 'public']);
 
 Router::post('/registrieren', function () {
-    \Esse\PageRenderer::renderFile(ESSE_ROOT . '/pages/registrieren.php', 'Registrieren');
+    \Esse\PageRenderer::renderFile(ESSE_ROOT . '/pages/registrieren.php', 'Registrieren', 'guest_only');
 }, ['name' => 'register.post', 'auth' => 'public']);
 
 // Frontend: logout (all users)
@@ -58,6 +52,16 @@ Router::post('/abmelden', function () {
 }, ['name' => 'logout', 'auth' => 'public']);
 
 // -- Admin --
+
+Router::get('/login', fn() => require ESSE_ROOT . '/admin/login.php', [
+    'name' => 'login',
+    'auth' => 'public',
+]);
+
+Router::post('/login', fn() => require ESSE_ROOT . '/admin/login.php', [
+    'name' => 'login.post',
+    'auth' => 'public',
+]);
 
 // File upload endpoint (used by editor)
 Router::post('/admin/files/upload', fn() => require ESSE_ROOT . '/admin/files-upload.php', [
@@ -114,8 +118,8 @@ Router::post('/admin/logout', function () {
     if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); exit; }
     \Esse\Auth::logout();
     $ts = \Esse\DB::table('settings');
-    $target = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'logout_page_slug'") ?: '/admin/login';
-    header('Location: ' . \Esse\PageTargets::redirectUrl((string) $target, '/admin/login'));
+    $target = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'logout_page_slug'") ?: '/login';
+    header('Location: ' . \Esse\PageTargets::redirectUrl((string) $target, '/login'));
     exit;
 }, ['name' => 'admin.logout', 'auth' => 'public']);
 
@@ -126,6 +130,11 @@ Router::get('/admin', fn() => require ESSE_ROOT . '/admin/dashboard.php', [
 
 Router::get('/admin/pages', fn() => require ESSE_ROOT . '/admin/pages/list.php', [
     'name' => 'admin.pages',
+    'auth' => 'manage_content',
+]);
+
+Router::post('/admin/pages', fn() => require ESSE_ROOT . '/admin/pages/list.php', [
+    'name' => 'admin.pages.post',
     'auth' => 'manage_content',
 ]);
 
