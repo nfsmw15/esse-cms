@@ -417,6 +417,43 @@ Fehlern zurück zur vorigen Seite statt den Fehler auf `/login` selbst anzuzeige
 `/registrieren` ergänzen — siehe `admin/login.php` als Referenzimplementierung für das
 Standard-Rendering.
 
+### Verwandte Hooks: Passwort vergessen / zurücksetzen
+
+Nach demselben Muster lassen sich auch die beiden Passwort-Seiten anpassen — anders als
+beim Login gibt es hier **keinen Fail-Safe-Alias** (z. B. kein `/admin/...`-Pendant): Die
+Hooks feuern direkt auf `/admin/forgot-password` bzw. `/admin/reset-password`. Das ist
+bewusst so, da diese Seiten weniger kritisch sind als Login — schlägt das Rendering fehl,
+können Admins Passwörter weiterhin manuell über die Benutzerverwaltung zurücksetzen.
+
+**`auth.forgot_password.render`** — Daten:
+
+| Schlüssel | Typ | Inhalt |
+|---|---|---|
+| `sent` | `bool` | Ob die Anfrage erfolgreich verarbeitet wurde (Erfolgsmeldung zeigen) |
+| `errors` | `array` | Fehlermeldungen |
+| `csrfToken` | `string` | CSRF-Token |
+| `captchaQuestion` | `string` | Rechenaufgabe als Text (z. B. `"3 + 5"`), leer wenn `sent` |
+| `honeypotField` | `string` | Feldname für das versteckte Honeypot-Feld (`Captcha::HONEYPOT_FIELD`) |
+| `brandName` / `brandSlogan` | `string` | Branding aus den Einstellungen |
+
+Formular muss `email`, `captcha_answer` (= `{{ captchaQuestion }} = ?`) und das
+Honeypot-Feld (`name="<?= $data['honeypotField'] ?>"`, versteckt, `tabindex="-1"`) an
+`POST /admin/forgot-password` senden — siehe `admin/forgot-password.php` als Referenz.
+
+**`auth.reset_password.render`** — Daten:
+
+| Schlüssel | Typ | Inhalt |
+|---|---|---|
+| `success` | `bool` | Passwort erfolgreich geändert |
+| `errors` | `array` | Fehlermeldungen |
+| `token` | `string` | Reset-Token aus der URL |
+| `valid` | `bool` | Ob der Token gültig/nicht abgelaufen ist |
+| `csrfToken` | `string` | CSRF-Token |
+| `brandName` / `brandSlogan` | `string` | Branding aus den Einstellungen |
+
+Formular muss `password`, `password_confirm` und `token` (verstecktes Feld) an
+`POST /admin/reset-password` senden — siehe `admin/reset-password.php` als Referenz.
+
 ---
 
 ## Theme-Assets ausliefern

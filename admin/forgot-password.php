@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Esse\Auth;
 use Esse\Captcha;
 use Esse\DB;
+use Esse\Hooks;
 use Esse\Mailer;
 
 // Already logged in → redirect
@@ -79,6 +80,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $captchaQuestion = $sent ? '' : Captcha::challenge();
 
+$brandName   = 'ESSE CMS';
+$brandSlogan = '';
+if (defined('ESSE_DB_NAME')) {
+    $ts        = DB::table('settings');
+    $brandRows = array_column(
+        DB::fetchAll("SELECT `key`, `value` FROM `{$ts}` WHERE `key` IN ('site_name', 'site_slogan')"),
+        'value', 'key'
+    );
+    $brandName   = $brandRows['site_name']   ?? $brandName;
+    $brandSlogan = $brandRows['site_slogan'] ?? '';
+}
+
+// Themes dürfen diese Seite im eigenen Design rendern (analog zu auth.login.render).
+if (Hooks::has('auth.forgot_password.render')) {
+    Hooks::fire('auth.forgot_password.render', [
+        'sent'            => $sent,
+        'errors'          => $errors,
+        'csrfToken'       => Auth::csrfToken(),
+        'captchaQuestion' => $captchaQuestion,
+        'honeypotField'   => Captcha::HONEYPOT_FIELD,
+        'brandName'       => $brandName,
+        'brandSlogan'     => $brandSlogan,
+    ]);
+    return;
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="de" data-bs-theme="dark">
@@ -96,7 +123,10 @@ $captchaQuestion = $sent ? '' : Captcha::challenge();
 <body class="d-flex align-items-center justify-content-center vh-100">
 <div style="width:100%;max-width:400px;padding:1rem">
     <div class="text-center mb-4">
-        <div class="brand text-white">ESSE CMS</div>
+        <div class="brand text-white"><?= htmlspecialchars($brandName) ?></div>
+        <?php if ($brandSlogan !== ''): ?>
+        <small class="text-secondary d-block"><?= htmlspecialchars($brandSlogan) ?></small>
+        <?php endif ?>
         <small class="text-secondary">Passwort zurücksetzen</small>
     </div>
 

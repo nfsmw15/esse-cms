@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\Hooks;
 
 if (Auth::check()) {
     header('Location: /admin');
@@ -44,6 +45,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
     }
 }
 
+$brandName   = 'ESSE CMS';
+$brandSlogan = '';
+if (defined('ESSE_DB_NAME')) {
+    $ts        = DB::table('settings');
+    $brandRows = array_column(
+        DB::fetchAll("SELECT `key`, `value` FROM `{$ts}` WHERE `key` IN ('site_name', 'site_slogan')"),
+        'value', 'key'
+    );
+    $brandName   = $brandRows['site_name']   ?? $brandName;
+    $brandSlogan = $brandRows['site_slogan'] ?? '';
+}
+
+// Themes dürfen diese Seite im eigenen Design rendern (analog zu auth.login.render).
+if (Hooks::has('auth.reset_password.render')) {
+    Hooks::fire('auth.reset_password.render', [
+        'success'     => $success,
+        'errors'      => $errors,
+        'token'       => $token,
+        'valid'       => (bool) ($token && $reset),
+        'csrfToken'   => Auth::csrfToken(),
+        'brandName'   => $brandName,
+        'brandSlogan' => $brandSlogan,
+    ]);
+    return;
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="de" data-bs-theme="dark">
@@ -61,7 +88,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
 <body class="d-flex align-items-center justify-content-center vh-100">
 <div style="width:100%;max-width:400px;padding:1rem">
     <div class="text-center mb-4">
-        <div class="brand text-white">ESSE CMS</div>
+        <div class="brand text-white"><?= htmlspecialchars($brandName) ?></div>
+        <?php if ($brandSlogan !== ''): ?>
+        <small class="text-secondary d-block"><?= htmlspecialchars($brandSlogan) ?></small>
+        <?php endif ?>
         <small class="text-secondary">Neues Passwort setzen</small>
     </div>
 
