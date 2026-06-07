@@ -2,19 +2,24 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
-## [Unreleased]
+## [0.1.8-alpha] - 2026-06-07
 
 ### Added
 
 - **Rollenbasierte Seitenzugangs-Steuerung**: Neue Sichtbarkeitsoptionen `public`, `guest_only`, `registered`, `roles` ersetzen das bisherige `public/members/admin`-System.
-- **`PageVisibility`-Klasse** (`core/PageVisibility.php`): zentrale Hilfsfunktionen für get/check/save der Sichtbarkeit.
+- **`PageVisibility`-Klasse** (`core/PageVisibility.php`): zentrale Hilfsfunktionen für get/check/save der Sichtbarkeit sowie für Icon-Overrides.
 - **`esse_page_roles`-Tabelle**: ordnet Seiten bestimmten Rollen zu (wenn Sichtbarkeit = `roles`).
-- **`esse_page_visibility`-Tabelle**: speichert Sichtbarkeits-Overrides für Plugin- und Standardseiten.
-- **Admin → Seiten**: drei Abschnitte (CMS-, Plugin-, Standardseiten); Sichtbarkeits-Badge per Klick editierbar ohne Seite zu verlassen.
+- **`esse_page_visibility`-Tabelle**: speichert Sichtbarkeits- und Icon-Overrides für Plugin- und Standardseiten (inkl. neuer `icon`-Spalte).
+- **Admin → Seiten**: komplett überarbeitet — eine einheitliche Tabelle für CMS-, Plugin- und Standardseiten mit Abschnitts-Trennzeilen, sodass gleichartige Spalten (Titel, Slug, Sichtbarkeit, Verwendung, Status) untereinander ausgerichtet sind. Sichtbarkeit, Seitenzuordnung (Startseite, Startseite nach Login, Logout-, Fehlerseite) und Icon sind direkt als klickbare Badges inline editierbar (Modal + AJAX, kein Neuladen).
 - **Standardseiten editierbar**: Sichtbarkeit von `/profil` und `/registrieren` im Admin überschreibbar.
+- **Icon-Anzeige**: Zugewiesene Icons werden jetzt in `/admin/pages` und `/admin/menus/edit/` direkt angezeigt — auf einen Blick erkennbar, ob/welches Icon eine Seite oder ein Menüpunkt hat.
+- **Icon-Override für Plugin-/Standardseiten**: Admins können Icons für Plugin- und Standardseiten setzen oder überschreiben, ohne den Plugin-Code anzufassen — auch wenn das Plugin selbst kein Icon mitbringt.
+- **Login-abhängige Startseite**: `/` löst jetzt dynamisch auf — nicht eingeloggte Besucher landen auf der konfigurierten `homepage_slug`, eingeloggte auf `login_homepage_slug` (mit Fallback auf die allgemeine Startseite). Betrifft auch alle "Zur Website"-Links im Admin-Menü und den Startseite-Button auf der Fehlerseite, da diese auf `/` zeigen.
+- **LICENSE**-Datei (AGPL-3.0) ergänzt — war in README/PLUGIN_GUIDE bereits referenziert, fehlte aber im Repo.
 
 ### Changed
 
+- **Updater**: README.md, CHANGELOG.md, PLUGIN_GUIDE.md und THEME_GUIDE.md werden bei In-App-Updates nicht mehr auf bestehenden Instanzen überschrieben/neu erzeugt (bleiben aber Teil des Release-ZIPs für Neuinstallationen). LICENSE bleibt bewusst ausgenommen und wird weiterhin aktuell gehalten.
 - Admin → Seiten-Formular: Sichtbarkeits-Dropdown auf neue Werte umgestellt, mit Rollen-Checkboxen wenn `roles` gewählt.
 - `PageRenderer::renderFile()`: prüft Sichtbarkeit jetzt automatisch über die Override-Tabelle (Plugins und Standardseiten).
 - `Menu::isVisible()`: nutzt `PageVisibility` für alle Seitentypen (CMS, Plugin, Standard).
@@ -22,14 +27,17 @@ All notable changes to ESSE CMS will be documented in this file.
 - `/registrieren`-Route: Standard-Sichtbarkeit `guest_only`.
 - Installer: `esse_pages.visibility` von `ENUM` auf `VARCHAR(20)` geändert.
 
+### Fixed
+
+- **`/`-Route**: Die Entscheidung „Seite direkt rendern oder weiterleiten" basiert jetzt darauf, ob tatsächlich eine veröffentlichte CMS-Seite mit dem konfigurierten Slug existiert — vorher führte ein als Startseite konfigurierter Standard- oder Plugin-Slug ohne führenden Slash (z. B. `login`) zu einem 404, weil versucht wurde, ihn als CMS-Seite zu rendern.
+- **Slug-Sanitisierung** in den Badge-Speicher-Endpunkten (`save_visibility`, `save_page_target`, `save_page_icon`) entfernte versehentlich `/` aus Slugs und zerstörte dadurch mehrteilige Plugin-Pfade wie `mumble/dashboard` (z. B. zu `mumbledashboard`).
+- Icon-Anzeige für Plugin-Seiten: fehlerhaftes Entfernen des `bi-`-Präfixes per `ltrim()` (entfernte einzelne passende Zeichen statt des Präfixes) mangelte Icon-Namen wie `bi-info-circle` zu `nfo-circle` — durch `PageVisibility::stripIconPrefix()` mit korrektem Pattern ersetzt.
+
 ### Migration
 
 - Bestehende Seiten mit `visibility = 'members'` werden automatisch auf `registered` migriert.
 - Bestehende Seiten mit `visibility = 'admin'` werden auf `roles` migriert; `admin`-Rolle wird in `esse_page_roles` eingetragen.
-
----
-
-## [0.1.7-alpha] - 2026-06-05
+- `esse_page_visibility`: neue `icon`-Spalte wird bei bestehenden Installationen automatisch per `ALTER TABLE` ergänzt.
 
 ---
 
