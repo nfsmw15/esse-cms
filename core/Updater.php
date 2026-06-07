@@ -12,6 +12,12 @@ class Updater
         'local.php',
         'storage/',
         'install/installed.lock',
+        // Doku-Dateien: bleiben für Neuinstallationen im Release-ZIP, werden aber auf
+        // bestehenden Instanzen nicht bei jedem Update neu auf den Live-Server kopiert
+        'README.md',
+        'CHANGELOG.md',
+        'PLUGIN_GUIDE.md',
+        'THEME_GUIDE.md',
     ];
 
     // -- Update check --
