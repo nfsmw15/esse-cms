@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // AJAX: toggle page visibility
     if ($action === 'save_visibility') {
         header('Content-Type: application/json');
-        $slug     = preg_replace('/[^a-z0-9\-]/', '', ltrim($_POST['slug'] ?? '', '/'));
+        $slug     = preg_replace('#[^a-z0-9\-/]#', '', ltrim($_POST['slug'] ?? '', '/'));
         $pageType = $_POST['page_type'] ?? 'cms';
         $vis      = $_POST['visibility'] ?? 'public';
         $roles    = is_array($_POST['roles'] ?? null) ? $_POST['roles'] : [];
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // AJAX: assign page targets (Startseite, Login-Start, Logout, Fehler)
     if ($action === 'save_page_target') {
         header('Content-Type: application/json');
-        $slug    = preg_replace('/[^a-z0-9\-]/', '', ltrim($_POST['slug'] ?? '', '/'));
+        $slug    = preg_replace('#[^a-z0-9\-/]#', '', ltrim($_POST['slug'] ?? '', '/'));
         $targets = is_array($_POST['targets'] ?? null) ? $_POST['targets'] : [];
 
         $allowed = ['homepage_slug', 'login_homepage_slug', 'logout_page_slug', 'error_page_slug'];
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // AJAX: save icon override for plugin/standard page
     if ($action === 'save_page_icon') {
         header('Content-Type: application/json');
-        $slug = preg_replace('/[^a-z0-9\-]/', '', ltrim($_POST['slug'] ?? '', '/'));
+        $slug = preg_replace('#[^a-z0-9\-/]#', '', ltrim($_POST['slug'] ?? '', '/'));
         $icon = preg_replace('/[^a-z0-9\-]/', '', trim($_POST['icon'] ?? ''));
 
         if (!$slug) { echo json_encode(['error' => 'invalid']); exit; }

@@ -8,14 +8,33 @@ use Esse\Router;
 
 Router::get('/', function () {
     $ts   = \Esse\DB::table('settings');
-    $slug = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'homepage_slug'");
+    $rows = array_column(
+        \Esse\DB::fetchAll("SELECT `key`, `value` FROM `{$ts}` WHERE `key` IN ('homepage_slug', 'login_homepage_slug')"),
+        'value', 'key'
+    );
+
+    // Logged-in users get the configured post-login homepage (fallback: general homepage)
+    $slug = (\Esse\Auth::check() && !empty($rows['login_homepage_slug']))
+        ? $rows['login_homepage_slug']
+        : ($rows['homepage_slug'] ?? null);
+
     if ($slug) {
         $slug = (string) $slug;
-        if (str_starts_with($slug, '/') || \Esse\Plugin::isPluginSlug($slug)) {
+        $bare = ltrim($slug, '/');
+        $tp   = \Esse\DB::table('pages');
+        $isCmsPage = (bool) \Esse\DB::value(
+            "SELECT 1 FROM `{$tp}` WHERE `slug` = ? AND `status` = 'published'",
+            [$bare]
+        );
+
+        if ($isCmsPage) {
+            // Render CMS pages directly so the URL stays '/'
+            \Esse\PageRenderer::render($bare);
+        } else {
+            // Standard pages (login, profil, …), plugin pages, etc. live at their own route
             header('Location: ' . \Esse\PageTargets::redirectUrl($slug, '/'));
             exit;
         }
-        \Esse\PageRenderer::render($slug);
     } else {
         echo '<p style="font-family:sans-serif;padding:2rem">ESSE CMS — Startseite nicht konfiguriert. '
            . '<a href="/admin/settings">Einstellungen öffnen</a></p>';
