@@ -28,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $save = [
         'site_name'        => trim($_POST['site_name']        ?? ''),
+        'site_slogan'      => trim($_POST['site_slogan']      ?? ''),
         'site_url'         => rtrim(trim($_POST['site_url']   ?? ''), '/'),
         'admin_email'           => trim($_POST['admin_email']           ?? ''),
         'registration_enabled'  => isset($_POST['registration_enabled']) ? '1' : '0',
@@ -86,6 +87,12 @@ ob_start();
                         <label class="form-label">Seitenname</label>
                         <input type="text" name="site_name" class="form-control"
                                value="<?= htmlspecialchars($settings['site_name'] ?? '') ?>" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Slogan</label>
+                        <input type="text" name="site_slogan" class="form-control"
+                               value="<?= htmlspecialchars($settings['site_slogan'] ?? '') ?>">
+                        <div class="form-text">Optional — wird unter dem Seitennamen angezeigt (Login, Admin-Bereich). Leer lassen, um nichts anzuzeigen.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">URL</label>
@@ -194,15 +201,6 @@ ob_start();
                         <span class="text-success ms-1"><i class="bi bi-check-circle"></i> Token gespeichert</span>
                         <?php endif ?>
                     </div>
-                </div>
-            </div>
-
-            <div class="card mb-4 border-secondary">
-                <div class="card-body py-2 d-flex align-items-center justify-content-between">
-                    <small class="text-secondary">Theme &amp; Menüpositionen</small>
-                    <a href="/admin/themes" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-palette"></i> Themes verwalten
-                    </a>
                 </div>
             </div>
 

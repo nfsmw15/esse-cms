@@ -1,3 +1,16 @@
+<?php
+$brandName   = 'ESSE CMS';
+$brandSlogan = '';
+if (defined('ESSE_DB_NAME')) {
+    $ts        = \Esse\DB::table('settings');
+    $brandRows = array_column(
+        \Esse\DB::fetchAll("SELECT `key`, `value` FROM `{$ts}` WHERE `key` IN ('site_name', 'site_slogan')"),
+        'value', 'key'
+    );
+    $brandName   = $brandRows['site_name']   ?? $brandName;
+    $brandSlogan = $brandRows['site_slogan'] ?? '';
+}
+?>
 <!DOCTYPE html>
 <html lang="de" data-bs-theme="dark">
 <head>
@@ -128,7 +141,7 @@
 
 <div id="sidebar">
     <div class="brand">
-        ESSE CMS <small>forge your web.</small>
+        <?= htmlspecialchars($brandName) ?><?php if ($brandSlogan !== ''): ?> <small><?= htmlspecialchars($brandSlogan) ?></small><?php endif ?>
         <a href="/"
            class="text-decoration-none"
            style="font-size:.7rem;font-weight:400;letter-spacing:.02em;color:#555;display:block;margin-top:.15rem">

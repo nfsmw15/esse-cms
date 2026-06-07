@@ -77,6 +77,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$brandName   = 'ESSE CMS';
+$brandSlogan = '';
+if (defined('ESSE_DB_NAME')) {
+    $ts          = DB::table('settings');
+    $brandRows   = array_column(
+        DB::fetchAll("SELECT `key`, `value` FROM `{$ts}` WHERE `key` IN ('site_name', 'site_slogan')"),
+        'value', 'key'
+    );
+    $brandName   = $brandRows['site_name']   ?? $brandName;
+    $brandSlogan = $brandRows['site_slogan'] ?? '';
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="de" data-bs-theme="dark">
@@ -97,8 +109,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="d-flex align-items-center justify-content-center vh-100">
 <div style="width:100%;max-width:380px;padding:1rem">
     <div class="text-center mb-4">
-        <div class="brand text-white">ESSE CMS</div>
-        <small class="text-secondary">forge your web.</small>
+        <div class="brand text-white"><?= htmlspecialchars($brandName) ?></div>
+        <?php if ($brandSlogan !== ''): ?>
+        <small class="text-secondary"><?= htmlspecialchars($brandSlogan) ?></small>
+        <?php endif ?>
     </div>
     <?php
     // Show "back to website" only if there is a public homepage (not dashboard theme)

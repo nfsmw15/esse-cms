@@ -2,6 +2,22 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **CAPTCHA-Schutz** (`core/Captcha.php`): leichtgewichtiger, selbst gehosteter Spam-Schutz für Registrierung und „Passwort vergessen" — Rechenaufgabe + verstecktes Honeypot-Feld + Mindest-Ausfüllzeit (3s). Bewusst kein Bild-CAPTCHA: moderne OCR/KI liest verzerrten Text ohnehin mühelos, der Sicherheitsgewinn wäre real null, der Accessibility-Nachteil aber konkret.
+- **Konfigurierbarer Site-Slogan** (`site_slogan`-Setting in Admin → Einstellungen): optionaler Untertitel unter dem Seitennamen in Login und Admin-Sidebar — bleibt das Feld leer, wird nichts angezeigt.
+
+### Changed
+
+- Admin-Login (`admin/login.php`) und Admin-Sidebar (`admin/layout.php`) zeigen jetzt den konfigurierten `site_name`/`site_slogan` statt fest „ESSE CMS"/„forge your web." — wichtig für produktive Instanzen mit eigenem Markennamen. Der Installer (`install/index.php`) behält bewusst das ESSE-CMS-eigene Branding, da dort noch keine Site konfiguriert ist.
+- Einstellungen: redundante Karte „Theme & Menüpositionen" entfernt (Themes sind direkt über die Admin-Navigation unter „Themes verwalten" erreichbar).
+
+### Fixed
+
+- CHANGELOG: veralteter Hinweis „Repo-based plugin/theme install (apt-style) not yet implemented" aus „Known Issues / Alpha Limitations" entfernt — das Feature ist bereits seit v0.1.1-alpha implementiert und dort dokumentiert.
+
 ## [0.1.8-alpha] - 2026-06-07
 
 ### Added
@@ -297,6 +313,5 @@ Initial alpha release. Core systems are functional.
 
 - Summernote editor: minor tooltip warnings in browser console (cosmetic, does not affect functionality)
 - Menu drag & drop: same-level reorder works; cross-level requires indent/dedent buttons
-- Repo-based plugin/theme install (apt-style) not yet implemented
 - File manager (browse existing uploads) not yet implemented
 - esse-download, esse-gallery and other plugins not yet ported

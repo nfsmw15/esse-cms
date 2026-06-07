@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\Captcha;
 use Esse\DB;
 use Esse\Mailer;
 
@@ -24,12 +25,16 @@ $_SESSION['password_reset_requests'] = array_values(array_filter(
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
 
-    $email = trim($_POST['email'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
+    $captchaA = trim($_POST['captcha_answer'] ?? '');
+    $honeypot = trim($_POST[Captcha::HONEYPOT_FIELD] ?? '');
 
     if (count($_SESSION['password_reset_requests']) >= 3) {
         $errors[] = 'Zu viele Anfragen. Bitte warte einige Minuten.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Bitte eine gültige E-Mail-Adresse eingeben.';
+    } elseif (!Captcha::verify($captchaA, $honeypot)) {
+        $errors[] = 'Sicherheitsfrage falsch beantwortet oder zu schnell abgeschickt. Bitte erneut versuchen.';
     } else {
         $_SESSION['password_reset_requests'][] = $now;
         $tu   = DB::table('users');
@@ -71,6 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sent = true;
     }
 }
+
+$captchaQuestion = $sent ? '' : Captcha::challenge();
 
 ?>
 <!DOCTYPE html>
@@ -118,6 +125,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="mb-3">
                     <label class="form-label">E-Mail</label>
                     <input type="email" name="email" class="form-control" autocomplete="username" autofocus required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><?= htmlspecialchars($captchaQuestion) ?> = ?</label>
+                    <input type="text" name="captcha_answer" class="form-control" inputmode="numeric"
+                           autocomplete="off" required>
+                </div>
+                <div style="position:absolute;left:-9999px" aria-hidden="true">
+                    <label for="fp-website">Website</label>
+                    <input type="text" id="fp-website" name="<?= Captcha::HONEYPOT_FIELD ?>"
+                           tabindex="-1" autocomplete="off">
                 </div>
                 <button class="btn btn-primary w-100">Link senden</button>
             </form>
