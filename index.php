@@ -26,6 +26,13 @@ spl_autoload_register(function (string $class): void {
         $name = substr($class, strlen('PHPMailer\\PHPMailer\\'));
         $path = ESSE_ROOT . '/vendor/phpmailer/src/' . $name . '.php';
         if (file_exists($path)) require_once $path;
+        return;
+    }
+    // report-uri/passkeys-php: ReportUri\Passkeys\Binary\ByteBuffer → vendor/webauthn/src/Binary/ByteBuffer.php
+    if (str_starts_with($class, 'ReportUri\\Passkeys\\')) {
+        $name = substr($class, strlen('ReportUri\\Passkeys\\'));
+        $path = ESSE_ROOT . '/vendor/webauthn/src/' . str_replace('\\', '/', $name) . '.php';
+        if (file_exists($path)) require_once $path;
     }
 });
 

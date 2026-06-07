@@ -61,6 +61,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: ' . ($redirect !== '' ? sanitizeRedirect($redirect) : configuredLoginTarget()));
             exit;
         }
+
+        // Passwort korrekt, aber TOTP als zweiter Faktor erforderlich — Auth::attempt()
+        // hat das in der Session vermerkt. Kein Fehlversuch, sondern Weiterleitung zur Prüfung.
+        if (!empty($_SESSION['esse_2fa_uid'])) {
+            unset($_SESSION['login_failures'], $_SESSION['login_block_until']);
+            $redirect = trim($_POST['redirect'] ?? $_GET['redirect'] ?? '');
+            $target   = '/admin/verify-2fa';
+            if ($redirect !== '') $target .= '?redirect=' . rawurlencode(sanitizeRedirect($redirect));
+            header('Location: ' . $target);
+            exit;
+        }
+
         $_SESSION['login_failures']++;
         if ($_SESSION['login_failures'] >= 5) {
             $_SESSION['login_block_until'] = $now + 60;
@@ -171,6 +183,18 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.login.render'))
                 </div>
                 <button class="btn btn-primary w-100">Anmelden</button>
             </form>
+
+            <div class="d-none mt-3" id="passkey-login-block">
+                <div class="d-flex align-items-center my-3">
+                    <hr class="border-secondary flex-grow-1 my-0">
+                    <span class="text-secondary small mx-2">oder</span>
+                    <hr class="border-secondary flex-grow-1 my-0">
+                </div>
+                <button type="button" id="passkey-login-btn" class="btn btn-outline-light w-100">
+                    <i class="bi bi-fingerprint me-1"></i>Mit Passkey anmelden
+                </button>
+                <div class="text-danger small mt-2 d-none" id="passkey-login-error"></div>
+            </div>
         </div>
     </div>
     <div class="text-center mt-3 d-flex justify-content-center gap-3">
@@ -228,5 +252,31 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.login.render'))
     </div>
 </footer>
 <?php endif ?>
+<script src="/public/assets/js/webauthn.js"></script>
+<script>
+(function () {
+    const btn   = document.getElementById('passkey-login-btn');
+    const block = document.getElementById('passkey-login-block');
+    const error = document.getElementById('passkey-login-error');
+    if (!btn || !block || !window.EsseWebAuthn || !EsseWebAuthn.isSupported()) return;
+
+    block.classList.remove('d-none');
+
+    btn.addEventListener('click', async function () {
+        error.classList.add('d-none');
+        btn.disabled = true;
+        btn.textContent = 'Warte auf Passkey …';
+        try {
+            const result = await EsseWebAuthn.login(<?= json_encode(Auth::csrfToken()) ?>, <?= json_encode($_GET['redirect'] ?? '') ?>);
+            window.location.href = result.redirect || '/';
+        } catch (e) {
+            error.textContent = e.message || 'Anmeldung mit Passkey fehlgeschlagen.';
+            error.classList.remove('d-none');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-fingerprint me-1"></i>Mit Passkey anmelden';
+        }
+    });
+})();
+</script>
 </body>
 </html>

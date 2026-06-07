@@ -116,6 +116,90 @@ Router::post('/admin/reset-password', fn() => require ESSE_ROOT . '/admin/reset-
     'auth' => 'public',
 ]);
 
+// Klassisches 2FA-Gate (TOTP + Backup-Codes) — Zwischenschritt nach korrektem Passwort
+Router::get('/admin/verify-2fa', fn() => require ESSE_ROOT . '/admin/verify-2fa.php', [
+    'name' => 'admin.verify_2fa',
+    'auth' => 'public',
+]);
+Router::post('/admin/verify-2fa', fn() => require ESSE_ROOT . '/admin/verify-2fa.php', [
+    'name' => 'admin.verify_2fa.post',
+    'auth' => 'public',
+]);
+
+// -- Passkey/WebAuthn JSON-Endpunkte (Muster siehe admin/files-upload.php) --
+// 'auth' => 'public': Registrierung wird intern per Auth::check() abgesichert (Nutzer muss
+// eingeloggt sein, um einen Passkey hinzuzufügen); die passwortlose Anmeldung kennt den Nutzer
+// naturgemäß noch nicht — Identifikation läuft erst über die zurückgegebene credential_id.
+
+Router::post('/admin/passkey/register-options', function () {
+    header('Content-Type: application/json');
+    if (!\Esse\Auth::check())      { http_response_code(403); echo json_encode(['error' => 'Nicht eingeloggt.']); return; }
+    if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); echo json_encode(['error' => 'Ungültige Anfrage.']); return; }
+    try {
+        echo json_encode(\Esse\WebAuthn::registrationOptions(\Esse\Auth::user()));
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Passkey-Registrierung momentan nicht möglich.']);
+    }
+}, ['name' => 'admin.passkey.register_options', 'auth' => 'public']);
+
+Router::post('/admin/passkey/register-verify', function () {
+    header('Content-Type: application/json');
+    if (!\Esse\Auth::check())      { http_response_code(403); echo json_encode(['error' => 'Nicht eingeloggt.']); return; }
+    if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); echo json_encode(['error' => 'Ungültige Anfrage.']); return; }
+
+    $body       = json_decode((string) file_get_contents('php://input'), true) ?: [];
+    $label      = trim((string) ($body['label'] ?? ''));
+    $credential = $body['credential'] ?? null;
+    if (!is_array($credential)) { echo json_encode(['error' => 'Ungültige Antwort des Browsers.']); return; }
+
+    try {
+        \Esse\WebAuthn::verifyRegistration(\Esse\Auth::user(), $credential, $label);
+        echo json_encode(['ok' => true]);
+    } catch (\Throwable $e) {
+        echo json_encode(['error' => 'Registrierung fehlgeschlagen. Bitte erneut versuchen.']);
+    }
+}, ['name' => 'admin.passkey.register_verify', 'auth' => 'public']);
+
+Router::post('/admin/passkey/auth-options', function () {
+    header('Content-Type: application/json');
+    if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); echo json_encode(['error' => 'Ungültige Anfrage.']); return; }
+    try {
+        echo json_encode(\Esse\WebAuthn::passwordlessAuthOptions());
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Passkey-Anmeldung momentan nicht möglich.']);
+    }
+}, ['name' => 'admin.passkey.auth_options', 'auth' => 'public']);
+
+Router::post('/admin/passkey/auth-verify', function () {
+    header('Content-Type: application/json');
+    if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); echo json_encode(['error' => 'Ungültige Anfrage.']); return; }
+
+    $body       = json_decode((string) file_get_contents('php://input'), true) ?: [];
+    $credential = $body['credential'] ?? null;
+    if (!is_array($credential)) { echo json_encode(['error' => 'Ungültige Antwort des Browsers.']); return; }
+
+    $user = \Esse\WebAuthn::verifyPasswordlessAuth($credential);
+    if (!$user) { echo json_encode(['error' => 'Passkey-Anmeldung fehlgeschlagen.']); return; }
+
+    \Esse\Auth::login($user);
+
+    $redirect = trim((string) ($body['redirect'] ?? ''));
+    $target   = ($redirect !== '' && str_starts_with($redirect, '/') && !str_starts_with($redirect, '//'))
+        ? $redirect
+        : null;
+    if (!$target) {
+        $ts   = \Esse\DB::table('settings');
+        $slug = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'login_homepage_slug'") ?: '/';
+        $target = \Esse\PageTargets::redirectUrl((string) $slug, '/');
+    }
+    echo json_encode(['ok' => true, 'redirect' => $target]);
+}, ['name' => 'admin.passkey.auth_verify', 'auth' => 'public']);
+
+// Umbenennen/Entfernen laufen über den bestehenden POST-Handler von /profil
+// (Aktionen 'passkey_rename' / 'passkey_remove') — kein eigenes JSON-Routing nötig.
+
 Router::post('/admin/settings/test-mail', function () {
     if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); exit; }
     if (!\Esse\Auth::can('manage_settings')) { http_response_code(403); exit; }

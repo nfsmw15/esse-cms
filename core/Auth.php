@@ -90,6 +90,16 @@ class Auth
             DB::update($t, ['password' => password_hash($password, PASSWORD_BCRYPT)], ['id' => $user['id']]);
         }
 
+        // Klassisches 2FA-Gate: TOTP ist ein zweiter Faktor zum Passwort — der Login ist
+        // nach korrektem Passwort noch nicht abgeschlossen, sondern wartet auf den TOTP-/
+        // Backup-Code-Schritt in admin/verify-2fa.php (Passkeys laufen unabhängig davon,
+        // siehe WebAuthn::verifyPasswordlessAuth — die ersetzen Passwort UND TOTP).
+        if (TwoFactor::isEnabled($user)) {
+            $_SESSION['esse_2fa_uid'] = $user['id'];
+            $_SESSION['esse_2fa_at']  = time();
+            return false;
+        }
+
         self::login($user);
         return true;
     }
@@ -221,6 +231,7 @@ class Auth
                 }
             }
             PageVisibility::migrateDb();
+            TwoFactor::migrateDb();
             self::$defaultsSynced = true;
         } catch (\Throwable) {
             // Installer or partial migrations may not have permission tables yet.
