@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\Hooks;
 use Esse\Menu;
 
 // Sanitize redirect — only allow same-site paths
@@ -87,6 +88,28 @@ if (defined('ESSE_DB_NAME')) {
     );
     $brandName   = $brandRows['site_name']   ?? $brandName;
     $brandSlogan = $brandRows['site_slogan'] ?? '';
+}
+
+// Themes dürfen die Gestaltung von /login übernehmen — /admin/login bleibt IMMER beim
+// Standard-Rendering (Fail-Safe-Notausgang, falls ein Theme defekt ist oder deaktiviert wird).
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.login.render')) {
+    $registrationEnabled = false;
+    if (defined('ESSE_DB_NAME')) {
+        $ts = DB::table('settings');
+        $registrationEnabled = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'registration_enabled'") === '1';
+    }
+
+    Hooks::fire('auth.login.render', [
+        'error'               => $error,
+        'redirect'            => trim($_GET['redirect'] ?? $_POST['redirect'] ?? ''),
+        'csrfToken'           => Auth::csrfToken(),
+        'brandName'           => $brandName,
+        'brandSlogan'         => $brandSlogan,
+        'footMenu'            => $footMenu,
+        'registrationEnabled' => $registrationEnabled,
+    ]);
+    return;
 }
 
 ?>

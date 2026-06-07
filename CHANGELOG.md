@@ -8,6 +8,7 @@ All notable changes to ESSE CMS will be documented in this file.
 
 - **CAPTCHA-Schutz** (`core/Captcha.php`): leichtgewichtiger, selbst gehosteter Spam-Schutz für Registrierung und „Passwort vergessen" — Rechenaufgabe + verstecktes Honeypot-Feld + Mindest-Ausfüllzeit (3s). Bewusst kein Bild-CAPTCHA: moderne OCR/KI liest verzerrten Text ohnehin mühelos, der Sicherheitsgewinn wäre real null, der Accessibility-Nachteil aber konkret.
 - **Konfigurierbarer Site-Slogan** (`site_slogan`-Setting in Admin → Einstellungen): optionaler Untertitel unter dem Seitennamen in Login und Admin-Sidebar — bleibt das Feld leer, wird nichts angezeigt.
+- **Theme-Hook `auth.login.render`**: Themes können `/login` jetzt vollständig im eigenen Design rendern (z.B. um es ins Frontend-Layout statt ins Admin-Look einzubetten). Die zentrale Auth-Logik (CSRF, Rate-Limiting, `Auth::attempt()`, Redirect-Auflösung) bleibt unverändert in `admin/login.php` — Themes übernehmen ausschließlich das Rendering. `/admin/login` ignoriert den Hook bewusst und bleibt als Fail-Safe-Notausgang immer beim Standard-Formular, falls ein Theme defekt ist oder deaktiviert wird. Dokumentiert in THEME_GUIDE.md („Eigene Login-Seite gestalten").
 
 ### Changed
 

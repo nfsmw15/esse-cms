@@ -8,8 +8,7 @@ themes/mein-theme/
 ├── Theme.php           ← Pflicht: PHP-Klasse
 ├── templates/
 │   ├── layout.php      ← Pflicht: Haupt-Layout
-│   ├── error.php       ← Empfohlen: 404/403-Seite
-│   └── login.php       ← Optional: für Dashboard-Themes
+│   └── error.php       ← Empfohlen: 404/403-Seite
 ├── assets/
 │   ├── css/
 │   │   └── mein-theme.css
@@ -78,7 +77,8 @@ class Theme extends \Esse\Theme
 
     public function renderPage(array $page, string $content): void
     {
-        $siteName = $this->settings['site_name'] ?? 'ESSE CMS';
+        $siteName   = $this->settings['site_name']   ?? 'ESSE CMS';
+        $siteSlogan = $this->settings['site_slogan'] ?? '';
 
         // Menüpositionen aus Settings laden (konfiguriert in Admin → Themes)
         $mainSlug = $this->settings['theme_mein-theme_menu_main']   ?? 'main';
@@ -103,7 +103,7 @@ class Theme extends \Esse\Theme
 
 ## Template-Variablen
 
-Die folgenden Variablen stehen in `layout.php`, `error.php` und `login.php` zur Verfügung:
+Die folgenden Variablen stehen in `layout.php` und `error.php` zur Verfügung:
 
 ### Immer verfügbar
 
@@ -112,6 +112,7 @@ Die folgenden Variablen stehen in `layout.php`, `error.php` und `login.php` zur 
 | `$page` | `array` | Aktuelle Seite (siehe unten) |
 | `$content` | `string` | Gerenderter Seiteninhalt (HTML) |
 | `$siteName` | `string` | Seitenname aus Einstellungen |
+| `$siteSlogan` | `string` | Optionaler Slogan aus Einstellungen — **kann leer sein**. In dem Fall darf nichts angezeigt werden (kein Platzhaltertext, kein „ESSE CMS"-Eigenwerbung o.ä.) |
 | `$theme` | `Theme` | Das Theme-Objekt selbst |
 
 ### $page — Felder
@@ -121,7 +122,7 @@ Die folgenden Variablen stehen in `layout.php`, `error.php` und `login.php` zur 
 | `slug` | `string` | URL-Slug der Seite |
 | `title` | `string` | Seitentitel |
 | `icon` | `string\|null` | Icon-Name (z.B. `house`) oder volle CSS-Klasse für Rückwärtskompatibilität |
-| `visibility` | `string` | `public`, `members`, `admin` |
+| `visibility` | `string` | `public`, `guest_only`, `registered`, `roles` |
 | `status` | `string` | `published`, `draft` |
 | `type` | `string` | `standard`, `php` |
 | `error_code` | `int\|null` | Gesetzt bei Fehlerseiten (404, 403) |
@@ -303,6 +304,7 @@ Jedes Theme **muss** die esse-grid-Klassen implementieren damit Plugins theme-ag
 /**
  * @var array       $page      enthält error_code, error_title, error_message
  * @var string      $siteName
+ * @var string      $siteSlogan
  * @var YourTheme   $theme
  */
 $code    = (int) ($page['error_code']   ?? 404);
@@ -314,48 +316,106 @@ $message = $page['error_message']       ?? '';
 
 ---
 
-## Login-Template für geschlossene Themes (templates/login.php)
+## Zugriffskontrolle: nichts für Themes zu tun
 
-Für Dashboard-Themes die einen Login-Screen statt des normalen Layouts zeigen:
+`PageRenderer::render()` (core/PageRenderer.php) prüft die Sichtbarkeit **zentral, bevor**
+der `page.render`-Hook überhaupt feuert:
+
+- `guest_only` + eingeloggt → Redirect auf `/`
+- nicht-öffentlich + nicht eingeloggt → Redirect auf `/login?redirect=...`
+- nicht-öffentlich + eingeloggt, aber ohne Rolle/Recht → 403
+
+**Das bedeutet: `renderPage($page, $content)` wird nur für Seiten aufgerufen, auf die der
+aktuelle Besucher bereits zugreifen darf.** Ein eigener `Auth::check()`-Zweig im Theme ist
+unnötig — er ist in der Praxis sogar gefährlich, weil veraltete Sichtbarkeits-Werte
+(`members`, `admin` aus dem alten 3-Werte-System statt der aktuellen `public`, `guest_only`,
+`registered`, `roles`) leicht zu falsch gerenderten Seiten führen (z. B. `guest_only`-Seiten
+wie `/registrieren`, die fälschlich ein Login-Formular zeigen).
+
+`renderPage()` sollte daher **immer** einfach das normale Layout rendern:
 
 ```php
-<?php
-/**
- * @var string      $siteName
- * @var array       $footMenu
- * @var YourTheme   $theme
- */
-$redirect = $_SERVER['REQUEST_URI'] ?? '/';
-?>
-<!DOCTYPE html>
-<html lang="de">
-...
+public function renderPage(array $page, string $content): void
+{
+    $siteName = $this->settings['site_name'] ?? 'ESSE CMS';
+    $theme    = $this;
+    require $this->basePath('templates/layout.php');
+}
+```
+
+Ein eigenes `templates/login.php` bzw. `templates/public.php` wird **nicht** benötigt —
+auch nicht für Dashboard-Themes. Wer dennoch eine eigene Login-Seite gestalten möchte,
+nutzt dafür den `auth.login.render`-Hook (siehe nächster Abschnitt) statt die
+Sichtbarkeitslogik im Theme zu duplizieren.
+
+---
+
+## Eigene Login-Seite gestalten (auth.login.render)
+
+`/login` lässt sich vollständig im Theme-Design rendern — `/admin/login` bleibt davon
+**immer unberührt** und zeigt weiterhin das Standard-Formular. Das ist der
+Fail-Safe-Notausgang: geht im Theme etwas kaputt oder wird es deaktiviert, kommt man über
+`/admin/login` trotzdem ins Backend.
+
+Die komplette Auth-Logik (CSRF-Prüfung, Rate-Limiting, `Auth::attempt()`,
+Redirect-Auflösung) bleibt zentral in `admin/login.php` — das Theme übernimmt
+ausschließlich das Rendering.
+
+**1. Hook in `boot()` registrieren:**
+
+```php
+public function boot(): void
+{
+    // ... bestehender Code ...
+    Hooks::on('auth.login.render', [$this, 'renderLogin']);
+}
+```
+
+**2. Renderer implementieren:**
+
+```php
+public function renderLogin(array $data): void
+{
+    $theme = $this;
+    require $this->basePath('templates/login.php');
+}
+```
+
+`$data` enthält:
+
+| Schlüssel | Typ | Inhalt |
+|---|---|---|
+| `error` | `string` | Fehlermeldung (leer, wenn keine) |
+| `redirect` | `string` | Wert für das versteckte `redirect`-Feld |
+| `csrfToken` | `string` | CSRF-Token für das Formular |
+| `brandName` | `string` | Seitenname aus Einstellungen |
+| `brandSlogan` | `string` | Optionaler Slogan — kann leer sein, dann nichts anzeigen |
+| `footMenu` | `array` | Footer-Menü des Themes (`Menu::get(...)`-Format) |
+| `registrationEnabled` | `bool` | Ob `/registrieren` verlinkt werden soll |
+
+**3. Template `templates/login.php` — Pflichtfelder im Formular:**
+
+Das Formular muss exakt diese Felder an `POST /login` senden, sonst greift die zentrale
+Auth-Logik nicht korrekt:
+
+```php
 <form method="post" action="/login">
-    <input type="hidden" name="_csrf"    value="<?= \Esse\Auth::csrfToken() ?>">
-    <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirect) ?>">
+    <input type="hidden" name="_csrf"    value="<?= htmlspecialchars($data['csrfToken']) ?>">
+    <input type="hidden" name="_form"    value="admin_login">
+    <input type="hidden" name="redirect" value="<?= htmlspecialchars($data['redirect']) ?>">
     <input type="email"    name="login"    autocomplete="username" required>
     <input type="password" name="password" autocomplete="current-password" required>
     <button type="submit">Anmelden</button>
 </form>
 ```
 
-In `Theme.php` aktivieren:
+`name="_form" value="admin_login"` ist **Pflicht** — ohne dieses Feld behandelt die
+zentrale Logik den Login-Versuch wie ein eingebettetes Navbar-Formular und leitet bei
+Fehlern zurück zur vorigen Seite statt den Fehler auf `/login` selbst anzuzeigen.
 
-```php
-public function renderPage(array $page, string $content): void
-{
-    if (!\Esse\Auth::check()) {
-        // Öffentliche Seiten normal rendern, den Rest → Login
-        if (($page['visibility'] ?? '') === 'public' && empty($page['error_code'])) {
-            require $this->basePath('templates/public.php');
-        } else {
-            require $this->basePath('templates/login.php');
-        }
-        return;
-    }
-    // ...
-}
-```
+**4. Optional:** Links auf `/admin/forgot-password` und (wenn `$data['registrationEnabled']`)
+`/registrieren` ergänzen — siehe `admin/login.php` als Referenzimplementierung für das
+Standard-Rendering.
 
 ---
 
@@ -407,7 +467,7 @@ Gleich wie bei Plugins — `version` in `theme.json` wird mit dem GitHub-Release
 - [ ] CSS-Variablen (`--esse-*`) für Theme-Farben gesetzt
 - [ ] **esse-grid Klassen implementiert** (Pflicht für Plugin-Kompatibilität)
 - [ ] `$theme->assetUrl()` für CSS/Font-Pfade verwendet
-- [ ] Login-geschützte Themes haben `templates/login.php`
+- [ ] `renderPage()` enthält **keinen** eigenen `Auth::check()`/Sichtbarkeits-Zweig (das übernimmt `PageRenderer` zentral)
 - [ ] Menüpositionen in `theme.json` unter `menus` deklariert
 - [ ] `\Esse\Ui::iconPackCssTag()` im `<head>` eingebunden (Pflicht — Core lädt die CSS nicht automatisch)
 - [ ] `$page['icon']` wird pack-agnostisch über `Ui::icon()` gerendert (volle CSS-Klassen als Fallback)
