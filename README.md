@@ -4,6 +4,10 @@
 
 A lightweight PHP 8 CMS for secure pages, roles and plugins.
 
+[![Release](https://img.shields.io/github/v/release/nfsmw15/esse-cms?label=release&color=blue&include_prereleases)](https://github.com/nfsmw15/esse-cms/releases)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-green)](LICENSE)
+[![PHP](https://img.shields.io/badge/php-%3E%3D8.1-777bb4)](https://www.php.net/)
+
 ESSE CMS is a fresh-start CMS for demanding admins who want more control than a click-and-play system offers — without building everything from scratch. Fully free and open source (AGPL-3.0).
 
 ---

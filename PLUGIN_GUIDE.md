@@ -1,5 +1,37 @@
 # ESSE CMS — Plugin-Entwicklung
 
+## Inhalt
+
+- [Grundstruktur](#grundstruktur)
+- [plugin.json](#pluginjson)
+- [Plugin.php — Mindestaufbau](#pluginphp--mindestaufbau)
+- [Verfügbare Methoden in boot()](#verfügbare-methoden-in-boot)
+- [Autoloading](#autoloading)
+- [Verfügbare Konstanten](#verfügbare-konstanten)
+- [Plugin-Einstellungen](#plugin-einstellungen)
+- [$activeNav für mehrere Plugin-Seiten](#activenav-für-mehrere-plugin-seiten)
+- [Datenbankzugriff](#datenbankzugriff)
+- [Aktuellen User abfragen](#aktuellen-user-abfragen)
+- [E-Mail senden](#e-mail-senden)
+- [Sensible Daten verschlüsseln](#sensible-daten-verschlüsseln)
+- [CSRF bei AJAX-Requests](#csrf-bei-ajax-requests)
+- [Flash-Messages](#flash-messages)
+- [Admin-Templates mit Layout](#admin-templates-mit-layout)
+- [Summernote (WYSIWYG) in Plugin-Admin-Seiten](#summernote-wysiwyg-in-plugin-admin-seiten)
+- [Icon-Felder](#icon-felder)
+- [Dashboard-Theme-Kompatibilität](#dashboard-theme-kompatibilität)
+- [Plugin-Assets](#plugin-assets)
+- [ZIP-Packaging](#zip-packaging)
+- [Eigenes Icon-Pack bereitstellen](#eigenes-icon-pack-bereitstellen)
+- [Komplettes Beispiel](#komplettes-beispiel)
+- [Ui-Klasse — Theme-agnostische Komponenten](#ui-klasse--theme-agnostische-komponenten)
+- [Theme-agnostische Ausgabe](#theme-agnostische-ausgabe)
+- [Plugin veröffentlichen (GitHub-Repo)](#plugin-veröffentlichen-github-repo)
+- [README-Vorlage](#readme-vorlage)
+- [Checkliste neues Plugin](#checkliste-neues-plugin)
+
+---
+
 ## Grundstruktur
 
 ```
@@ -1068,6 +1100,54 @@ ESSE strippt den Root-Ordner automatisch beim Installieren.
 
 ---
 
+## README-Vorlage
+
+Damit alle Plugin-READMEs einheitlich aufgebaut sind, gilt folgende Abschnitts-Reihenfolge.
+Nicht jeder Abschnitt passt zu jedem Plugin — die mit „falls zutreffend" markierten weglassen,
+wenn sie nicht zutreffen.
+
+1. Titel + 1-Zeiler-Beschreibung mit Link auf [ESSE CMS](https://github.com/nfsmw15/esse-cms)
+2. Badges (siehe unten)
+3. Über das Plugin — 2–4 Sätze; bei theme-agnostischer Ausgabe (`Esse\Ui`) das erwähnen
+4. Voraussetzungen — ESSE-CMS-Version, PHP-Version, Extensions, externe Abhängigkeiten
+5. Installation — Admin-Upload, manuell, optional „ZIP selbst erstellen"
+6. Routen — Tabelle: Route | Beschreibung | Sichtbarkeit
+7. Berechtigungen — Tabelle, *falls zutreffend* (eigene Permissions registriert)
+8. Features — Liste
+9. Konfiguration — *falls zutreffend* (Plugin-Settings vorhanden)
+10. Datenbankstruktur — angelegte Tabellen, *falls zutreffend*
+11. Dateistruktur — Verzeichnisbaum
+12. Sicherheit — *falls zutreffend* (Datei-Up-/Downloads, sensible Daten)
+13. Lizenz
+
+### Badges
+
+Direkt unter dem 1-Zeiler, als eigener Absatz. Drei Badges, zwei Pflegestrategien:
+
+- **Release** — zieht die Version live über die GitHub-API (shields.io `github/v/release`).
+  Entspricht immer dem neuesten Release-Tag — keine manuelle Pflege, keine Drift zur
+  `plugin.json`-Version (die das CMS beim Update-Check ohnehin damit abgleicht).
+- **License** und **ESSE CMS** — statisch, weil sie sich praktisch nie ändern
+  (Lizenz nie, CMS-Mindestversion nur bei Breaking Changes).
+
+> **Wichtig:** Der Wert im **ESSE CMS**-Badge sollte exakt `requires.esse` aus `plugin.json`
+> entsprechen. Das ist keine reine Kosmetik — der Core prüft `requires.esse` beim Aktivieren
+> aktiv gegen `ESSE_VERSION` und blockt die Aktivierung bei Inkompatibilität
+> (`admin/plugins/index.php`). Weichen Badge und `plugin.json` voneinander ab, zeigt das
+> README eine andere Mindestversion als das CMS tatsächlich durchsetzt.
+
+```markdown
+[![Release](https://img.shields.io/github/v/release/nfsmw15/esse-mein-plugin?label=release&color=blue)](https://github.com/nfsmw15/esse-mein-plugin/releases)
+[![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-green)](LICENSE)
+[![ESSE CMS](https://img.shields.io/badge/esse--cms-%3E%3D0.1.0-orange)](https://github.com/nfsmw15/esse-cms)
+```
+
+Repo-Namen und Mindestversion an das jeweilige Plugin anpassen. Solange ein Plugin nur als
+Pre-Release (z.B. `v0.x.x-alpha`) existiert, dem Release-Badge `&include_prereleases` anhängen,
+sonst zeigt shields.io „no releases found" an.
+
+---
+
 ## Checkliste neues Plugin
 
 - [ ] `plugin.json` mit eindeutigem `name` (entspricht dem Verzeichnisnamen)
@@ -1077,7 +1157,7 @@ ESSE strippt den Root-Ordner automatisch beim Installieren.
 - [ ] `activeNav` in Admin-Templates stimmt **exakt** mit `activeSlug` aus `addAdminNav()` überein
 - [ ] `uninstall()` löscht alle Plugin-Daten (Tabellen, Einstellungen)
 - [ ] Frontend-Templates haben keinen eigenen `<h1>` mit dem Seitentitel (Theme rendert ihn bereits)
-- [ ] Keine Slug-Konflikte mit Kern-Routen: `/admin/*`, `/install`, `/profil`, `/registrieren`, `/abmelden`
+- [ ] Keine Slug-Konflikte mit Kern-Routen: `/`, `/login`, `/profil`, `/registrieren`, `/abmelden`, `/install`, `/admin/*`
 - [ ] CSRF in allen POST-Handlern: `Auth::verifyCsrf()`
 - [ ] Berechtigungen prüfen: `Auth::meetsRole()` oder `Auth::can()`
 - [ ] `README.md`, `CHANGELOG.md`, `LICENSE` vorhanden

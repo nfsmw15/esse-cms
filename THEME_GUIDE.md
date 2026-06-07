@@ -1,19 +1,42 @@
 # ESSE CMS — Theme-Entwicklung
 
+## Inhalt
+
+- [Grundstruktur](#grundstruktur)
+- [theme.json](#themejson)
+- [Theme.php](#themephp)
+- [Template-Variablen](#template-variablen)
+- [Icon-Pack-CSS einbinden](#icon-pack-css-einbinden)
+- [Icons rendern](#icons-rendern)
+- [Verfügbare Helfer in Templates](#verfügbare-helfer-in-templates)
+- [esse-ui — CSS laden](#esse-ui--css-laden)
+- [esse-grid — Pflicht-Implementierung](#esse-grid--pflicht-implementierung)
+- [Fehlerseiten-Template (templates/error.php)](#fehlerseiten-template-templateserrorphp)
+- [Zugriffskontrolle: nichts für Themes zu tun](#zugriffskontrolle-nichts-für-themes-zu-tun)
+- [Eigene Login-Seite gestalten (auth.login.render)](#eigene-login-seite-gestalten-authloginrender)
+- [Theme-Assets ausliefern](#theme-assets-ausliefern)
+- [Theme veröffentlichen (GitHub-Repo)](#theme-veröffentlichen-github-repo)
+- [README-Vorlage](#readme-vorlage)
+- [Checkliste neues Theme](#checkliste-neues-theme)
+
+---
+
 ## Grundstruktur
 
 ```
 themes/mein-theme/
 ├── theme.json          ← Pflicht: Metadaten
 ├── Theme.php           ← Pflicht: PHP-Klasse
+├── README.md           ← Empfohlen
+├── CHANGELOG.md        ← Empfohlen
+├── LICENSE             ← Empfohlen (z.B. MIT, AGPL-3.0)
 ├── templates/
 │   ├── layout.php      ← Pflicht: Haupt-Layout
 │   └── error.php       ← Empfohlen: 404/403-Seite
-├── assets/
-│   ├── css/
-│   │   └── mein-theme.css
-│   └── fonts/          ← Optional
-└── README.md
+└── assets/
+    ├── css/
+    │   └── mein-theme.css
+    └── fonts/          ← Optional
 ```
 
 ---
@@ -494,6 +517,51 @@ Gleich wie bei Plugins — `version` in `theme.json` wird mit dem GitHub-Release
 
 ---
 
+## README-Vorlage
+
+Verbindliche Abschnitts-Reihenfolge für Theme-READMEs (analog zur Plugin-Vorlage in
+[PLUGIN_GUIDE.md](PLUGIN_GUIDE.md), aber auf Theme-Belange wie Templates, Menüs und
+Design-Tokens zugeschnitten). Abschnitte mit „falls zutreffend" weglassen, wenn sie
+nicht zutreffen.
+
+1. Titel + 1-Zeiler-Beschreibung
+2. Badges (siehe unten)
+3. Überblick — Layout-Konzept und Zielgruppe (Dashboard / Public-Site / Blog / …)
+4. Voraussetzungen
+5. Installation
+6. Manifest — `theme.json`-Auszug + Erklärung der Pflichtfelder (`name`, `class`, `menus`)
+7. Menüs — Slot-Tabelle (Slot | Settings-Key | Zweck)
+8. Templates / Rendering-Logik — welches Template in welchem Zustand greift
+9. Design-Tokens / CSS-Variablen
+10. Light/Dark Mode — *falls unterstützt*
+11. esse-grid Support
+12. ESSE-UI-Integration
+13. Entwicklung / Deployment — *optional*, für Mitentwickler
+14. Changelog — Verweis auf `CHANGELOG.md`
+15. Lizenz
+
+### Badges
+
+Gleiches Schema wie bei Plugins (siehe [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md)): Release-Badge
+zieht die Version live von GitHub und bleibt dadurch immer aktuell; Lizenz und
+CMS-Kompatibilität ändern sich praktisch nie und bleiben statisch.
+
+> **Unterschied zu Plugins:** `theme.json` hat **kein** `requires`-Feld, und der Core prüft
+> beim Aktivieren eines Themes keine CMS-Mindestversion (anders als bei Plugins, siehe
+> [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md)). Das **ESSE CMS**-Badge ist hier rein informativ für
+> Anwender — keine technisch durchgesetzte Voraussetzung.
+
+```markdown
+[![Release](https://img.shields.io/github/v/release/nfsmw15/esse-mein-theme?label=release&color=blue)](https://github.com/nfsmw15/esse-mein-theme/releases)
+[![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-green)](LICENSE)
+[![ESSE CMS](https://img.shields.io/badge/esse--cms-%3E%3D0.1.0-orange)](https://github.com/nfsmw15/esse-cms)
+```
+
+Repo-Namen und Mindestversion anpassen; bei reinen Pre-Release-Ständen `&include_prereleases`
+an das Release-Badge anhängen, sonst meldet shields.io „no releases found".
+
+---
+
 ## Checkliste neues Theme
 
 - [ ] `theme.json` mit eindeutigem `name` (= Verzeichnisname)
@@ -505,9 +573,10 @@ Gleich wie bei Plugins — `version` in `theme.json` wird mit dem GitHub-Release
 - [ ] **esse-grid Klassen implementiert** (Pflicht für Plugin-Kompatibilität)
 - [ ] `$theme->assetUrl()` für CSS/Font-Pfade verwendet
 - [ ] `renderPage()` enthält **keinen** eigenen `Auth::check()`/Sichtbarkeits-Zweig (das übernimmt `PageRenderer` zentral)
+- [ ] Falls eigene Login-/Passwort-Seiten gewünscht: über `auth.login.render` / `auth.forgot_password.render` / `auth.reset_password.render`-Hooks gestalten (siehe „Eigene Login-Seite gestalten") — Pflichtfeld `name="_form" value="admin_login"` im Login-Formular nicht vergessen, sonst werden Login-Fehler falsch behandelt
 - [ ] Menüpositionen in `theme.json` unter `menus` deklariert
 - [ ] `\Esse\Ui::iconPackCssTag()` im `<head>` eingebunden (Pflicht — Core lädt die CSS nicht automatisch)
 - [ ] `$page['icon']` wird pack-agnostisch über `Ui::icon()` gerendert (volle CSS-Klassen als Fallback)
 - [ ] `data-bs-theme="dark"` auf `<html>` wenn Bootstrap mit dunklem Hintergrund
-- [ ] README.md vorhanden
+- [ ] README.md, CHANGELOG.md, LICENSE vorhanden
 - [ ] ZIP ohne `.git/`, `.vscode/`, `node_modules/`
