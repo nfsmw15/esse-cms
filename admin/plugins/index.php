@@ -363,7 +363,7 @@ foreach ($plugins as $p) {
             <?php endif ?>
             <div class="d-flex gap-2">
                 <form method="post" action="/admin/plugins"
-                      <?= !$available['channel_trusted'] ? 'onsubmit="return confirm(\'Achtung: Nicht-offizieller Kanal. Nur installieren wenn du der Quelle vertraust!\')"' : '' ?>>
+                      <?= !$available['channel_trusted'] ? 'data-confirm="Achtung: Nicht-offizieller Kanal. Nur installieren wenn du der Quelle vertraust!"' : '' ?>>
                     <input type="hidden" name="_csrf"           value="<?= Auth::csrfToken() ?>">
                     <input type="hidden" name="_action"         value="install_from_repo">
                     <input type="hidden" name="repo_full_name"  value="<?= htmlspecialchars($available['full_name']) ?>">
@@ -428,7 +428,7 @@ foreach ($plugins as $p) {
             <td class="text-end pe-3">
                 <?php if (!$repo['trusted']): ?>
                 <form method="post" action="/admin/plugins" class="d-inline"
-                      onsubmit="return confirm('Kanal entfernen?')">
+                      data-confirm="Kanal entfernen?">
                     <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
                     <input type="hidden" name="_action"  value="remove_repo">
                     <input type="hidden" name="repo_id"  value="<?= $repo['id'] ?>">
@@ -536,7 +536,7 @@ foreach ($plugins as $p) {
                     </form>
                     <?php endif ?>
                     <form method="post"
-                          onsubmit="return confirm('Plugin &quot;<?= htmlspecialchars(addslashes($meta['name'])) ?>&quot; wirklich deinstallieren? Alle Dateien werden gelöscht.')">
+                          data-confirm="Plugin &quot;<?= htmlspecialchars($meta['name']) ?>&quot; wirklich deinstallieren? Alle Dateien werden gelöscht.">
                         <input type="hidden" name="_csrf"        value="<?= Auth::csrfToken() ?>">
                         <input type="hidden" name="_action"      value="uninstall">
                         <input type="hidden" name="plugin_slug"  value="<?= htmlspecialchars($slug) ?>">

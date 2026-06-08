@@ -406,35 +406,6 @@ $csrf         = Auth::csrfToken();
     </div>
 </div>
 
+<script type="application/json" id="profile-passkey-config"><?= json_encode(['csrf' => $csrf], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?></script>
 <script src="/public/assets/js/webauthn.js"></script>
-<script>
-(function () {
-    const btn   = document.getElementById('passkey-add-btn');
-    const error = document.getElementById('passkey-add-error');
-    if (!btn) return;
-
-    if (!window.EsseWebAuthn || !EsseWebAuthn.isSupported()) {
-        btn.disabled = true;
-        btn.title = 'Passkeys werden von diesem Browser nicht unterstützt.';
-        return;
-    }
-
-    btn.addEventListener('click', async function () {
-        error.classList.add('d-none');
-        const label = window.prompt('Bezeichnung für diesen Passkey (z.B. „Laptop“, „YubiKey“):', '');
-        if (label === null) return;
-
-        btn.disabled = true;
-        btn.textContent = 'Warte auf Passkey …';
-        try {
-            await EsseWebAuthn.register(<?= json_encode($csrf) ?>, label);
-            window.location.reload();
-        } catch (e) {
-            error.textContent = e.message || 'Passkey konnte nicht hinzugefügt werden.';
-            error.classList.remove('d-none');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-fingerprint me-1"></i>Passkey hinzufügen';
-        }
-    });
-})();
-</script>
+<script src="/public/assets/js/profile-passkey.js"></script>

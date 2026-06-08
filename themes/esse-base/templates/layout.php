@@ -252,23 +252,7 @@ $loginFailed = !empty($_GET['login_error']);
 <?php endif ?>
 
 <script src="/public/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<?php if ($loginFailed): ?>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var toggle = document.getElementById('navbar-login-toggle');
-    var form = document.getElementById('navbar-login-form');
-    if (!toggle || !form) return;
-
-    bootstrap.Dropdown.getOrCreateInstance(toggle, {
-        autoClose: 'outside'
-    }).show();
-
-    var password = form.querySelector('input[name="password"]');
-    if (password) {
-        password.focus();
-    }
-});
-</script>
-<?php endif ?>
+<script type="application/json" id="frontend-login-config"><?= json_encode(['loginFailed' => $loginFailed], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?></script>
+<script src="/public/assets/js/frontend-login-dropdown.js"></script>
 </body>
 </html>

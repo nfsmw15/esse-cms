@@ -269,7 +269,7 @@ if (!$available) {
                         <button class="btn btn-sm btn-outline-primary">Aktivieren</button>
                     </form>
                     <form method="post" action="/admin/themes" class="d-inline"
-                          onsubmit="return confirm('Theme \'<?= htmlspecialchars(addslashes($name)) ?>\' wirklich löschen?')">
+                          data-confirm="Theme '<?= htmlspecialchars($name) ?>' wirklich löschen?">
                         <input type="hidden" name="_csrf"       value="<?= Auth::csrfToken() ?>">
                         <input type="hidden" name="_action"     value="delete">
                         <input type="hidden" name="theme_name"  value="<?= htmlspecialchars($name) ?>">

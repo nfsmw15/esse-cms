@@ -187,7 +187,7 @@ ob_start();
                         </form>
                         <?php endif ?>
                         <?php if (!$isActive && $pack['dir'] !== 'bootstrap-icons'): ?>
-                        <form method="post" onsubmit="return confirm('Icon-Pack löschen?')">
+                        <form method="post" data-confirm="Icon-Pack löschen?">
                             <input type="hidden" name="_csrf"      value="<?= Auth::csrfToken() ?>">
                             <input type="hidden" name="_action"    value="delete">
                             <input type="hidden" name="pack_name"  value="<?= htmlspecialchars($name) ?>">

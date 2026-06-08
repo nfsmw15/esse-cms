@@ -139,7 +139,7 @@ ob_start();
                     <?php endif ?>
                 </div>
                 <?php if (!$isDefault && !$isForge): ?>
-                <form method="post" onsubmit="return confirm('Rolle löschen?')">
+                <form method="post" data-confirm="Rolle löschen?">
                     <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
                     <input type="hidden" name="_action" value="delete_role">
                     <input type="hidden" name="role_id" value="<?= $role['id'] ?>">
@@ -213,26 +213,7 @@ ob_start();
 <?php
 $content = ob_get_clean();
 
-$extraScripts = '<script>
-const CSRF = ' . json_encode(Auth::csrfToken()) . ';
-document.querySelectorAll(".perm-toggle").forEach(btn => {
-    btn.addEventListener("click", async () => {
-        const fd = new FormData();
-        fd.append("_csrf",       CSRF);
-        fd.append("_action",     "toggle_permission");
-        fd.append("role_id",     btn.dataset.role);
-        fd.append("permission",  btn.dataset.perm);
-        const res = await fetch("/admin/roles", { method: "POST", body: fd });
-        const data = await res.json();
-        if (data.granted) {
-            btn.classList.replace("bg-dark", "bg-success");
-            btn.classList.remove("border");
-        } else {
-            btn.classList.replace("bg-success", "bg-dark");
-            btn.classList.add("border");
-        }
-    });
-});
-</script>';
+$extraScriptConfig = ['admin-roles-config' => ['csrf' => Auth::csrfToken()]];
+$extraScriptFiles = ['/public/assets/js/admin-roles.js'];
 
 require __DIR__ . '/layout.php';

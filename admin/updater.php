@@ -141,7 +141,7 @@ ob_start();
                     Eigene Plugins, Themes und Konfigurationsdateien werden nicht überschrieben.
                 </div>
                 <button id="btn-update" class="btn btn-warning"
-                        onclick="startUpdate('<?= htmlspecialchars($updateInfo['version']) ?>')">
+                        data-version="<?= htmlspecialchars($updateInfo['version']) ?>">
                     <i class="bi bi-cloud-download"></i>
                     Update auf <?= htmlspecialchars($updateInfo['version']) ?> installieren
                 </button>
@@ -215,7 +215,7 @@ ob_start();
                         <input class="form-check-input" type="checkbox" name="include_prerelease"
                                id="prerelease-toggle"
                                <?= $includePrerel ? 'checked' : '' ?>
-                               onchange="this.form.submit()">
+                               data-submit-on-change>
                         <label class="form-check-label" for="prerelease-toggle">
                             Pre-Release Updates einschließen
                         </label>
@@ -232,76 +232,11 @@ ob_start();
     </div>
 </div>
 
-<script>
-function startUpdate(version) {
-    if (!confirm('Update auf v' + version + ' wirklich starten? Ein Backup wird automatisch erstellt.')) return;
-
-    document.getElementById('btn-update').disabled = true;
-    document.getElementById('terminal-wrap').style.display = '';
-
-    const terminal = document.getElementById('terminal');
-    const status   = document.getElementById('terminal-status');
-
-    // Get a one-time run token via POST first (CSRF-protected)
-    const fd = new FormData();
-    fd.append('_csrf', <?= json_encode(\Esse\Auth::csrfToken()) ?>);
-    fd.append('_action', 'prepare_run');
-
-    fetch('/admin/update', { method: 'POST', body: fd })
-        .then(r => r.json())
-        .then(d => {
-            if (!d.token) { status.textContent = 'Token-Fehler'; return; }
-            const es = new EventSource('/admin/update/run?run_token=' + encodeURIComponent(d.token));
-            listenSSE(es, terminal, status);
-        });
-}
-
-function listenSSE(es, terminal, status) {
-
-    es.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-        const line = document.createElement('div');  // moved inside listenSSE — see below
-
-        if (data.type === 'success') {
-            line.style.color = '#4ade80';
-            line.textContent = '✓ ' + data.message;
-        } else if (data.type === 'error') {
-            line.style.color = '#f87171';
-            line.textContent = '✗ ' + data.message;
-        } else {
-            line.style.color = '#94a3b8';
-            line.textContent = '› ' + data.message;
-        }
-
-        terminal.appendChild(line);
-        terminal.scrollTop = terminal.scrollHeight;
-
-        if (data.type === 'done') {
-            es.close();
-            status.textContent = 'Abgeschlossen';
-            status.className   = 'badge bg-success';
-            // Show reload button instead of auto-reloading
-            const btn = document.createElement('a');
-            btn.href      = '/admin/update';
-            btn.className = 'btn btn-success btn-sm mt-3 d-block';
-            btn.textContent = 'Seite neu laden →';
-            document.getElementById('terminal').after(btn);
-        }
-        if (data.type === 'error') {
-            es.close();
-            status.textContent = 'Fehler';
-            status.className   = 'badge bg-danger';
-            document.getElementById('btn-update').disabled = false;
-        }
-    };
-
-    es.onerror = () => {
-        es.close();
-        status.textContent = 'Verbindung unterbrochen';
-        status.className   = 'badge bg-danger';
-    };
-}
-</script>
 <?php
 $content = ob_get_clean();
+$extraScriptConfig = ['admin-updater-config' => [
+    'csrf' => \Esse\Auth::csrfToken(),
+    'version' => $updateInfo['version'] ?? '',
+]];
+$extraScriptFiles = ['/public/assets/js/admin-updater.js'];
 require __DIR__ . '/layout.php';

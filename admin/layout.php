@@ -282,8 +282,17 @@ if (defined('ESSE_DB_NAME')) {
     </div>
 </div>
 
+<?php if (!empty($extraScriptConfig ?? [])): ?>
+<?php foreach ($extraScriptConfig as $id => $data): ?>
+<script type="application/json" id="<?= htmlspecialchars((string) $id) ?>"><?= json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?></script>
+<?php endforeach ?>
+<?php endif ?>
 <?= isset($extraScripts) ? '<script src="/public/vendor/summernote/jquery.min.js"></script>' : '' ?>
 <script src="/public/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/public/assets/js/admin-common.js"></script>
+<?php foreach (($extraScriptFiles ?? []) as $src): ?>
+<script src="<?= htmlspecialchars($src) ?>"></script>
+<?php endforeach ?>
 <?= $extraScripts ?? '' ?>
 </body>
 </html>

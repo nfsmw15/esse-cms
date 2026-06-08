@@ -212,7 +212,7 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.login.render'))
     </div>
 </div>
 
-<?php if ($footMenu):
+    <?php if ($footMenu):
     // Group by headers (same pattern as esse-base/esse-dashboard footer)
     $groups = [];
     $current = ['header' => null, 'links' => []];
@@ -252,31 +252,11 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.login.render'))
     </div>
 </footer>
 <?php endif ?>
-<script src="/public/assets/js/webauthn.js"></script>
-<script>
-(function () {
-    const btn   = document.getElementById('passkey-login-btn');
-    const block = document.getElementById('passkey-login-block');
-    const error = document.getElementById('passkey-login-error');
-    if (!btn || !block || !window.EsseWebAuthn || !EsseWebAuthn.isSupported()) return;
-
-    block.classList.remove('d-none');
-
-    btn.addEventListener('click', async function () {
-        error.classList.add('d-none');
-        btn.disabled = true;
-        btn.textContent = 'Warte auf Passkey …';
-        try {
-            const result = await EsseWebAuthn.login(<?= json_encode(Auth::csrfToken()) ?>, <?= json_encode($_GET['redirect'] ?? '') ?>);
-            window.location.href = result.redirect || '/';
-        } catch (e) {
-            error.textContent = e.message || 'Anmeldung mit Passkey fehlgeschlagen.';
-            error.classList.remove('d-none');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-fingerprint me-1"></i>Mit Passkey anmelden';
-        }
-    });
-})();
-</script>
+    <script type="application/json" id="passkey-login-config"><?= json_encode([
+        'csrf' => Auth::csrfToken(),
+        'redirect' => $_GET['redirect'] ?? '',
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?></script>
+    <script src="/public/assets/js/webauthn.js"></script>
+    <script src="/public/assets/js/passkey-login.js"></script>
 </body>
 </html>

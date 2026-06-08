@@ -136,7 +136,9 @@ ob_start();
                     <!-- Restore (Forge only) -->
                     <?php if (Auth::meetsRole('forge')): ?>
                     <form method="post" action="/admin/backup" class="d-inline"
-                          onsubmit="return confirm('Backup \'<?= htmlspecialchars(addslashes($name)) ?>\' wiederherstellen?\n\nAchtung: Alle aktuellen Dateien und Datenbankeinträge werden überschrieben!')">
+                          data-confirm="Backup '<?= htmlspecialchars($name) ?>' wiederherstellen?
+
+Achtung: Alle aktuellen Dateien und Datenbankeinträge werden überschrieben!">
                         <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
                         <input type="hidden" name="_action" value="restore">
                         <input type="hidden" name="file"    value="<?= htmlspecialchars($name) ?>">
@@ -148,7 +150,7 @@ ob_start();
 
                     <!-- Delete -->
                     <form method="post" action="/admin/backup" class="d-inline"
-                          onsubmit="return confirm('Backup wirklich löschen?')">
+                          data-confirm="Backup wirklich löschen?">
                         <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
                         <input type="hidden" name="_action" value="delete">
                         <input type="hidden" name="file"    value="<?= htmlspecialchars($name) ?>">

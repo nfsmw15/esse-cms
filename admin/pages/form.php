@@ -175,7 +175,7 @@ ob_start();
                             <span class="input-group-text esse-icon-preview px-2"
                                   data-for="page-icon"
                                   style="cursor:pointer;min-width:38px;justify-content:center"
-                                  onclick="esseOpenIconPicker(document.getElementById('page-icon'))"
+                                  data-icon-picker-target="page-icon"
                                   title="Icon wählen">
                                 <i class="bi bi-grid-3x3-gap" style="opacity:.35;font-size:.95rem"></i>
                             </span>
@@ -185,7 +185,7 @@ ob_start();
                                    placeholder="z.B. house"
                                    value="<?= htmlspecialchars($page['icon'] ?? '') ?>"
                                    data-icon-preview="1"
-                                   oninput="esseUpdatePreview(this)">
+                                   >
                             <input type="text" name="title" id="title" class="form-control"
                                    value="<?= htmlspecialchars($page['title'] ?? '') ?>"
                                    required autofocus placeholder="Seitentitel">
@@ -250,8 +250,7 @@ ob_start();
             <div class="card mb-3">
                 <div class="card-header py-2"><small class="text-secondary">Sichtbarkeit</small></div>
                 <div class="card-body">
-                    <select name="visibility" id="form-vis-select" class="form-select mb-2"
-                            onchange="formUpdateVisRoles()">
+                    <select name="visibility" id="form-vis-select" class="form-select mb-2">
                         <?php foreach (\Esse\PageVisibility::LABELS as $val => $label): ?>
                         <option value="<?= $val ?>" <?= $currentVis === $val ? 'selected' : '' ?>>
                             <?= htmlspecialchars($label) ?>
@@ -293,7 +292,7 @@ ob_start();
                 <div class="card-header py-2 text-danger"><small>Seite löschen</small></div>
                 <div class="card-body">
                     <form method="post" action="/admin/pages/delete/<?= htmlspecialchars($page['slug']) ?>"
-                          onsubmit="return confirm('Seite wirklich löschen?')">
+                          data-confirm="Seite wirklich löschen?">
                         <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
                         <button class="btn btn-outline-danger btn-sm w-100">
                             <i class="bi bi-trash"></i> Seite löschen
@@ -306,50 +305,6 @@ ob_start();
     </div>
 </form>
 
-<script>
-function formUpdateVisRoles() {
-    const panel = document.getElementById('form-vis-roles');
-    if (panel) panel.style.display = document.getElementById('form-vis-select').value === 'roles' ? '' : 'none';
-}
-
-// Auto-generate slug from title (only when slug is still empty or unchanged)
-const titleEl = document.getElementById('title');
-const slugEl  = document.getElementById('slug');
-let slugEdited = <?= ($isEdit || !empty($page['slug'] ?? '')) ? 'true' : 'false' ?>;
-
-function slugify(str) {
-    const map = {ä:'ae',ö:'oe',ü:'ue',Ä:'ae',Ö:'oe',Ü:'ue',ß:'ss'};
-    return str.toLowerCase()
-        .replace(/[äöüÄÖÜß]/g, c => map[c] || c)
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-}
-
-titleEl?.addEventListener('input', () => {
-    if (!slugEdited) slugEl.value = slugify(titleEl.value);
-});
-slugEl?.addEventListener('input', () => {
-    slugEdited = slugEl.value.length > 0;
-});
-
-// Toggle content/php card based on type
-const typeEl      = document.getElementById('type');
-const contentCard = document.getElementById('content-card');
-const phpCard     = document.getElementById('php-card');
-
-function updateType() {
-    if (!typeEl) return;
-    if (typeEl.value === 'php') {
-        contentCard?.style.setProperty('display', 'none', 'important');
-        phpCard?.style.removeProperty('display');
-    } else {
-        contentCard?.style.removeProperty('display');
-        phpCard?.style.setProperty('display', 'none', 'important');
-    }
-}
-typeEl?.addEventListener('change', updateType);
-updateType();
-</script>
 <?php require __DIR__ . '/../partials/icon-picker.php'; ?>
 <?php
 $content      = ob_get_clean();
@@ -371,104 +326,13 @@ $extraHead    = '<link rel="stylesheet" href="/public/vendor/summernote/summerno
 .note-modal .modal-header, .note-modal .modal-footer { border-color:#333; }
 </style>';
 $extraScripts = '<script src="/public/vendor/summernote/summernote-bs5.min.js"></script>
-<script src="/public/vendor/summernote/summernote-de-DE.min.js"></script>
-<script>
-// Bootstrap 5 ↔ jQuery bridge for Summernote tooltip/popover
-$.fn.tooltip = function(opt) {
-    return this.each(function() {
-        if (typeof opt === "string") { const t = bootstrap.Tooltip.getInstance(this); if (t) t[opt](); }
-        else new bootstrap.Tooltip(this, opt || {});
-    });
-};
-$.fn.popover = function(opt) {
-    return this.each(function() {
-        if (typeof opt === "string") { const p = bootstrap.Popover.getInstance(this); if (p) p[opt](); }
-        else new bootstrap.Popover(this, opt || {});
-    });
-};
-$.fn.dropdown = function(opt) {
-    return this.each(function() {
-        if (typeof opt === "string") {
-            // Create instance if none exists yet, then call the method
-            const d = bootstrap.Dropdown.getInstance(this) || new bootstrap.Dropdown(this);
-            d[opt]();
-        } else {
-            new bootstrap.Dropdown(this, opt || {});
-        }
-    });
-};
-</script>
-<script>
-(function() {
-    $("#content").summernote({
-        lang: "de-DE",
-        height: 400,
-        placeholder: "Seiteninhalt ...",
-        toolbar: [
-            ["style",   ["style"]],
-            ["font",    ["bold","italic","underline","strikethrough","clear"]],
-            ["color",   ["color"]],
-            ["para",    ["ul","ol","paragraph"]],
-            ["table",   ["table"]],
-            ["insert",  ["link","picture","hr"]],
-            ["view",    ["fullscreen","codeview"]]
-        ],
-        callbacks: {
-            onImageUpload: function(files) {
-                const fd = new FormData();
-                fd.append("file", files[0]);
-                fd.append("_csrf", ' . json_encode(Auth::csrfToken()) . ');
-                fetch("/admin/files/upload", { method: "POST", body: fd })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.url) {
-                            $("#content").summernote("insertImage", data.url, files[0].name);
-                        } else {
-                            alert(data.error || "Upload fehlgeschlagen.");
-                        }
-                    })
-                    .catch(() => alert("Upload fehlgeschlagen."));
-            }
-        }
-    });
-
-    // Summernote toolbar dropdown fix for Bootstrap 5.3
-    // Use capture phase to run before Summernote handlers
-    const toolbar = document.querySelector(".note-toolbar");
-    if (toolbar) {
-        toolbar.addEventListener("click", function(e) {
-            const toggle = e.target.closest(".dropdown-toggle");
-            if (!toggle) return;
-
-            const menu = toggle.parentElement.querySelector(".dropdown-menu");
-            if (!menu) return;
-
-            const willOpen = !menu.classList.contains("show");
-
-            // Close all open dropdowns in toolbar
-            toolbar.querySelectorAll(".dropdown-menu.show").forEach(m => {
-                m.classList.remove("show");
-            });
-            toolbar.querySelectorAll(".dropdown-toggle[aria-expanded=true]").forEach(t => {
-                t.setAttribute("aria-expanded", "false");
-            });
-
-            if (willOpen) {
-                menu.classList.add("show");
-                toggle.setAttribute("aria-expanded", "true");
-            }
-        }, true); // capture phase — runs before Summernote handlers
-
-        // Close on outside click
-        document.addEventListener("click", function(e) {
-            if (!e.target.closest(".note-toolbar")) {
-                toolbar.querySelectorAll(".dropdown-menu.show").forEach(m => m.classList.remove("show"));
-                toolbar.querySelectorAll(".dropdown-toggle[aria-expanded=true]").forEach(t => {
-                    t.setAttribute("aria-expanded", "false");
-                });
-            }
-        });
-    }
-})();
-</script>';
+<script src="/public/vendor/summernote/summernote-de-DE.min.js"></script>';
+$extraScriptConfig = array_merge($extraScriptConfig ?? [], ['admin-pages-form-config' => [
+    'csrf' => Auth::csrfToken(),
+    'slugEdited' => ($isEdit || !empty($page['slug'] ?? '')),
+]]);
+$extraScriptFiles = array_merge($extraScriptFiles ?? [], [
+    '/public/assets/js/admin-pages-form.js',
+    '/public/assets/js/admin-pages-summernote.js',
+]);
 require dirname(__DIR__) . '/layout.php';

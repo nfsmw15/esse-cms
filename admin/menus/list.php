@@ -88,7 +88,7 @@ ob_start();
                                 <i class="bi bi-pencil"></i>
                             </a>
                             <form method="post" action="/admin/menus" class="d-inline"
-                                  onsubmit="return confirm('Menü wirklich löschen?')">
+                                  data-confirm="Menü wirklich löschen?">
                                 <input type="hidden" name="_csrf"     value="<?= Auth::csrfToken() ?>">
                                 <input type="hidden" name="_action"   value="delete_menu">
                                 <input type="hidden" name="menu_id"   value="<?= $menu['id'] ?>">
@@ -138,22 +138,7 @@ ob_start();
     </div>
 </div>
 
-<script>
-const nameEl = document.getElementById('menu-name');
-const slugEl = document.getElementById('menu-slug');
-let slugEdited = false;
-
-nameEl?.addEventListener('input', () => {
-    if (!slugEdited) {
-        slugEl.value = nameEl.value.toLowerCase()
-            .replace(/[äöü]/g, c => ({ä:'ae',ö:'oe',ü:'ue'}[c] || c))
-            .replace(/ß/g, 'ss')
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '');
-    }
-});
-slugEl?.addEventListener('input', () => { slugEdited = slugEl.value.length > 0; });
-</script>
 <?php
 $content = ob_get_clean();
+$extraScriptFiles = ['/public/assets/js/admin-menus-list.js'];
 require dirname(__DIR__) . '/layout.php';

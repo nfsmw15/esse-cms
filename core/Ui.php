@@ -114,7 +114,7 @@ class Ui
         $iconName = $opts['icon'] ?? ($icons[$type] ?? '');
         $iHtml    = $iconName ? self::icon($iconName) . ' ' : '';
         $close  = !empty($opts['dismissible'])
-            ? '<button type="button" class="esse-alert-close" onclick="this.closest(\'.esse-alert\').remove()">×</button>'
+            ? '<button type="button" class="esse-alert-close" data-esse-alert-close>×</button>'
             : '';
 
         $html = '<div class="esse-alert esse-alert--' . self::e($type) . '">'
@@ -354,7 +354,7 @@ class Ui
         $panels .= '</div>';
 
         $html = '<div class="esse-tabs">' . $nav . $panels . '</div>'
-              . '<script>(function(){document.querySelectorAll("[data-esse-tab]").forEach(function(btn){btn.addEventListener("click",function(){var id=this.getAttribute("data-esse-tab"),tabs=this.closest(".esse-tabs");tabs.querySelectorAll(".esse-tabs-panel").forEach(function(p){p.classList.remove("esse-tabs-panel--active")});tabs.querySelectorAll(".esse-tabs-btn").forEach(function(b){b.closest(".esse-tabs-nav-item").classList.remove("esse-tabs-nav-item--active")});document.getElementById(id).classList.add("esse-tabs-panel--active");this.closest(".esse-tabs-nav-item").classList.add("esse-tabs-nav-item--active")})})})();</script>';
+              . '<script src="/public/assets/js/esse-ui.js"></script>';
 
         return self::hook('tabs', $html, compact('tabs', 'opts'));
     }
