@@ -483,7 +483,37 @@ Auth-Logik nicht korrekt:
 zentrale Logik den Login-Versuch wie ein eingebettetes Navbar-Formular und leitet bei
 Fehlern zurück zur vorigen Seite statt den Fehler auf `/login` selbst anzuzeigen.
 
-**4. Optional:** Links auf `/admin/forgot-password` und (wenn `$data['registrationEnabled']`)
+**4. Passkey-Login erhalten:** Wenn ein Theme `/login` selbst rendert, muss es den
+Core-Passkey-Block und die Core-JS-Assets mit ausgeben. Sonst funktioniert der Passwort-Login
+weiter, aber die passwortlose Anmeldung verschwindet aus der Theme-Loginseite.
+
+```php
+<div class="d-none" id="passkey-login-block">
+    <button type="button" id="passkey-login-btn">
+        Mit Passkey anmelden
+    </button>
+    <div class="d-none" id="passkey-login-error"></div>
+</div>
+
+<script type="application/json" id="passkey-login-config">
+<?= json_encode([
+    'csrf' => $data['csrfToken'],
+    'redirect' => $data['redirect'],
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+</script>
+<script src="/public/assets/js/webauthn.js"></script>
+<script src="/public/assets/js/passkey-login.js"></script>
+```
+
+`passkey-login.js` blendet den Block nur ein, wenn WebAuthn im Browser verfügbar ist.
+Der JSON-Block ist CSP-kompatibel; ausführbarer Code liegt in den Core-Assets.
+
+**5. 2FA/TOTP nicht im Theme nachbauen:** Klassische Zwei-Faktor-Authentifizierung läuft
+zentral über `/admin/verify-2fa`. Nach korrektem Passwort entscheidet `Auth::attempt()`, ob
+der Nutzer dorthin weitergeleitet wird. Themes dürfen diese Logik nicht duplizieren und müssen
+keinen eigenen TOTP-Code-Dialog rendern.
+
+**6. Optional:** Links auf `/admin/forgot-password` und (wenn `$data['registrationEnabled']`)
 `/registrieren` ergänzen — siehe `admin/login.php` als Referenzimplementierung für das
 Standard-Rendering.
 
@@ -622,6 +652,8 @@ an das Release-Badge anhängen, sonst meldet shields.io „no releases found".
 - [ ] `$theme->assetUrl()` für CSS/Font-Pfade verwendet
 - [ ] `renderPage()` enthält **keinen** eigenen `Auth::check()`/Sichtbarkeits-Zweig (das übernimmt `PageRenderer` zentral)
 - [ ] Falls eigene Login-/Passwort-Seiten gewünscht: über `auth.login.render` / `auth.forgot_password.render` / `auth.reset_password.render`-Hooks gestalten (siehe „Eigene Login-Seite gestalten") — Pflichtfeld `name="_form" value="admin_login"` im Login-Formular nicht vergessen, sonst werden Login-Fehler falsch behandelt
+- [ ] Eigene Login-Seite erhält den Core-Passkey-Block (`passkey-login-block`, `passkey-login-btn`, `passkey-login-error`), `passkey-login-config`, `/public/assets/js/webauthn.js` und `/public/assets/js/passkey-login.js`
+- [ ] 2FA/TOTP bleibt Core-Flow über `/admin/verify-2fa`; Theme rendert keinen eigenen zweiten Faktor
 - [ ] Menüpositionen in `theme.json` unter `menus` deklariert
 - [ ] `\Esse\Ui::iconPackCssTag()` im `<head>` eingebunden (Pflicht — Core lädt die CSS nicht automatisch)
 - [ ] `$page['icon']` wird pack-agnostisch über `Ui::icon()` gerendert (volle CSS-Klassen als Fallback)
