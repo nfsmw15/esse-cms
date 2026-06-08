@@ -22,6 +22,7 @@ Most capable CMS platforms require a commercial license for non-personal use. ES
 
 ## Features (planned)
 
+- **Passkeys & 2FA built into core** — passwordless WebAuthn/FIDO2 login (Touch ID, Windows Hello, security keys) plus TOTP-based two-factor authentication with backup codes — no plugins required
 - **Code-based routing** — no URL table in the database
 - **Hook/event system** — `Hooks::fire`, `Hooks::on`, `Hooks::filter`
 - **Plugin system** — apt-style repos (GitHub-based), install/update/remove
