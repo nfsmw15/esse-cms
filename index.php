@@ -39,6 +39,7 @@ spl_autoload_register(function (string $class): void {
 use Esse\Auth;
 use Esse\Hooks;
 use Esse\Router;
+use Esse\SecurityHeaders;
 
 // Redirect to installer if config is missing
 $configFile = ESSE_PRIVATE_PATH . '/config/config.php';
@@ -51,6 +52,9 @@ if (!file_exists($configFile)) {
 } else {
     require_once $configFile;
 }
+
+// Browser hardening headers must be sent before the session starts or output begins.
+SecurityHeaders::send();
 
 // Start session and load current user
 Auth::init();
