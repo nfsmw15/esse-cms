@@ -10,6 +10,7 @@
 - [Icons rendern](#icons-rendern)
 - [Verfügbare Helfer in Templates](#verfügbare-helfer-in-templates)
 - [esse-ui — CSS laden](#esse-ui--css-laden)
+- [CSP-Richtlinien](#csp-richtlinien)
 - [esse-grid — Pflicht-Implementierung](#esse-grid--pflicht-implementierung)
 - [Fehlerseiten-Template (templates/error.php)](#fehlerseiten-template-templateserrorphp)
 - [Zugriffskontrolle: nichts für Themes zu tun](#zugriffskontrolle-nichts-für-themes-zu-tun)
@@ -284,6 +285,52 @@ Darüber hinaus können einzelne esse-* Klassen gezielt überschrieben werden:
   font-size: .7rem;
 }
 ```
+
+---
+
+## CSP-Richtlinien
+
+ESSE sendet standardmäßig eine strikte Content-Security-Policy:
+
+```text
+script-src 'self'; style-src 'self'
+```
+
+Das bedeutet für Themes:
+
+- Keine Inline-Skripte: keine `<script>...</script>`-Blöcke und keine Event-Attribute wie `onclick`, `onchange`, `onsubmit`.
+- Keine Inline-Styles: keine `<style>...</style>`-Blöcke und keine `style="..."`-Attribute in Templates.
+- Theme-JavaScript immer als Datei laden, z.B. `<script src="<?= $theme->assetUrl('js/theme.js') ?>"></script>`.
+- Theme-CSS immer als Datei laden, z.B. `<link rel="stylesheet" href="<?= $theme->assetUrl('css/mein-theme.css') ?>">`.
+- PHP-Daten für JavaScript als JSON-Block mit `type="application/json"` ausgeben und im externen JS parsen.
+- Zustände über Klassen und `data-*`-Attribute ausdrücken, nicht über Inline-Styles.
+
+Beispiel:
+
+```php
+<button type="button" class="esse-btn" data-menu-toggle>
+    Menü
+</button>
+
+<script type="application/json" id="theme-config">
+<?= json_encode(['loggedIn' => \Esse\Auth::check()], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+</script>
+<script src="<?= $theme->assetUrl('js/theme.js') ?>"></script>
+```
+
+```javascript
+const configEl = document.getElementById('theme-config');
+const config = configEl ? JSON.parse(configEl.textContent || '{}') : {};
+
+document.addEventListener('click', event => {
+    const toggle = event.target.closest('[data-menu-toggle]');
+    if (!toggle) return;
+    document.body.classList.toggle('nav-open');
+});
+```
+
+Der JSON-Block ist CSP-kompatibel, weil er nicht ausgeführt wird. Ausführbarer Code muss in
+externen JS-Dateien liegen.
 
 ---
 
@@ -570,6 +617,7 @@ an das Release-Badge anhängen, sonst meldet shields.io „no releases found".
 - [ ] `templates/error.php` vorhanden (404/403)
 - [ ] `/public/vendor/esse-ui/esse-ui.css` geladen (vor Theme-CSS)
 - [ ] CSS-Variablen (`--esse-*`) für Theme-Farben gesetzt
+- [ ] CSP-kompatibel: keine Inline-Skripte, keine Event-Attribute, keine Inline-Styles; CSS/JS über Theme-Assets
 - [ ] **esse-grid Klassen implementiert** (Pflicht für Plugin-Kompatibilität)
 - [ ] `$theme->assetUrl()` für CSS/Font-Pfade verwendet
 - [ ] `renderPage()` enthält **keinen** eigenen `Auth::check()`/Sichtbarkeits-Zweig (das übernimmt `PageRenderer` zentral)

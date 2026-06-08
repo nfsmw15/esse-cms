@@ -15,6 +15,7 @@
 - [E-Mail senden](#e-mail-senden)
 - [Sensible Daten verschlüsseln](#sensible-daten-verschlüsseln)
 - [CSRF bei AJAX-Requests](#csrf-bei-ajax-requests)
+- [CSP-Richtlinien](#csp-richtlinien)
 - [Flash-Messages](#flash-messages)
 - [Admin-Templates mit Layout](#admin-templates-mit-layout)
 - [Summernote (WYSIWYG) in Plugin-Admin-Seiten](#summernote-wysiwyg-in-plugin-admin-seiten)
@@ -455,18 +456,74 @@ PHP-Seite prüft beides (`$_POST['_csrf']` oder `HTTP_X_CSRF_TOKEN`):
 if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
 ```
 
-Wenn kein Formular auf der Seite ist, CSRF-Token als JS-Variable rendern:
+Wenn kein Formular auf der Seite ist, CSRF-Token über die Layout-Konfiguration bereitstellen:
 ```php
 // In der Admin-Seite:
 $pageTitle = 'News';
 $activeNav = 'admin.news';
 ob_start();
 ?>
-<script>const CSRF = <?= json_encode(Auth::csrfToken()) ?>;</script>
 <div id="app">...</div>
 <?php
 $content = ob_get_clean();
+
+$extraScriptConfig = [
+    'mein-plugin-config' => [
+        'csrf' => Auth::csrfToken(),
+    ],
+];
+$extraScriptFiles = [
+    '/plugins/mein-plugin/public/js/admin.js',
+];
+
 require ESSE_ROOT . '/admin/layout.php';
+```
+
+`admin.js` liest die Konfiguration aus dem JSON-Block:
+
+```javascript
+const configEl = document.getElementById('mein-plugin-config');
+const config = configEl ? JSON.parse(configEl.textContent || '{}') : {};
+const csrf = config.csrf || '';
+```
+
+---
+
+## CSP-Richtlinien
+
+ESSE sendet standardmäßig eine strikte Content-Security-Policy:
+
+```text
+script-src 'self'; style-src 'self'
+```
+
+Das bedeutet für Plugins:
+
+- Keine Inline-Skripte: keine `<script>...</script>`-Blöcke und keine `onclick`, `onchange`, `onsubmit` usw.
+- Keine Inline-Styles: keine `<style>...</style>`-Blöcke und keine `style="..."`-Attribute.
+- JavaScript immer als Datei ausliefern, z.B. `/plugins/mein-plugin/public/js/admin.js`.
+- CSS immer als Datei ausliefern, z.B. `/plugins/mein-plugin/public/css/admin.css`.
+- PHP-Daten für JavaScript über `$extraScriptConfig` ausgeben; das Admin-Layout rendert daraus sichere JSON-Blöcke mit `type="application/json"`.
+- Interaktionen über `data-*`-Attribute und Event Listener in externen JS-Dateien binden.
+
+Beispiel:
+
+```php
+$extraHead = '<link rel="stylesheet" href="/plugins/mein-plugin/public/css/admin.css">';
+$extraScriptConfig = ['mein-plugin-config' => ['csrf' => Auth::csrfToken()]];
+$extraScriptFiles = ['/plugins/mein-plugin/public/js/admin.js'];
+```
+
+```html
+<button type="button" class="btn btn-primary" data-action="save-news">Speichern</button>
+```
+
+```javascript
+document.addEventListener('click', event => {
+    const button = event.target.closest('[data-action="save-news"]');
+    if (!button) return;
+    // ...
+});
 ```
 
 ---
@@ -512,19 +569,24 @@ require ESSE_ROOT . '/admin/layout.php';
 
 ### Zusätzliche Styles und Scripts
 
-Das Admin-Layout unterstützt `$extraHead` (im `<head>`) und `$extraScripts` (vor `</body>`):
+Das Admin-Layout unterstützt `$extraHead` (im `<head>`), `$extraScriptConfig` (JSON-Konfig)
+und `$extraScriptFiles` (externe JS-Dateien vor `</body>`):
 
 ```php
-$extraHead = '<link rel="stylesheet" href="/public/vendor/mein-plugin/style.css">';
-
-$extraScripts = '<script src="/public/vendor/mein-plugin/script.js"></script>
-<script>
-// Initialisierung nach dem Laden der Scripts
-</script>';
+$extraHead = '<link rel="stylesheet" href="/plugins/mein-plugin/public/css/admin.css">';
+$extraScriptConfig = [
+    'mein-plugin-config' => [
+        'csrf' => Auth::csrfToken(),
+        'endpoint' => '/admin/mein-plugin/action',
+    ],
+];
+$extraScriptFiles = ['/plugins/mein-plugin/public/js/admin.js'];
 
 $content = ob_get_clean();
 require ESSE_ROOT . '/admin/layout.php';
 ```
+
+Keine Inline-Initialisierung verwenden. Initialisierung gehört in die externe JS-Datei.
 
 ### Topbar-Aktions-Button
 
@@ -544,64 +606,24 @@ Das CMS liefert Summernote BS5 mit jQuery aus. So bindet man es in einer Plugin-
 
 ```php
 $extraHead = '<link rel="stylesheet" href="/public/vendor/summernote/summernote-bs5.min.css">
-<style>
-.note-editor     { border-color:#333 !important; }
-.note-toolbar    { background:#1e1e1e !important; border-color:#333 !important; }
-.note-toolbar .btn { color:#adb5bd; background:transparent; border-color:#333; }
-.note-toolbar .btn:hover, .note-toolbar .btn.active { background:#2d2d2d; color:#fff; }
-.note-editable   { background:#111 !important; color:#e0e0e0 !important; min-height:300px; }
-.note-statusbar  { background:#1a1a1a !important; border-color:#333 !important; }
-.dropdown-menu   { background:#1e1e1e; border-color:#333; }
-.dropdown-item   { color:#adb5bd; }
-.dropdown-item:hover { background:#2d2d2d; color:#fff; }
-</style>';
+<link rel="stylesheet" href="/plugins/mein-plugin/public/css/summernote-admin.css">';
 
-$extraScripts = '<script src="/public/vendor/summernote/jquery.min.js"></script>
-<script src="/public/vendor/summernote/summernote-bs5.min.js"></script>
-<script src="/public/vendor/summernote/summernote-de-DE.min.js"></script>
-<script>
-// Bootstrap 5 ↔ jQuery bridge (benötigt für Summernote-Tooltips)
-$.fn.tooltip = function(opt) {
-    return this.each(function() {
-        if (typeof opt === "string") { const t = bootstrap.Tooltip.getInstance(this); if (t) t[opt](); }
-        else new bootstrap.Tooltip(this, opt || {});
-    });
-};
-$.fn.popover = function(opt) {
-    return this.each(function() {
-        if (typeof opt === "string") { const p = bootstrap.Popover.getInstance(this); if (p) p[opt](); }
-        else new bootstrap.Popover(this, opt || {});
-    });
-};
-(function() {
-    $("#mein-textarea").summernote({
-        lang: "de-DE",
-        height: 350,
-        toolbar: [
-            ["style",  ["style"]],
-            ["font",   ["bold","italic","underline","clear"]],
-            ["para",   ["ul","ol","paragraph"]],
-            ["insert", ["link","picture","hr"]],
-            ["view",   ["fullscreen","codeview"]]
-        ],
-        callbacks: {
-            onImageUpload: function(files) {
-                const fd = new FormData();
-                fd.append("file", files[0]);
-                fetch("/admin/files/upload", { method: "POST", body: fd })
-                    .then(r => r.json())
-                    .then(d => {
-                        if (d.url) $("#mein-textarea").summernote("insertImage", d.url, files[0].name);
-                        else alert(d.error || "Upload fehlgeschlagen.");
-                    });
-            }
-        }
-    });
-    // Textarea-ID im HTML verstecken (Summernote ersetzt sie)
-    document.getElementById("mein-textarea").style.display = "none";
-})();
-</script>';
+$extraScriptConfig = [
+    'mein-plugin-editor-config' => [
+        'selector' => '#mein-textarea',
+        'uploadUrl' => '/admin/files/upload',
+    ],
+];
+$extraScriptFiles = [
+    '/public/vendor/summernote/jquery.min.js',
+    '/public/vendor/summernote/summernote-bs5.min.js',
+    '/public/vendor/summernote/summernote-de-DE.min.js',
+    '/plugins/mein-plugin/public/js/summernote-admin.js',
+];
 ```
+
+`summernote-admin.js` enthält die Initialisierung und blendet das Textarea über eine CSS-Klasse aus
+oder lässt Summernote es ersetzen. Alle Editor-Styles gehören in `summernote-admin.css`.
 
 
 ---
@@ -1160,5 +1182,6 @@ sonst zeigt shields.io „no releases found" an.
 - [ ] Keine Slug-Konflikte mit Kern-Routen: `/`, `/login`, `/profil`, `/registrieren`, `/abmelden`, `/install`, `/admin/*`
 - [ ] CSRF in allen POST-Handlern: `Auth::verifyCsrf()`
 - [ ] Berechtigungen prüfen: `Auth::meetsRole()` oder `Auth::can()`
+- [ ] CSP-kompatibel: keine Inline-Skripte, keine Event-Attribute, keine Inline-Styles; Assets über CSS-/JS-Dateien und `$extraScriptConfig`
 - [ ] `README.md`, `CHANGELOG.md`, `LICENSE` vorhanden
 - [ ] ZIP ohne `.git/`, `.vscode/`, `node_modules/` verpacken
