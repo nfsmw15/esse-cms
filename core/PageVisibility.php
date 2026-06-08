@@ -164,6 +164,9 @@ class PageVisibility
             PRIMARY KEY (`slug`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+        self::ensureVisibilityColumn($tp);
+        self::ensureVisibilityColumn($tv);
+
         // Add icon column to existing installations
         $cols = DB::fetchAll("SHOW COLUMNS FROM `{$tv}`");
         if (!in_array('icon', array_column($cols, 'Field'), true)) {
@@ -182,5 +185,21 @@ class PageVisibility
             );
         }
         DB::query("UPDATE `{$tp}` SET `visibility` = 'roles' WHERE `visibility` = 'admin'");
+    }
+
+    private static function ensureVisibilityColumn(string $table): void
+    {
+        $cols = DB::fetchAll("SHOW COLUMNS FROM `{$table}` LIKE 'visibility'");
+        if (!$cols) {
+            return;
+        }
+
+        $type = strtolower((string) ($cols[0]['Type'] ?? ''));
+        $null = strtoupper((string) ($cols[0]['Null'] ?? ''));
+        if ($type === 'varchar(20)' && $null === 'NO') {
+            return;
+        }
+
+        DB::query("ALTER TABLE `{$table}` MODIFY COLUMN `visibility` VARCHAR(20) NOT NULL DEFAULT 'public'");
     }
 }
