@@ -8,6 +8,7 @@ class Auth
 {
     private static ?array $currentUser = null;
     private static bool $defaultsSynced = false;
+    private static bool $securityMigrationsSynced = false;
 
     // Role hierarchy — index determines "power level" (higher = more access)
     public const ROLES = ['guest', 'member', 'author', 'editor', 'admin', 'forge'];
@@ -55,6 +56,8 @@ class Auth
             ]);
             session_start();
         }
+
+        self::syncSecurityMigrations();
 
         if (!isset($_SESSION['esse_uid'])) return;
 
@@ -235,6 +238,18 @@ class Auth
             self::$defaultsSynced = true;
         } catch (\Throwable) {
             // Installer or partial migrations may not have permission tables yet.
+        }
+    }
+
+    private static function syncSecurityMigrations(): void
+    {
+        if (self::$securityMigrationsSynced) return;
+
+        try {
+            TwoFactor::migrateDb();
+            self::$securityMigrationsSynced = true;
+        } catch (\Throwable) {
+            // Installer or partially configured databases may not have users/settings yet.
         }
     }
 

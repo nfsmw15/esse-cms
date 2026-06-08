@@ -67,7 +67,6 @@ class TwoFactor
     public static function migrateDb(): void
     {
         $tu = DB::table('users');
-        $tw = DB::table('webauthn_credentials');
 
         $cols = array_column(DB::fetchAll("SHOW COLUMNS FROM `{$tu}`"), 'Field');
 
@@ -81,18 +80,7 @@ class TwoFactor
             DB::query("ALTER TABLE `{$tu}` ADD COLUMN `totp_backup_codes` TEXT NULL");
         }
 
-        DB::query("CREATE TABLE IF NOT EXISTS `{$tw}` (
-            `id`            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            `user_id`       INT UNSIGNED NOT NULL,
-            `credential_id` VARCHAR(1024) NOT NULL,
-            `public_key`    TEXT NOT NULL,
-            `sign_counter`  INT UNSIGNED NOT NULL DEFAULT 0,
-            `label`         VARCHAR(100) NOT NULL DEFAULT '',
-            `created_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            `last_used_at`  DATETIME NULL,
-            KEY `idx_user` (`user_id`),
-            UNIQUE KEY `uq_credential_id` (`credential_id`(255))
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        WebAuthn::migrateDb();
     }
 
     // -- Internals --

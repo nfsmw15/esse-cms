@@ -24,6 +24,7 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ### Fixed
 
+- Security-Migrationen fuer TOTP/Passkeys laufen jetzt bereits beim Boot, auch ohne eingeloggten Nutzer. Dadurch werden `totp_*`-Spalten und `webauthn_credentials` rechtzeitig angelegt, bevor Login-, Passkey- oder Profil-Flows darauf zugreifen.
 - Session-Cookie-Hardening: `PHPSESSID` bekommt auf HTTPS-Installationen jetzt zuverlaessig das `Secure`-Flag, auch wenn PHP hinter Hosting-/Proxy-Setups `$_SERVER['HTTPS']` nicht setzt, solange `ESSE_URL` mit `https://` konfiguriert ist.
 - CHANGELOG: veralteter Hinweis „Repo-based plugin/theme install (apt-style) not yet implemented" aus „Known Issues / Alpha Limitations" entfernt — das Feature ist bereits seit v0.1.1-alpha implementiert und dort dokumentiert.
 
