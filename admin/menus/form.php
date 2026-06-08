@@ -229,8 +229,7 @@ function itemButtons(array $item, int $menuId): string
               . "<input type='hidden' name='item_id' value='{$id}'>"
               . "<button class='btn btn-sm btn-outline-secondary py-0 px-1'>{$lbl}</button></form>";
     }
-    $out .= "<form method='post' action='/admin/menus/edit/{$menuId}' class='d-inline'"
-          . " onsubmit='return confirm(\"Eintrag löschen?\")'>"
+    $out .= "<form method='post' action='/admin/menus/edit/{$menuId}' class='d-inline' data-confirm='Eintrag löschen?'>"
           . "<input type='hidden' name='_csrf' value='{$csrf}'>"
           . "<input type='hidden' name='_action' value='delete_item'>"
           . "<input type='hidden' name='item_id' value='{$id}'>"
@@ -307,12 +306,12 @@ function itemEditForm(array $item, int $menuId, array $pages, array $allTopItems
          . "<div class='input-group input-group-sm'>"
          . "<span class='input-group-text esse-icon-preview px-1' data-for='icon-{$id}'"
          .      " style='cursor:pointer;min-width:34px;justify-content:center'"
-         .      " onclick='esseOpenIconPicker(document.getElementById(\"icon-{$id}\"))'"
+         .      " data-icon-picker-target='icon-{$id}'"
          .      " title='Icon wählen'>"
          . "<i class='bi bi-grid-3x3-gap' style='opacity:.35'></i>"
          . "</span>"
          . "<input type='text' name='icon' id='icon-{$id}' class='form-control form-control-sm font-monospace'"
-         .      " value='{$icon}' placeholder='z.B. house' data-icon-preview='1' oninput='esseUpdatePreview(this)'>"
+         .      " value='{$icon}' placeholder='z.B. house' data-icon-preview='1'>"
          . "</div></div>"
          . "<div class='col-sm-4 field-page" . ($type !== 'page' ? ' d-none' : '') . "'>"
          . "<label class='form-label small'>Seite</label>"
@@ -403,7 +402,7 @@ ob_start();
                                 <i class="bi bi-pencil"></i>
                             </button>
                             <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline"
-                                  onsubmit="return confirm('Eintrag löschen?')">
+                                  data-confirm="Eintrag löschen?">
                                 <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
                                 <input type="hidden" name="_action" value="delete_item">
                                 <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
@@ -463,7 +462,7 @@ ob_start();
                                 <i class="bi bi-pencil"></i>
                             </button>
                             <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline"
-                                  onsubmit="return confirm('Eintrag löschen?')">
+                                  data-confirm="Eintrag löschen?">
                                 <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
                                 <input type="hidden" name="_action" value="delete_item">
                                 <input type="hidden" name="item_id" value="<?= $child['id'] ?>">
@@ -538,15 +537,14 @@ ob_start();
                             <span class="input-group-text esse-icon-preview px-2"
                                   data-for="add-item-icon"
                                   style="cursor:pointer;min-width:34px;justify-content:center"
-                                  onclick="esseOpenIconPicker(document.getElementById('add-item-icon'))"
+                                  data-icon-picker-target="add-item-icon"
                                   title="Icon wählen">
                                 <i class="bi bi-grid-3x3-gap" style="opacity:.35"></i>
                             </span>
                             <input type="text" name="icon" id="add-item-icon"
                                    class="form-control form-control-sm font-monospace"
                                    placeholder="z.B. house"
-                                   data-icon-preview="1"
-                                   oninput="esseUpdatePreview(this)">
+                                   data-icon-preview="1">
                         </div>
                     </div>
                     <div class="mb-2" id="field-page">
@@ -618,82 +616,15 @@ ob_start();
     </div>
 </div>
 
-<script>
-const typeEl  = document.getElementById('item-type');
-const pgField = document.getElementById('field-page');
-const urlField = document.getElementById('field-url');
-const tgtField = document.getElementById('field-target');
-
-function updateFields() {
-    const v = typeEl.value;
-    pgField.style.display  = v === 'page'   ? '' : 'none';
-    urlField.style.display  = v === 'url'    ? '' : 'none';
-    tgtField.style.display  = v !== 'header' ? '' : 'none';
-}
-typeEl?.addEventListener('change', updateFields);
-updateFields();
-
-// Handle type switcher in inline edit forms
-document.addEventListener('change', e => {
-    if (!e.target.classList.contains('item-type-sel')) return;
-    const form = e.target.closest('form');
-    form.querySelector('.field-page')?.classList.toggle('d-none', e.target.value !== 'page');
-    form.querySelector('.field-url')?.classList.toggle('d-none',  e.target.value !== 'url');
-});
-
-</script>
 <?php require __DIR__ . '/../partials/icon-picker.php'; ?>
 <?php
 $content = ob_get_clean();
-$csrf    = Auth::csrfToken();
-$extraScripts = '<script src="/public/vendor/sortable/Sortable.min.js"></script>
-<script>
-// Drag & Drop init — runs after SortableJS is loaded
-(function() {
-    const csrf     = ' . json_encode($csrf) . ';
-    const reordUrl = "/admin/menus/edit/' . $menuId . '";
-
-    function collectOrder() {
-        const items = [];
-        let order = 10;
-        document.querySelectorAll("#sortable-top > [data-id]").forEach(el => {
-            items.push({ id: parseInt(el.dataset.id), parent_id: 0, order });
-            order += 10;
-            let childOrder = 10;
-            el.querySelectorAll("[data-child-id]").forEach(ch => {
-                items.push({ id: parseInt(ch.dataset.childId), parent_id: parseInt(el.dataset.id), order: childOrder });
-                childOrder += 10;
-            });
-        });
-        return items;
-    }
-
-    function saveOrder() {
-        const fd = new FormData();
-        fd.append("_csrf", csrf);
-        fd.append("_action", "reorder");
-        fd.append("items", JSON.stringify(collectOrder()));
-        fetch(reordUrl, { method: "POST", body: fd })
-            .then(r => r.json())
-            .catch(() => {});
-    }
-
-    const topList = document.getElementById("sortable-top");
-    if (!topList) return;
-
-    Sortable.create(topList, {
-        handle: ".drag-handle",
-        animation: 150,
-        onEnd: saveOrder,
-    });
-
-    document.querySelectorAll(".sortable-children").forEach(el => {
-        Sortable.create(el, {
-            handle: ".drag-handle",
-            animation: 150,
-            onEnd: saveOrder,
-        });
-    });
-})();
-</script>';
+$extraScriptConfig = array_merge($extraScriptConfig ?? [], ['admin-menus-form-config' => [
+    'csrf' => Auth::csrfToken(),
+    'reorderUrl' => "/admin/menus/edit/{$menuId}",
+]]);
+$extraScriptFiles = array_merge($extraScriptFiles ?? [], [
+    '/public/vendor/sortable/Sortable.min.js',
+    '/public/assets/js/admin-menus-form.js',
+]);
 require dirname(__DIR__) . '/layout.php';

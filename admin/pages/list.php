@@ -149,8 +149,8 @@ function visBadge(string $slug, string $pageType, string $vis, array $roles, str
     $label  = htmlspecialchars($labels[$vis] ?? $vis);
     $slugH  = htmlspecialchars($slug);
     $typeH  = htmlspecialchars($pageType);
-    $rolesJ = htmlspecialchars(json_encode($roles));
-    $titleJ = htmlspecialchars(addslashes($title));
+    $rolesJ = htmlspecialchars(json_encode($roles), ENT_QUOTES, 'UTF-8');
+    $titleH = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
 
     if (!$editable) {
         return "<span class=\"badge bg-{$color}\">{$label}</span>";
@@ -158,14 +158,14 @@ function visBadge(string $slug, string $pageType, string $vis, array $roles, str
 
     return "<span class=\"badge bg-{$color} vis-badge\" style=\"cursor:pointer\""
          . " data-vis-badge=\"{$slugH}\" data-vis=\"{$vis}\" data-roles=\"{$rolesJ}\""
-         . " onclick=\"openVisModal('{$slugH}','{$typeH}',this.dataset.vis,JSON.parse(this.dataset.roles),'{$titleJ}')\">"
+         . " data-page-type=\"{$typeH}\" data-title=\"{$titleH}\">"
          . "{$label}</span>";
 }
 
 function iconOverrideBadge(string $slug, string $icon, string $title): string
 {
     $slugH  = htmlspecialchars($slug);
-    $titleJ = htmlspecialchars(addslashes($title));
+    $titleH = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
     $iconH  = htmlspecialchars($icon);
 
     $iconHtml = $icon
@@ -174,7 +174,7 @@ function iconOverrideBadge(string $slug, string $icon, string $title): string
 
     return "<span class=\"icon-override-btn me-1\" style=\"cursor:pointer\""
          . " data-icon-slug=\"{$slugH}\" data-icon-current=\"{$iconH}\""
-         . " onclick=\"openIconModal('{$slugH}','{$titleJ}','{$iconH}')\">"
+         . " data-title=\"{$titleH}\">"
          . "{$iconHtml}</span>";
 }
 
@@ -188,7 +188,7 @@ function targetBadge(string $slug, array $slugTargets): string
     ];
     $assigned = $slugTargets[$slug] ?? [];
     $slugH    = htmlspecialchars($slug);
-    $dataJ    = htmlspecialchars(json_encode($assigned));
+    $dataJ    = htmlspecialchars(json_encode($assigned), ENT_QUOTES, 'UTF-8');
 
     $inner = $assigned
         ? implode('', array_map(fn($k) => '<span class="badge bg-' . ($defs[$k][1] ?? 'secondary') . ' me-1">' . htmlspecialchars($defs[$k][0] ?? $k) . '</span>', $assigned))
@@ -196,7 +196,7 @@ function targetBadge(string $slug, array $slugTargets): string
 
     return "<span class=\"target-badge\" style=\"cursor:pointer\""
          . " data-target-badge=\"{$slugH}\" data-assigned=\"{$dataJ}\""
-         . " onclick=\"openTargetModal('{$slugH}')\">{$inner}</span>";
+         . ">{$inner}</span>";
 }
 
 // ── Page setup ────────────────────────────────────────────────────────────────
@@ -282,7 +282,7 @@ ob_start();
                     </a>
                     <form method="post" action="/admin/pages/delete/<?= htmlspecialchars($p['slug']) ?>"
                           class="d-inline"
-                          onsubmit="return confirm('Seite \'<?= htmlspecialchars(addslashes($p['title'])) ?>\' wirklich löschen?')">
+                          data-confirm="Seite '<?= htmlspecialchars($p['title'], ENT_QUOTES, 'UTF-8') ?>' wirklich löschen?">
                         <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
                         <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                     </form>
@@ -385,7 +385,7 @@ ob_start();
                 <input type="hidden" id="vm-type">
                 <div class="mb-3">
                     <label class="form-label">Sichtbarkeit</label>
-                    <select class="form-select" id="vm-vis" onchange="vmUpdateRoles()">
+                    <select class="form-select" id="vm-vis">
                         <option value="public">Öffentlich — für alle</option>
                         <option value="guest_only">Nur Gäste — nicht eingeloggt</option>
                         <option value="registered">Alle Eingeloggten</option>
@@ -399,7 +399,7 @@ ob_start();
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                <button type="button" class="btn btn-primary" id="vm-save" onclick="vmSave()">Speichern</button>
+                <button type="button" class="btn btn-primary" id="vm-save">Speichern</button>
             </div>
         </div>
     </div>
@@ -419,19 +419,18 @@ ob_start();
                     <span class="input-group-text esse-icon-preview px-2"
                           data-for="im-icon"
                           style="cursor:pointer;min-width:34px;justify-content:center"
-                          onclick="esseOpenIconPicker(document.getElementById('im-icon'))"
+                          data-icon-picker-target="im-icon"
                           title="Icon wählen">
                         <i class="bi bi-grid-3x3-gap" style="opacity:.35"></i>
                     </span>
                     <input type="text" id="im-icon" class="form-control form-control-sm font-monospace"
-                           placeholder="z.B. people" data-icon-preview="1"
-                           oninput="esseUpdatePreview(this)">
+                           placeholder="z.B. people" data-icon-preview="1">
                 </div>
                 <div class="form-text">Leer lassen = Plugin-Standard</div>
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Abbrechen</button>
-                <button type="button" class="btn btn-primary btn-sm" id="im-save" onclick="imSave()">Speichern</button>
+                <button type="button" class="btn btn-primary btn-sm" id="im-save">Speichern</button>
             </div>
         </div>
     </div>
@@ -469,7 +468,7 @@ ob_start();
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Abbrechen</button>
-                <button type="button" class="btn btn-primary btn-sm" id="tm-save" onclick="tmSave()">Speichern</button>
+                <button type="button" class="btn btn-primary btn-sm" id="tm-save">Speichern</button>
             </div>
         </div>
     </div>
@@ -480,149 +479,10 @@ ob_start();
 <?php
 $content = ob_get_clean();
 
-$extraScripts = '<script>
-const CSRF       = ' . json_encode(Auth::csrfToken()) . ';
-const ALL_ROLES  = ' . json_encode($modalRoles) . ';
-const TARGET_DEFS = {
-    homepage_slug:       {label:"Startseite",   color:"success"},
-    login_homepage_slug: {label:"Login-Start",  color:"primary"},
-    logout_page_slug:    {label:"Logoutseite",  color:"info"},
-    error_page_slug:     {label:"Fehlerseite",  color:"danger"},
-};
-
-// ── Visibility modal ──────────────────────────────────────────────────────────
-
-function openVisModal(slug, pageType, vis, roles, title) {
-    document.getElementById("vm-slug").value = slug;
-    document.getElementById("vm-type").value = pageType;
-    document.getElementById("vm-vis").value  = vis;
-    document.getElementById("vm-title").textContent = title;
-
-    const list = document.getElementById("vm-roles-list");
-    list.innerHTML = "";
-    ALL_ROLES.forEach(role => {
-        const chk = roles.includes(role.slug) ? "checked" : "";
-        list.innerHTML += `<div class="form-check">
-            <input class="form-check-input" type="checkbox" id="vmr-${role.slug}" value="${role.slug}" ${chk}>
-            <label class="form-check-label" for="vmr-${role.slug}">${role.label}</label>
-        </div>`;
-    });
-
-    vmUpdateRoles();
-    new bootstrap.Modal(document.getElementById("visModal")).show();
-}
-
-function vmUpdateRoles() {
-    document.getElementById("vm-roles-panel").style.display =
-        document.getElementById("vm-vis").value === "roles" ? "" : "none";
-}
-
-async function vmSave() {
-    const slug     = document.getElementById("vm-slug").value;
-    const pageType = document.getElementById("vm-type").value;
-    const vis      = document.getElementById("vm-vis").value;
-    const roles    = [...document.querySelectorAll("#vm-roles-list input:checked")].map(el => el.value);
-    const btn      = document.getElementById("vm-save");
-    btn.disabled   = true;
-
-    const fd = new FormData();
-    fd.append("_csrf", CSRF); fd.append("_action", "save_visibility");
-    fd.append("slug", slug);  fd.append("page_type", pageType);
-    fd.append("visibility", vis);
-    roles.forEach(r => fd.append("roles[]", r));
-
-    try {
-        const data = await fetch("/admin/pages", {method:"POST", body:fd}).then(r => r.json());
-        if (data.success) {
-            const badge = document.querySelector(`[data-vis-badge="${slug}"]`);
-            if (badge) {
-                const labels = {public:"Öffentlich", guest_only:"Nur Gäste", registered:"Alle Eingeloggten", roles:"Rollen"};
-                const colors = {public:"success", guest_only:"secondary", registered:"primary", roles:"warning"};
-                badge.textContent   = labels[vis] || vis;
-                badge.className     = `badge bg-${colors[vis]||"secondary"} vis-badge`;
-                badge.dataset.vis   = vis;
-                badge.dataset.roles = JSON.stringify(roles);
-            }
-            bootstrap.Modal.getInstance(document.getElementById("visModal")).hide();
-        } else { alert(data.error || "Fehler."); }
-    } finally { btn.disabled = false; }
-}
-
-// ── Target modal ──────────────────────────────────────────────────────────────
-
-function openTargetModal(slug) {
-    document.getElementById("tm-slug").value = slug;
-    const el       = document.querySelector(`[data-target-badge="${slug}"]`);
-    const assigned = el ? JSON.parse(el.dataset.assigned || "[]") : [];
-
-    document.querySelectorAll("#targetModal input[type=checkbox]").forEach(cb => {
-        cb.checked = assigned.includes(cb.value);
-    });
-
-    new bootstrap.Modal(document.getElementById("targetModal")).show();
-}
-
-async function tmSave() {
-    const slug    = document.getElementById("tm-slug").value;
-    const targets = [...document.querySelectorAll("#targetModal input[type=checkbox]:checked")].map(el => el.value);
-    const btn     = document.getElementById("tm-save");
-    btn.disabled  = true;
-
-    const fd = new FormData();
-    fd.append("_csrf", CSRF); fd.append("_action", "save_page_target");
-    fd.append("slug", slug);
-    targets.forEach(t => fd.append("targets[]", t));
-
-    try {
-        const data = await fetch("/admin/pages", {method:"POST", body:fd}).then(r => r.json());
-        if (data.success) {
-            const el = document.querySelector(`[data-target-badge="${slug}"]`);
-            if (el) {
-                el.dataset.assigned = JSON.stringify(data.assigned);
-                el.innerHTML = data.assigned.length
-                    ? data.assigned.map(k => `<span class="badge bg-${TARGET_DEFS[k].color} me-1">${TARGET_DEFS[k].label}</span>`).join("")
-                    : `<span class="text-secondary" style="font-size:.8rem">—</span>`;
-            }
-            bootstrap.Modal.getInstance(document.getElementById("targetModal")).hide();
-        } else { alert(data.error || "Fehler."); }
-    } finally { btn.disabled = false; }
-}
-
-// ── Icon override modal ───────────────────────────────────────────────────────
-
-function openIconModal(slug, title, currentIcon) {
-    document.getElementById("im-slug").value = slug;
-    document.getElementById("im-title").textContent = title;
-    const input = document.getElementById("im-icon");
-    input.value = currentIcon;
-    esseUpdatePreview(input);
-    new bootstrap.Modal(document.getElementById("iconModal")).show();
-}
-
-async function imSave() {
-    const slug = document.getElementById("im-slug").value;
-    const icon = document.getElementById("im-icon").value.trim();
-    const btn  = document.getElementById("im-save");
-    btn.disabled = true;
-
-    const fd = new FormData();
-    fd.append("_csrf", CSRF); fd.append("_action", "save_page_icon");
-    fd.append("slug", slug); fd.append("icon", icon);
-
-    try {
-        const data = await fetch("/admin/pages", {method:"POST", body:fd}).then(r => r.json());
-        if (data.success) {
-            const el = document.querySelector(`[data-icon-slug="${slug}"]`);
-            if (el) {
-                el.dataset.iconCurrent = icon;
-                el.innerHTML = icon
-                    ? `<i class="bi bi-${icon}" style="font-size:1rem"></i>`
-                    : `<i class="bi bi-image text-secondary" style="opacity:.25;font-size:1rem" title="Kein Icon"></i>`;
-            }
-            bootstrap.Modal.getInstance(document.getElementById("iconModal")).hide();
-        } else { alert(data.error || "Fehler."); }
-    } finally { btn.disabled = false; }
-}
-</script>';
+$extraScriptConfig = array_merge($extraScriptConfig ?? [], ['admin-pages-list-config' => [
+    'csrf' => Auth::csrfToken(),
+    'roles' => $modalRoles,
+]]);
+$extraScriptFiles = array_merge($extraScriptFiles ?? [], ['/public/assets/js/admin-pages-list.js']);
 
 require dirname(__DIR__) . '/layout.php';
