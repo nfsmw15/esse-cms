@@ -172,16 +172,14 @@ ob_start();
                     <div class="mb-3">
                         <label class="form-label">Titel</label>
                         <div class="input-group">
-                            <span class="input-group-text esse-icon-preview px-2"
+                            <span class="input-group-text esse-icon-preview px-2 admin-icon-preview-lg"
                                   data-for="page-icon"
-                                  style="cursor:pointer;min-width:38px;justify-content:center"
                                   data-icon-picker-target="page-icon"
                                   title="Icon wählen">
-                                <i class="bi bi-grid-3x3-gap" style="opacity:.35;font-size:.95rem"></i>
+                                <i class="bi bi-grid-3x3-gap admin-icon-muted admin-icon-md"></i>
                             </span>
                             <input type="text" name="icon" id="page-icon"
-                                   class="form-control font-monospace"
-                                   style="max-width:120px"
+                                   class="form-control font-monospace admin-short-input"
                                    placeholder="z.B. house"
                                    value="<?= htmlspecialchars($page['icon'] ?? '') ?>"
                                    data-icon-preview="1"
@@ -215,7 +213,7 @@ ob_start();
 
             <!-- PHP file upload (only if permission) -->
             <?php if (Auth::can('php_upload')): ?>
-            <div class="card mt-3" id="php-card" style="display:none">
+	            <div class="card mt-3 admin-hidden" id="php-card">
                 <div class="card-header py-2 d-flex justify-content-between">
                     <small class="text-secondary">PHP / HTML Datei</small>
                     <?php if ($isEdit && $page['type'] === 'php' && $page['file_path']): ?>
@@ -257,7 +255,7 @@ ob_start();
                         </option>
                         <?php endforeach ?>
                     </select>
-                    <div id="form-vis-roles" style="<?= $currentVis === 'roles' ? '' : 'display:none' ?>">
+	                    <div id="form-vis-roles" class="<?= $currentVis === 'roles' ? '' : 'admin-hidden' ?>">
                         <small class="text-secondary d-block mb-1">Erlaubte Rollen:</small>
                         <?php foreach ($formRoles as $role): ?>
                         <div class="form-check">
@@ -309,29 +307,15 @@ ob_start();
 <?php
 $content      = ob_get_clean();
 $extraHead    = '<link rel="stylesheet" href="/public/vendor/summernote/summernote-bs5.min.css">
-<style>
-/* Hide original textarea — Summernote replaces it */
-#content { display:none; }
-.note-editor { border-color:#333 !important; }
-.note-toolbar { background:#1e1e1e !important; border-color:#333 !important; }
-.note-toolbar .btn { color:#adb5bd; background:transparent; border-color:#333; }
-.note-toolbar .btn:hover, .note-toolbar .btn.active { background:#2d2d2d; color:#fff; }
-.note-editable { background:#111 !important; color:#e0e0e0 !important; min-height:380px; }
-.note-statusbar { background:#1a1a1a !important; border-color:#333 !important; }
-.note-placeholder { color:#6c757d !important; }
-.dropdown-menu { background:#1e1e1e; border-color:#333; }
-.dropdown-item { color:#adb5bd; }
-.dropdown-item:hover { background:#2d2d2d; color:#fff; }
-.note-modal .modal-content { background:#1a1a1a; }
-.note-modal .modal-header, .note-modal .modal-footer { border-color:#333; }
-</style>';
-$extraScripts = '<script src="/public/vendor/summernote/summernote-bs5.min.js"></script>
-<script src="/public/vendor/summernote/summernote-de-DE.min.js"></script>';
+<link rel="stylesheet" href="/public/assets/css/admin-pages-editor.css">';
 $extraScriptConfig = array_merge($extraScriptConfig ?? [], ['admin-pages-form-config' => [
     'csrf' => Auth::csrfToken(),
     'slugEdited' => ($isEdit || !empty($page['slug'] ?? '')),
 ]]);
 $extraScriptFiles = array_merge($extraScriptFiles ?? [], [
+    '/public/vendor/summernote/jquery.min.js',
+    '/public/vendor/summernote/summernote-bs5.min.js',
+    '/public/vendor/summernote/summernote-de-DE.min.js',
     '/public/assets/js/admin-pages-form.js',
     '/public/assets/js/admin-pages-summernote.js',
 ]);

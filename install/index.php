@@ -356,22 +356,10 @@ $stepLabels = ['Systemprüfung', 'Datenbank', 'Website', 'Forge-Account'];
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ESSE CMS — Installation</title>
     <link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css">
-    <style>
-        body { background: #0d0d0d; color: #e0e0e0; }
-        .card { background: #1a1a1a; border: 1px solid #2d2d2d; }
-        .card-header { background: #111; border-bottom: 1px solid #2d2d2d; }
-        .form-control, .form-select { background: #111; border-color: #333; color: #e0e0e0; }
-        .form-control:focus, .form-select:focus { background: #111; border-color: #666; color: #e0e0e0; box-shadow: none; }
-        .form-text { color: #666; }
-        .step-badge { width: 2rem; height: 2rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 600; }
-        .step-done  { background: #198754; color: #fff; }
-        .step-active { background: #0d6efd; color: #fff; }
-        .step-pending { background: #2d2d2d; color: #666; }
-        .brand { font-size: 1.5rem; font-weight: 700; letter-spacing: .1em; }
-    </style>
+    <link rel="stylesheet" href="/public/assets/css/install.css">
 </head>
 <body>
-<div class="container py-5" style="max-width: 640px">
+<div class="container py-5 install-container">
 
     <!-- Brand -->
     <div class="text-center mb-4">
@@ -389,12 +377,12 @@ $stepLabels = ['Systemprüfung', 'Datenbank', 'Website', 'Forge-Account'];
             <div class="step-badge <?= $cls ?> mx-auto">
                 <?= $n < $step ? '✓' : $n ?>
             </div>
-            <small class="d-block mt-1 <?= $n === $step ? 'text-white' : 'text-secondary' ?>" style="font-size:.75rem">
+            <small class="d-block mt-1 step-label <?= $n === $step ? 'text-white' : 'text-secondary' ?>">
                 <?= htmlspecialchars($label) ?>
             </small>
         </div>
         <?php if ($i < count($stepLabels) - 1): ?>
-            <div class="flex-grow-1" style="height:1px; background:#2d2d2d; margin-bottom:1.5rem"></div>
+            <div class="flex-grow-1 step-line"></div>
         <?php endif ?>
         <?php endforeach ?>
     </div>
@@ -531,7 +519,7 @@ $stepLabels = ['Systemprüfung', 'Datenbank', 'Website', 'Forge-Account'];
         </div>
     </div>
 
-    <p class="text-center text-secondary mt-4" style="font-size:.8rem">
+    <p class="text-center text-secondary mt-4 install-footer">
         ESSE CMS <?= ESSE_VERSION ?> &nbsp;·&nbsp; AGPL-3.0
     </p>
 </div>

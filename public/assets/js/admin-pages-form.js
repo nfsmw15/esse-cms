@@ -14,7 +14,7 @@
     const visSelect = document.getElementById('form-vis-select');
     const visPanel = document.getElementById('form-vis-roles');
     function updateVisRoles() {
-        if (visPanel && visSelect) visPanel.style.display = visSelect.value === 'roles' ? '' : 'none';
+        if (visPanel && visSelect) visPanel.classList.toggle('admin-hidden', visSelect.value !== 'roles');
     }
     visSelect?.addEventListener('change', updateVisRoles);
     updateVisRoles();
@@ -45,11 +45,11 @@
     function updateType() {
         if (!typeEl) return;
         if (typeEl.value === 'php') {
-            contentCard?.style.setProperty('display', 'none', 'important');
-            phpCard?.style.removeProperty('display');
+            contentCard?.classList.add('admin-hidden');
+            phpCard?.classList.remove('admin-hidden');
         } else {
-            contentCard?.style.removeProperty('display');
-            phpCard?.style.setProperty('display', 'none', 'important');
+            contentCard?.classList.remove('admin-hidden');
+            phpCard?.classList.add('admin-hidden');
         }
     }
     typeEl?.addEventListener('change', updateType);

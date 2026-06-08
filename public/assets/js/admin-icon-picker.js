@@ -66,7 +66,7 @@
         const grid = document.getElementById('esseIconGrid');
         if (status) {
             status.textContent = message;
-            status.style.display = '';
+            status.classList.remove('admin-hidden');
         }
         if (grid) grid.innerHTML = '';
     }
@@ -222,7 +222,7 @@
             return;
         }
 
-        if (status) status.style.display = 'none';
+        if (status) status.classList.add('admin-hidden');
         grid.innerHTML = list.map(name =>
             '<button type="button" class="btn btn-outline-secondary p-1 esse-ipick-btn" data-name="' + name + '" title="' + name + '">' +
             '<i class="' + iconPrefix + name + ' esse-ipick-glyph"></i>' +

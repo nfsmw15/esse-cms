@@ -156,7 +156,7 @@ function visBadge(string $slug, string $pageType, string $vis, array $roles, str
         return "<span class=\"badge bg-{$color}\">{$label}</span>";
     }
 
-    return "<span class=\"badge bg-{$color} vis-badge\" style=\"cursor:pointer\""
+    return "<span class=\"badge bg-{$color} vis-badge admin-inline-action\""
          . " data-vis-badge=\"{$slugH}\" data-vis=\"{$vis}\" data-roles=\"{$rolesJ}\""
          . " data-page-type=\"{$typeH}\" data-title=\"{$titleH}\">"
          . "{$label}</span>";
@@ -169,10 +169,10 @@ function iconOverrideBadge(string $slug, string $icon, string $title): string
     $iconH  = htmlspecialchars($icon);
 
     $iconHtml = $icon
-        ? "<i class=\"bi bi-{$iconH}\" style=\"font-size:1rem\"></i>"
-        : "<i class=\"bi bi-image text-secondary\" style=\"opacity:.25;font-size:1rem\" title=\"Kein Icon\"></i>";
+        ? "<i class=\"bi bi-{$iconH} admin-icon-base\"></i>"
+        : "<i class=\"bi bi-image text-secondary admin-icon-faded admin-icon-base\" title=\"Kein Icon\"></i>";
 
-    return "<span class=\"icon-override-btn me-1\" style=\"cursor:pointer\""
+    return "<span class=\"icon-override-btn me-1 admin-inline-action\""
          . " data-icon-slug=\"{$slugH}\" data-icon-current=\"{$iconH}\""
          . " data-title=\"{$titleH}\">"
          . "{$iconHtml}</span>";
@@ -192,9 +192,9 @@ function targetBadge(string $slug, array $slugTargets): string
 
     $inner = $assigned
         ? implode('', array_map(fn($k) => '<span class="badge bg-' . ($defs[$k][1] ?? 'secondary') . ' me-1">' . htmlspecialchars($defs[$k][0] ?? $k) . '</span>', $assigned))
-        : '<span class="text-secondary" style="font-size:.8rem">—</span>';
+        : '<span class="text-secondary admin-text-xs">—</span>';
 
-    return "<span class=\"target-badge\" style=\"cursor:pointer\""
+    return "<span class=\"target-badge admin-inline-action\""
          . " data-target-badge=\"{$slugH}\" data-assigned=\"{$dataJ}\""
          . ">{$inner}</span>";
 }
@@ -255,7 +255,7 @@ ob_start();
                     <?php if (!empty($p['icon'])): ?>
                     <i class="bi bi-<?= htmlspecialchars($p['icon']) ?> me-1"></i>
                     <?php else: ?>
-                    <i class="bi bi-image text-secondary me-1" style="opacity:.25" title="Kein Icon"></i>
+                    <i class="bi bi-image text-secondary me-1 admin-icon-faded" title="Kein Icon"></i>
                     <?php endif ?>
                     <a href="/admin/pages/edit/<?= htmlspecialchars($p['slug']) ?>"
                        class="text-white text-decoration-none fw-semibold">
@@ -392,7 +392,7 @@ ob_start();
                         <option value="roles">Rollen — bestimmte Rollen wählen</option>
                     </select>
                 </div>
-                <div id="vm-roles-panel" style="display:none">
+                <div id="vm-roles-panel" class="admin-hidden">
                     <label class="form-label">Erlaubte Rollen</label>
                     <div id="vm-roles-list"></div>
                 </div>
@@ -416,12 +416,11 @@ ob_start();
             <div class="modal-body">
                 <input type="hidden" id="im-slug">
                 <div class="input-group input-group-sm">
-                    <span class="input-group-text esse-icon-preview px-2"
+                    <span class="input-group-text esse-icon-preview px-2 admin-icon-preview"
                           data-for="im-icon"
-                          style="cursor:pointer;min-width:34px;justify-content:center"
                           data-icon-picker-target="im-icon"
                           title="Icon wählen">
-                        <i class="bi bi-grid-3x3-gap" style="opacity:.35"></i>
+                        <i class="bi bi-grid-3x3-gap admin-icon-muted"></i>
                     </span>
                     <input type="text" id="im-icon" class="form-control form-control-sm font-monospace"
                            placeholder="z.B. people" data-icon-preview="1">

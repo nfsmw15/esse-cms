@@ -304,11 +304,10 @@ function itemEditForm(array $item, int $menuId, array $pages, array $allTopItems
          . "<input type='text' name='label' class='form-control form-control-sm' value='{$label}' required></div>"
          . "<div class='col-sm-3'><label class='form-label small'>Icon <small class=\"text-secondary\">(opt.)</small></label>"
          . "<div class='input-group input-group-sm'>"
-         . "<span class='input-group-text esse-icon-preview px-1' data-for='icon-{$id}'"
-         .      " style='cursor:pointer;min-width:34px;justify-content:center'"
+         . "<span class='input-group-text esse-icon-preview px-1 admin-icon-preview' data-for='icon-{$id}'"
          .      " data-icon-picker-target='icon-{$id}'"
          .      " title='Icon wählen'>"
-         . "<i class='bi bi-grid-3x3-gap' style='opacity:.35'></i>"
+         . "<i class='bi bi-grid-3x3-gap admin-icon-muted'></i>"
          . "</span>"
          . "<input type='text' name='icon' id='icon-{$id}' class='form-control form-control-sm font-monospace'"
          .      " value='{$icon}' placeholder='z.B. house' data-icon-preview='1'>"
@@ -362,13 +361,13 @@ ob_start();
                     <div class="list-group-item px-3 py-2 <?= empty($item['active']) ? 'opacity-50' : '' ?>"
                          data-id="<?= $item['id'] ?>">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="drag-handle text-secondary" style="cursor:grab" title="Verschieben">
+                            <span class="drag-handle text-secondary" title="Verschieben">
                                 <i class="bi bi-grip-vertical"></i>
                             </span>
                             <?php if (!empty($item['icon'])): ?>
-                            <i class="bi bi-<?= htmlspecialchars($item['icon']) ?>" style="font-size:1rem" title="<?= htmlspecialchars($item['icon']) ?>"></i>
+                            <i class="bi bi-<?= htmlspecialchars($item['icon']) ?> admin-icon-base" title="<?= htmlspecialchars($item['icon']) ?>"></i>
                             <?php else: ?>
-                            <i class="bi bi-image text-secondary" style="opacity:.25;font-size:1rem" title="Kein Icon"></i>
+                            <i class="bi bi-image text-secondary admin-icon-faded admin-icon-base" title="Kein Icon"></i>
                             <?php endif ?>
                             <span class="fw-semibold flex-grow-1 <?= empty($item['active']) ? 'text-decoration-line-through text-secondary' : '' ?>">
                                 <?= htmlspecialchars($item['label']) ?>
@@ -421,14 +420,14 @@ ob_start();
                             $childEditId = 'edit-' . $child['id']; ?>
                         <div class="d-flex align-items-center gap-2 py-1 <?= empty($child['active']) ? 'opacity-50' : '' ?>"
                              data-child-id="<?= $child['id'] ?>">
-                            <span class="drag-handle text-secondary" style="cursor:grab">
+                            <span class="drag-handle text-secondary">
                                 <i class="bi bi-grip-vertical"></i>
                             </span>
                             <i class="bi bi-arrow-return-right text-secondary small"></i>
                             <?php if (!empty($child['icon'])): ?>
-                            <i class="bi bi-<?= htmlspecialchars($child['icon']) ?>" style="font-size:.9rem" title="<?= htmlspecialchars($child['icon']) ?>"></i>
+                            <i class="bi bi-<?= htmlspecialchars($child['icon']) ?> admin-icon-sm" title="<?= htmlspecialchars($child['icon']) ?>"></i>
                             <?php else: ?>
-                            <i class="bi bi-image text-secondary" style="opacity:.25;font-size:.9rem" title="Kein Icon"></i>
+                            <i class="bi bi-image text-secondary admin-icon-faded admin-icon-sm" title="Kein Icon"></i>
                             <?php endif ?>
                             <span class="small flex-grow-1 <?= empty($child['active']) ? 'text-decoration-line-through text-secondary' : '' ?>">
                                 <?= htmlspecialchars($child['label']) ?>
@@ -534,12 +533,11 @@ ob_start();
                     <div class="mb-2">
                         <label class="form-label">Icon <small class="text-secondary">(optional)</small></label>
                         <div class="input-group input-group-sm">
-                            <span class="input-group-text esse-icon-preview px-2"
+                            <span class="input-group-text esse-icon-preview px-2 admin-icon-preview"
                                   data-for="add-item-icon"
-                                  style="cursor:pointer;min-width:34px;justify-content:center"
                                   data-icon-picker-target="add-item-icon"
                                   title="Icon wählen">
-                                <i class="bi bi-grid-3x3-gap" style="opacity:.35"></i>
+                                <i class="bi bi-grid-3x3-gap admin-icon-muted"></i>
                             </span>
                             <input type="text" name="icon" id="add-item-icon"
                                    class="form-control form-control-sm font-monospace"
@@ -580,7 +578,7 @@ ob_start();
                             <?php endif ?>
                         </select>
                     </div>
-                    <div class="mb-2" id="field-url" style="display:none">
+                    <div class="mb-2 admin-hidden" id="field-url">
                         <label class="form-label">URL</label>
                         <input type="text" name="url" class="form-control form-control-sm"
                                placeholder="https://...">

@@ -36,7 +36,7 @@ Router::get('/', function () {
             exit;
         }
     } else {
-        echo '<p style="font-family:sans-serif;padding:2rem">ESSE CMS — Startseite nicht konfiguriert. '
+        echo '<p class="m-4">ESSE CMS — Startseite nicht konfiguriert. '
            . '<a href="/admin/settings">Einstellungen öffnen</a></p>';
     }
 }, ['name' => 'home', 'auth' => 'public']);

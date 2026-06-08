@@ -199,7 +199,7 @@ if (!$available) {
         <div class="card-header py-2 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2">
                 <strong><?= htmlspecialchars($r['name']) ?></strong>
-                <span class="badge bg-success" style="font-size:.65rem"><i class="bi bi-shield-check"></i> Offiziell</span>
+                <span class="badge bg-success badge-xs"><i class="bi bi-shield-check"></i> Offiziell</span>
             </div>
             <?php if ($hasUpdate): ?>
             <span class="badge bg-warning text-dark"><i class="bi bi-arrow-up-circle"></i> v<?= htmlspecialchars($latestVer) ?></span>

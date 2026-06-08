@@ -19,20 +19,20 @@ ob_start();
 <div class="row g-3 mb-4">
     <div class="col-sm-4">
         <div class="card text-center p-3">
-            <div style="font-size:2rem;font-weight:700;color:#0d6efd"><?= $pages ?></div>
+            <div class="admin-stat admin-text-primary"><?= $pages ?></div>
             <small class="text-secondary">Veröffentlichte Seiten</small>
         </div>
     </div>
     <div class="col-sm-4">
         <div class="card text-center p-3">
-            <div style="font-size:2rem;font-weight:700;color:#6c757d"><?= $drafts ?></div>
+            <div class="admin-stat admin-text-muted"><?= $drafts ?></div>
             <small class="text-secondary">Entwürfe</small>
         </div>
     </div>
     <?php if ($users !== null): ?>
     <div class="col-sm-4">
         <div class="card text-center p-3">
-            <div style="font-size:2rem;font-weight:700;color:#198754"><?= $users ?></div>
+            <div class="admin-stat admin-text-success"><?= $users ?></div>
             <small class="text-secondary">Benutzer</small>
         </div>
     </div>

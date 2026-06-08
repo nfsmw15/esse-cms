@@ -20,11 +20,11 @@ if (!empty($_SESSION['flash'])) {
 }
 
 $roleLabels = [
-    'forge'  => ['7c3aed', 'Forge'],
-    'admin'  => ['0d6efd', 'Admin'],
-    'editor' => ['0891b2', 'Editor'],
-    'author' => ['059669', 'Author'],
-    'member' => ['374151', 'Member'],
+    'forge'  => ['badge-forge', 'Forge'],
+    'admin'  => ['badge-admin', 'Admin'],
+    'editor' => ['badge-editor', 'Editor'],
+    'author' => ['badge-author', 'Author'],
+    'member' => ['badge-member', 'Member'],
 ];
 $manageableRoles = ['editor', 'author', 'member'];
 if (Auth::can('manage_admins')) {
@@ -64,17 +64,17 @@ ob_start();
             </tr></thead>
             <tbody>
             <?php foreach ($users as $user): ?>
-            <?php [$color, $label] = $roleLabels[$user['role']] ?? ['6c757d', $user['role']]; ?>
+            <?php [$roleClass, $label] = $roleLabels[$user['role']] ?? ['bg-secondary', $user['role']]; ?>
             <tr class="align-middle <?= !$user['active'] ? 'opacity-50' : '' ?>">
                 <td class="fw-semibold">
                     <?= htmlspecialchars($user['display_name']) ?>
                     <?php if ($user['id'] === Auth::id()): ?>
-                        <span class="badge bg-secondary ms-1" style="font-size:.65rem">Du</span>
+                        <span class="badge bg-secondary ms-1 badge-xs">Du</span>
                     <?php endif ?>
                 </td>
                 <td class="text-secondary"><?= htmlspecialchars($user['email']) ?></td>
                 <td>
-                    <span class="badge rounded-pill" style="background:#<?= $color ?>">
+                    <span class="badge rounded-pill <?= htmlspecialchars($roleClass) ?>">
                         <?= $label ?>
                     </span>
                 </td>

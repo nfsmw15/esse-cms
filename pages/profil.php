@@ -260,7 +260,7 @@ $csrf         = Auth::csrfToken();
                         <input type="hidden" name="_action" value="totp_setup_confirm">
                         <p class="mb-2">2. 6-stelligen Code aus der App eingeben, um die Einrichtung abzuschließen:</p>
                         <div class="d-flex gap-2">
-                            <input type="text" name="code" class="form-control" style="max-width:160px;letter-spacing:.2em"
+                            <input type="text" name="code" class="form-control profile-code-input"
                                    inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"
                                    placeholder="000000" required>
                             <button class="btn btn-primary">Bestätigen</button>
@@ -360,7 +360,7 @@ $csrf         = Auth::csrfToken();
                             <input type="hidden" name="_csrf" value="<?= $csrf ?>">
                             <input type="hidden" name="_action" value="passkey_rename">
                             <input type="hidden" name="credential_id" value="<?= (int) $pk['id'] ?>">
-                            <input type="text" name="label" class="form-control form-control-sm" style="max-width:240px"
+                            <input type="text" name="label" class="form-control form-control-sm profile-label-input"
                                    value="<?= htmlspecialchars($pk['label']) ?>" placeholder="Bezeichnung">
                             <button class="btn btn-sm btn-outline-light">Umbenennen</button>
                         </form>

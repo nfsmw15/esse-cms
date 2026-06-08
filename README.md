@@ -106,7 +106,7 @@ Security is a first-class design goal in ESSE — not an afterthought.
 - Both are optional and per-user; WebAuthn cryptography (attestation/assertion verification, CBOR decoding) is handled by the vendored `report-uri/passkeys-php` library rather than custom crypto code
 - Session cookies are `HttpOnly`, `SameSite=Lax` and automatically `Secure` on HTTPS installations
 - Core responses send browser hardening headers, including CSP, frame protection, referrer policy, permissions policy and `X-Content-Type-Options`
-- Inline JavaScript has been moved to static assets plus JSON configuration blocks; the default CSP uses `script-src 'self'` without `unsafe-inline`
+- Inline JavaScript and inline CSS have been moved to static assets plus JSON configuration blocks; the default CSP uses `script-src 'self'` and `style-src 'self'` without `unsafe-inline`
 
 **Private path (recommended for VPS / HestiaCP):**
 The installer optionally stores `config/` and `storage/` outside the webroot entirely — in a directory like `~/private/esse/` that is never reachable via HTTP. No `.htaccess` misconfiguration can expose DB credentials or uploads.

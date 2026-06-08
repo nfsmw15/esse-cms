@@ -28,7 +28,7 @@
         if (!updateBtn || !terminalWrap || !terminal || !status) return;
 
         updateBtn.disabled = true;
-        terminalWrap.style.display = '';
+        terminalWrap.classList.remove('admin-hidden');
 
         const fd = new FormData();
         fd.append('_csrf', config.csrf || '');
@@ -51,13 +51,13 @@
             const line = document.createElement('div');
 
             if (data.type === 'success') {
-                line.style.color = '#4ade80';
+                line.className = 'admin-log-success';
                 line.textContent = '✓ ' + data.message;
             } else if (data.type === 'error') {
-                line.style.color = '#f87171';
+                line.className = 'admin-log-error';
                 line.textContent = '✗ ' + data.message;
             } else {
-                line.style.color = '#94a3b8';
+                line.className = 'admin-log-info';
                 line.textContent = '› ' + data.message;
             }
 

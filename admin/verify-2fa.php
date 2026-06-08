@@ -105,16 +105,10 @@ $redirectParam = htmlspecialchars($_GET['redirect'] ?? $_POST['redirect'] ?? '')
     <title>Bestätigung erforderlich — <?= htmlspecialchars($brandName) ?></title>
     <link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/public/vendor/bootstrap-icons/bootstrap-icons.min.css">
-    <style>
-        body { background: #0d0d0d; color: #e0e0e0; }
-        .card { background: #1a1a1a; border: 1px solid #2d2d2d; }
-        .form-control { background: #111; border-color: #333; color: #e0e0e0; }
-        .form-control:focus { background: #111; border-color: #555; color: #e0e0e0; box-shadow: none; }
-        .brand { font-size: 1.4rem; font-weight: 700; letter-spacing: .1em; }
-    </style>
+    <link rel="stylesheet" href="/public/assets/css/auth.css">
 </head>
 <body class="d-flex align-items-center justify-content-center vh-100">
-<div style="width:100%;max-width:380px;padding:1rem">
+<div class="auth-box">
     <div class="text-center mb-4">
         <div class="brand text-white"><?= htmlspecialchars($brandName) ?></div>
         <?php if ($brandSlogan !== ''): ?>
@@ -140,8 +134,7 @@ $redirectParam = htmlspecialchars($_GET['redirect'] ?? $_POST['redirect'] ?? '')
                 <input type="hidden" name="redirect" value="<?= $redirectParam ?>">
                 <div class="mb-4">
                     <label class="form-label">Code</label>
-                    <input type="text" name="code" class="form-control text-center"
-                           style="letter-spacing:.3em;font-size:1.2rem"
+                    <input type="text" name="code" class="form-control text-center auth-code-input"
                            inputmode="text" autocomplete="one-time-code" autofocus required
                            placeholder="000000">
                     <div class="form-text">6-stelliger Code aus der App, oder ein Backup-Code (z.B. „ab3de-fg7hk")</div>

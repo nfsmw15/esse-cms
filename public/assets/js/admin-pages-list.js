@@ -57,7 +57,7 @@
     function updateRolesPanel() {
         const panel = document.getElementById('vm-roles-panel');
         const select = document.getElementById('vm-vis');
-        if (panel && select) panel.style.display = select.value === 'roles' ? '' : 'none';
+        if (panel && select) panel.classList.toggle('admin-hidden', select.value !== 'roles');
     }
 
     function openVisModal(badge) {
@@ -202,8 +202,8 @@
             if (el) {
                 el.dataset.iconCurrent = icon;
                 el.innerHTML = icon
-                    ? '<i class="bi bi-' + icon + '" style="font-size:1rem"></i>'
-                    : '<i class="bi bi-image text-secondary" style="opacity:.25;font-size:1rem" title="Kein Icon"></i>';
+                    ? '<i class="bi bi-' + icon + ' admin-icon-base"></i>'
+                    : '<i class="bi bi-image text-secondary admin-icon-faded admin-icon-base" title="Kein Icon"></i>';
             }
             bootstrap.Modal.getInstance(document.getElementById('iconModal'))?.hide();
         } finally {

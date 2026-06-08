@@ -121,7 +121,7 @@ ob_start();
                 <td>
                     <span class="small font-monospace"><?= htmlspecialchars($name) ?></span>
                     <?php if ($version): ?>
-                    <span class="badge bg-secondary ms-1" style="font-size:.65rem"><?= htmlspecialchars($version) ?></span>
+                    <span class="badge bg-secondary ms-1 badge-xs"><?= htmlspecialchars($version) ?></span>
                     <?php endif ?>
                 </td>
                 <td class="text-secondary small"><?= $size ?> KB</td>

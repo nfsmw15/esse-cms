@@ -19,9 +19,9 @@
         if (!typeEl) return;
 
         const value = typeEl.value;
-        if (pgField) pgField.style.display = value === 'page' ? '' : 'none';
-        if (urlField) urlField.style.display = value === 'url' ? '' : 'none';
-        if (tgtField) tgtField.style.display = value !== 'header' ? '' : 'none';
+        if (pgField) pgField.classList.toggle('admin-hidden', value !== 'page');
+        if (urlField) urlField.classList.toggle('admin-hidden', value !== 'url');
+        if (tgtField) tgtField.classList.toggle('admin-hidden', value === 'header');
     }
 
     function collectOrder() {

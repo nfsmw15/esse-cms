@@ -242,7 +242,7 @@ ob_start();
                         <label class="form-label">Zusätzliche Berechtigungen
                             <small class="text-secondary">(zusätzlich zur Rolle)</small>
                         </label>
-                        <div class="card p-2" style="background:#111">
+                        <div class="card p-2 admin-panel-dark">
                             <?php foreach (Auth::PERMISSIONS as $slug => [$permLabel, $permDesc]): ?>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox"
@@ -254,7 +254,7 @@ ob_start();
                                        title="<?= htmlspecialchars($permDesc) ?>">
                                     <?= htmlspecialchars($permLabel) ?>
                                     <?php if ($slug === 'php_upload'): ?>
-                                    <span class="badge bg-danger ms-1" style="font-size:.6rem">Gefährlich</span>
+                                    <span class="badge bg-danger ms-1 badge-xxs">Gefährlich</span>
                                     <?php endif ?>
                                 </label>
                             </div>

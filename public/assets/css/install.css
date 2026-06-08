@@ -1,0 +1,83 @@
+body {
+    background: #0d0d0d;
+    color: #e0e0e0;
+}
+
+.card {
+    background: #1a1a1a;
+    border: 1px solid #2d2d2d;
+}
+
+.card-header {
+    background: #111;
+    border-bottom: 1px solid #2d2d2d;
+}
+
+.form-control,
+.form-select {
+    background: #111;
+    border-color: #333;
+    color: #e0e0e0;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background: #111;
+    border-color: #666;
+    color: #e0e0e0;
+    box-shadow: none;
+}
+
+.form-text {
+    color: #666;
+}
+
+.install-container {
+    max-width: 640px;
+}
+
+.step-badge {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+.step-done {
+    background: #198754;
+    color: #fff;
+}
+
+.step-active {
+    background: #0d6efd;
+    color: #fff;
+}
+
+.step-pending {
+    background: #2d2d2d;
+    color: #666;
+}
+
+.step-label {
+    font-size: .75rem;
+}
+
+.step-line {
+    height: 1px;
+    background: #2d2d2d;
+    margin-bottom: 1.5rem;
+}
+
+.brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+}
+
+.install-footer {
+    font-size: .8rem;
+}

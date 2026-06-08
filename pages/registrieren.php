@@ -101,7 +101,7 @@ $captchaQuestion = $done ? '' : Captcha::challenge();
                 <input type="text" name="captcha_answer" class="form-control" inputmode="numeric"
                        autocomplete="off" required>
             </div>
-            <div style="position:absolute;left:-9999px" aria-hidden="true">
+            <div class="esse-honeypot" aria-hidden="true">
                 <label for="reg-website">Website</label>
                 <input type="text" id="reg-website" name="<?= Captcha::HONEYPOT_FIELD ?>"
                        tabindex="-1" autocomplete="off">

@@ -1,0 +1,62 @@
+#content {
+    display: none;
+}
+
+.note-editor {
+    border-color: #333 !important;
+}
+
+.note-toolbar {
+    background: #1e1e1e !important;
+    border-color: #333 !important;
+}
+
+.note-toolbar .btn {
+    color: #adb5bd;
+    background: transparent;
+    border-color: #333;
+}
+
+.note-toolbar .btn:hover,
+.note-toolbar .btn.active {
+    background: #2d2d2d;
+    color: #fff;
+}
+
+.note-editable {
+    background: #111 !important;
+    color: #e0e0e0 !important;
+    min-height: 380px;
+}
+
+.note-statusbar {
+    background: #1a1a1a !important;
+    border-color: #333 !important;
+}
+
+.note-placeholder {
+    color: #6c757d !important;
+}
+
+.dropdown-menu {
+    background: #1e1e1e;
+    border-color: #333;
+}
+
+.dropdown-item {
+    color: #adb5bd;
+}
+
+.dropdown-item:hover {
+    background: #2d2d2d;
+    color: #fff;
+}
+
+.note-modal .modal-content {
+    background: #1a1a1a;
+}
+
+.note-modal .modal-header,
+.note-modal .modal-footer {
+    border-color: #333;
+}

@@ -127,8 +127,7 @@ $loginFailed = !empty($_GET['login_error']);
                        aria-expanded="<?= $loginFailed ? 'true' : 'false' ?>">
                         <i class="bi bi-person me-1"></i>Anmelden
                     </a>
-                    <div class="dropdown-menu dropdown-menu-dark dropdown-menu-end p-3<?= $loginFailed ? ' show' : '' ?>"
-                         style="min-width:280px"
+                    <div class="dropdown-menu dropdown-menu-dark dropdown-menu-end p-3 esse-login-menu<?= $loginFailed ? ' show' : '' ?>"
                          <?= $loginFailed ? 'data-bs-popper="static"' : '' ?>>
                         <?php if ($loginFailed): ?>
                         <div class="alert alert-danger py-1 px-2 small mb-2">

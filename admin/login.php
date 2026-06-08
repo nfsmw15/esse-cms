@@ -133,16 +133,10 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.login.render'))
     <title>Login — ESSE CMS</title>
     <link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/public/vendor/bootstrap-icons/bootstrap-icons.min.css">
-    <style>
-        body { background: #0d0d0d; color: #e0e0e0; }
-        .card { background: #1a1a1a; border: 1px solid #2d2d2d; }
-        .form-control { background: #111; border-color: #333; color: #e0e0e0; }
-        .form-control:focus { background: #111; border-color: #555; color: #e0e0e0; box-shadow: none; }
-        .brand { font-size: 1.4rem; font-weight: 700; letter-spacing: .1em; }
-    </style>
+    <link rel="stylesheet" href="/public/assets/css/auth.css">
 </head>
 <body class="d-flex align-items-center justify-content-center vh-100">
-<div style="width:100%;max-width:380px;padding:1rem">
+<div class="auth-box">
     <div class="text-center mb-4">
         <div class="brand text-white"><?= htmlspecialchars($brandName) ?></div>
         <?php if ($brandSlogan !== ''): ?>
@@ -226,7 +220,7 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.login.render'))
     }
     if ($current['header'] !== null || !empty($current['links'])) $groups[] = $current;
 ?>
-<footer class="position-fixed bottom-0 w-100 py-3" style="background:#0d0d0d;border-top:1px solid #1e1e1e">
+<footer class="position-fixed bottom-0 w-100 py-3 auth-footer">
     <div class="d-flex flex-wrap justify-content-center gap-5">
         <?php foreach ($groups as $group): ?>
         <div class="text-center">

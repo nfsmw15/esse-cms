@@ -39,7 +39,7 @@ $message = $page['error_message'] ?? '';
     </div>
 </nav>
 
-<main class="container py-5 text-center" style="min-height:60vh;display:flex;align-items:center;justify-content:center">
+<main class="container py-5 text-center esse-error-main">
     <div>
         <div class="display-1 fw-bold text-secondary mb-2"><?= $code ?></div>
         <h1 class="h3 mb-3"><?= htmlspecialchars($title) ?></h1>

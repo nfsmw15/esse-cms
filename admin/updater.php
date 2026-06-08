@@ -133,7 +133,7 @@ ob_start();
             </div>
             <div class="card-body">
                 <?php if ($updateInfo['changelog']): ?>
-                <div class="mb-3 small text-secondary" style="white-space:pre-wrap;max-height:200px;overflow-y:auto"><?= htmlspecialchars($updateInfo['changelog']) ?></div>
+                <div class="mb-3 small text-secondary admin-pre-wrap"><?= htmlspecialchars($updateInfo['changelog']) ?></div>
                 <?php endif ?>
                 <div class="alert alert-warning small mb-3">
                     <i class="bi bi-exclamation-triangle-fill me-1"></i>
@@ -159,15 +159,14 @@ ob_start();
         <?php endif ?>
 
         <!-- SSE Terminal -->
-        <div id="terminal-wrap" style="display:none">
+        <div id="terminal-wrap" class="admin-hidden">
             <div class="card border-secondary">
                 <div class="card-header py-2 d-flex justify-content-between align-items-center">
                     <small class="text-secondary font-monospace">Update-Fortschritt</small>
                     <span id="terminal-status" class="badge bg-secondary">Läuft...</span>
                 </div>
                 <div id="terminal"
-                     class="font-monospace small p-3"
-                     style="background:#0a0a0a;min-height:200px;max-height:400px;overflow-y:auto;color:#4ade80">
+                     class="font-monospace small p-3 admin-terminal">
                 </div>
             </div>
         </div>

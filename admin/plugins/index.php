@@ -338,11 +338,11 @@ foreach ($plugins as $p) {
             <div class="d-flex align-items-center gap-2">
                 <strong><?= htmlspecialchars($available['name']) ?></strong>
                 <?php if ($available['channel_trusted']): ?>
-                <span class="badge bg-success" style="font-size:.65rem">
+                <span class="badge bg-success badge-xs">
                     <i class="bi bi-shield-check"></i> Offiziell
                 </span>
                 <?php else: ?>
-                <span class="badge bg-warning text-dark" style="font-size:.65rem">
+                <span class="badge bg-warning text-dark badge-xs">
                     <i class="bi bi-exclamation-triangle"></i> <?= htmlspecialchars($available['channel_label']) ?>
                 </span>
                 <?php endif ?>

@@ -132,10 +132,10 @@ ob_start();
                     <strong><?= htmlspecialchars($role['label']) ?></strong>
                     <code class="text-secondary small"><?= htmlspecialchars($role['slug']) ?></code>
                     <?php if ($isDefault): ?>
-                    <span class="badge bg-secondary" style="font-size:.65rem">Standard</span>
+                    <span class="badge bg-secondary badge-xs">Standard</span>
                     <?php endif ?>
                     <?php if ($isForge): ?>
-                    <span class="badge bg-warning text-dark" style="font-size:.65rem">Alle Rechte</span>
+                    <span class="badge bg-warning text-dark badge-xs">Alle Rechte</span>
                     <?php endif ?>
                 </div>
                 <?php if (!$isDefault && !$isForge): ?>
@@ -160,9 +160,8 @@ ob_start();
                     <?php foreach ($permissions as $perm):
                         $active = in_array($perm['slug'], $assigned, true);
                     ?>
-                    <button type="button"
-                            class="perm-toggle badge border-0 <?= $active ? 'bg-success' : 'bg-dark border' ?>"
-                            style="cursor:pointer;font-size:.8rem;padding:.35em .6em"
+	                    <button type="button"
+	                            class="perm-toggle badge border-0 admin-role-toggle <?= $active ? 'bg-success' : 'bg-dark border' ?>"
                             data-role="<?= $role['id'] ?>"
                             data-perm="<?= htmlspecialchars($perm['slug']) ?>"
                             title="<?= htmlspecialchars($perm['slug'] . ': ' . ($perm['description'] ?? '')) ?>">

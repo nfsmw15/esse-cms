@@ -24,7 +24,7 @@ class SecurityHeaders
             "img-src 'self' data: blob:",
             "font-src 'self' data:",
             "script-src 'self'",
-            "style-src 'self' 'unsafe-inline'",
+            "style-src 'self'",
             "connect-src 'self'",
         ];
 

@@ -170,7 +170,7 @@ ob_start();
                     </div>
                     <!-- Preview: first few icons using the pack's CSS -->
                     <link rel="stylesheet" href="<?= htmlspecialchars($pack['css_url']) ?>">
-                    <div class="d-flex gap-2 mb-3" style="font-size:1.3rem">
+                    <div class="d-flex gap-2 mb-3 admin-icon-sample-row">
                         <i class="<?= htmlspecialchars($pack['prefix'] ?? '') ?>house"></i>
                         <i class="<?= htmlspecialchars($pack['prefix'] ?? '') ?>image"></i>
                         <i class="<?= htmlspecialchars($pack['prefix'] ?? '') ?>gear"></i>
@@ -229,7 +229,7 @@ ob_start();
         <div class="card">
             <div class="card-header py-2"><small class="text-secondary">iconpack.json Format</small></div>
             <div class="card-body">
-                <pre class="small mb-0" style="background:#111;padding:.75rem;border-radius:.375rem">{
+                <pre class="small mb-0 admin-code-preview">{
   "name": "mein-pack",
   "version": "1.0.0",
   "description": "...",

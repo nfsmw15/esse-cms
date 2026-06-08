@@ -114,14 +114,10 @@ if (Hooks::has('auth.forgot_password.render')) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Passwort zurücksetzen — ESSE CMS</title>
     <link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css">
-    <style>
-        body { background: #0d0d0d; color: #e0e0e0; }
-        .card { background: #1a1a1a; border: 1px solid #2d2d2d; }
-        .brand { font-size: 1.4rem; font-weight: 700; letter-spacing: .1em; }
-    </style>
+    <link rel="stylesheet" href="/public/assets/css/auth.css">
 </head>
 <body class="d-flex align-items-center justify-content-center vh-100">
-<div style="width:100%;max-width:400px;padding:1rem">
+<div class="auth-box-wide">
     <div class="text-center mb-4">
         <div class="brand text-white"><?= htmlspecialchars($brandName) ?></div>
         <?php if ($brandSlogan !== ''): ?>
@@ -161,7 +157,7 @@ if (Hooks::has('auth.forgot_password.render')) {
                     <input type="text" name="captcha_answer" class="form-control" inputmode="numeric"
                            autocomplete="off" required>
                 </div>
-                <div style="position:absolute;left:-9999px" aria-hidden="true">
+                <div class="esse-honeypot" aria-hidden="true">
                     <label for="fp-website">Website</label>
                     <input type="text" id="fp-website" name="<?= Captcha::HONEYPOT_FIELD ?>"
                            tabindex="-1" autocomplete="off">
