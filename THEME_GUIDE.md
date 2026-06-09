@@ -15,6 +15,7 @@
 - [Fehlerseiten-Template (templates/error.php)](#fehlerseiten-template-templateserrorphp)
 - [Zugriffskontrolle: nichts für Themes zu tun](#zugriffskontrolle-nichts-für-themes-zu-tun)
 - [Eigene Login-Seite gestalten (auth.login.render)](#eigene-login-seite-gestalten-authloginrender)
+- [Eigene Registrierungsseite gestalten (auth.register.render)](#eigene-registrierungsseite-gestalten-authregisterrender)
 - [Theme-Assets ausliefern](#theme-assets-ausliefern)
 - [Theme veröffentlichen (GitHub-Repo)](#theme-veröffentlichen-github-repo)
 - [README-Vorlage](#readme-vorlage)
@@ -556,6 +557,79 @@ Formular muss `password`, `password_confirm` und `token` (verstecktes Feld) an
 
 ---
 
+## Eigene Registrierungsseite gestalten (auth.register.render)
+
+`/registrieren` kann ebenfalls vollständig im Theme-Design gerendert werden. Die
+Registrierungslogik bleibt dabei zentral in `pages/registrieren.php`: CSRF-Prüfung,
+CAPTCHA/Honeypot, Passwort-Regeln, E-Mail-Eindeutigkeit und User-Erstellung werden nicht im
+Theme nachgebaut.
+
+Wichtig: Dieser Hook rendert den Request vollständig. Wenn ein Theme `auth.register.render`
+registriert, gibt der Core danach kein zusätzliches `page.render`-Layout mehr aus.
+
+**Hook in `boot()` registrieren:**
+
+```php
+public function boot(): void
+{
+    Hooks::on('page.render', [$this, 'renderPage']);
+    Hooks::on('auth.register.render', [$this, 'renderRegister']);
+}
+```
+
+**Renderer implementieren:**
+
+```php
+public function renderRegister(array $data): void
+{
+    $theme = $this;
+    require $this->basePath('templates/register.php');
+}
+```
+
+`$data` enthält:
+
+| Schlüssel | Typ | Inhalt |
+|---|---|---|
+| `registrationEnabled` | `bool` | Ob Registrierung in den Einstellungen aktiv ist |
+| `done` | `bool` | Account erfolgreich erstellt |
+| `errors` | `array` | Fehlermeldungen |
+| `csrfToken` | `string` | CSRF-Token |
+| `captchaQuestion` | `string` | Rechenaufgabe als Text, leer wenn erledigt/deaktiviert |
+| `honeypotField` | `string` | Feldname für das versteckte Honeypot-Feld |
+| `brandName` / `brandSlogan` | `string` | Branding aus den Einstellungen |
+| `formData` | `array` | Vorbelegung für `display_name` und `email` nach Fehlern |
+
+Wenn `registrationEnabled` false ist, sollte das Template nur eine neutrale Meldung anzeigen
+und kein Formular rendern.
+
+Das Formular muss an `POST /registrieren` senden und diese Felder enthalten:
+
+```php
+<form method="post" action="/registrieren">
+    <input type="hidden" name="_csrf" value="<?= htmlspecialchars($data['csrfToken']) ?>">
+
+    <input type="text" name="display_name" value="<?= htmlspecialchars($data['formData']['display_name'] ?? '') ?>" required>
+    <input type="email" name="email" value="<?= htmlspecialchars($data['formData']['email'] ?? '') ?>" autocomplete="email" required>
+    <input type="password" name="password" autocomplete="new-password" required>
+    <input type="password" name="password_confirm" autocomplete="new-password" required>
+
+    <label><?= htmlspecialchars($data['captchaQuestion']) ?> = ?</label>
+    <input type="text" name="captcha_answer" inputmode="numeric" autocomplete="off" required>
+
+    <div class="esse-honeypot" aria-hidden="true">
+        <label>Website</label>
+        <input type="text" name="<?= htmlspecialchars($data['honeypotField']) ?>" tabindex="-1" autocomplete="off">
+    </div>
+
+    <button type="submit">Account erstellen</button>
+</form>
+```
+
+Der Honeypot muss visuell versteckt sein, aber als echtes Feld im Formular bleiben.
+
+---
+
 ## Theme-Assets ausliefern
 
 Assets in `themes/mein-theme/assets/` sind per HTTP zugänglich (kein .htaccess-Block).
@@ -651,7 +725,7 @@ an das Release-Badge anhängen, sonst meldet shields.io „no releases found".
 - [ ] **esse-grid Klassen implementiert** (Pflicht für Plugin-Kompatibilität)
 - [ ] `$theme->assetUrl()` für CSS/Font-Pfade verwendet
 - [ ] `renderPage()` enthält **keinen** eigenen `Auth::check()`/Sichtbarkeits-Zweig (das übernimmt `PageRenderer` zentral)
-- [ ] Falls eigene Login-/Passwort-Seiten gewünscht: über `auth.login.render` / `auth.forgot_password.render` / `auth.reset_password.render`-Hooks gestalten (siehe „Eigene Login-Seite gestalten") — Pflichtfeld `name="_form" value="admin_login"` im Login-Formular nicht vergessen, sonst werden Login-Fehler falsch behandelt
+- [ ] Falls eigene Login-/Passwort-/Registrierungsseiten gewünscht: über `auth.login.render` / `auth.forgot_password.render` / `auth.reset_password.render` / `auth.register.render`-Hooks gestalten (siehe „Eigene Login-Seite gestalten") — Pflichtfeld `name="_form" value="admin_login"` im Login-Formular nicht vergessen, sonst werden Login-Fehler falsch behandelt
 - [ ] Eigene Login-Seite erhält den Core-Passkey-Block (`passkey-login-block`, `passkey-login-btn`, `passkey-login-error`), `passkey-login-config`, `/public/assets/js/webauthn.js` und `/public/assets/js/passkey-login.js`
 - [ ] 2FA/TOTP bleibt Core-Flow über `/admin/verify-2fa`; Theme rendert keinen eigenen zweiten Faktor
 - [ ] Menüpositionen in `theme.json` unter `menus` deklariert

@@ -3,6 +3,7 @@
 use Esse\Auth;
 use Esse\Captcha;
 use Esse\DB;
+use Esse\Hooks;
 
 // If already logged in → redirect
 if (Auth::check()) {
@@ -12,16 +13,12 @@ if (Auth::check()) {
 // Check if registration is enabled
 $ts      = DB::table('settings');
 $enabled = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'registration_enabled'");
-if ($enabled !== '1') {
-    echo '<div class="alert alert-secondary">Registrierung ist derzeit deaktiviert.</div>';
-    return;
-}
 
 $tu     = DB::table('users');
 $errors = [];
 $done   = false;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($enabled === '1' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
 
     $displayName = trim($_POST['display_name'] ?? '');
@@ -54,7 +51,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$captchaQuestion = $done ? '' : Captcha::challenge();
+$captchaQuestion = ($enabled === '1' && !$done) ? Captcha::challenge() : '';
+
+$brandName   = 'ESSE CMS';
+$brandSlogan = '';
+if (defined('ESSE_DB_NAME')) {
+    $brandRows = array_column(
+        DB::fetchAll("SELECT `key`, `value` FROM `{$ts}` WHERE `key` IN ('site_name', 'site_slogan')"),
+        'value',
+        'key'
+    );
+    $brandName   = $brandRows['site_name']   ?? $brandName;
+    $brandSlogan = $brandRows['site_slogan'] ?? '';
+}
+
+if (Hooks::has('auth.register.render')) {
+    Hooks::fire('auth.register.render', [
+        'registrationEnabled' => $enabled === '1',
+        'done'                => $done,
+        'errors'              => $errors,
+        'csrfToken'           => Auth::csrfToken(),
+        'captchaQuestion'     => $captchaQuestion,
+        'honeypotField'       => Captcha::HONEYPOT_FIELD,
+        'brandName'           => $brandName,
+        'brandSlogan'         => $brandSlogan,
+        'formData'            => [
+            'display_name' => $_POST['display_name'] ?? '',
+            'email'        => $_POST['email'] ?? '',
+        ],
+    ]);
+    exit;
+}
+
+if ($enabled !== '1') {
+    echo '<div class="alert alert-secondary">Registrierung ist derzeit deaktiviert.</div>';
+    return;
+}
 ?>
 <div class="row justify-content-center">
     <div class="col-lg-5">
