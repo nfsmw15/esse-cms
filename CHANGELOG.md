@@ -4,6 +4,10 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+
+- **`tests/` auf Servern absichern**: `tests/.htaccess` (`Require all denied`, analog zu `core/`, `config/`, `storage/`, `pages/`, `plugins/`) verhindert direkten Web-Zugriff, falls das Verzeichnis z.B. via `git clone` auf einen Produktivserver gelangt. Zusätzlich schließt `.gitattributes` (`export-ignore`) `tests/` sowie `.agents/`, `.codex/`, `.claude/` von GitHub-Release-Zipballs aus, sodass Installer und Self-Updater diese Dateien gar nicht erst ausliefern.
+
 ### Added
 
 - **Automatisierte Tests** (`tests/`): schlanker, abhängigkeitsfreier Test-Runner (`tests/run.php`, kein Composer/PHPUnit nötig) mit Tests für `Updater::isNewer()` (Versionsvergleich), `Totp` (Code-Generierung/-Verifikation nach RFC 6238), `Captcha` (Rechenaufgabe, Honeypot, Mindestzeit, Single-Use), `Auth::csrfToken()`/`verifyCsrf()` (CSRF-Schutz), `Auth::meetsRole()`/`can()`/`canAny()` (Rollen-Hierarchie und Berechtigungen ohne DB), `Hooks` (Listener-Reihenfolge/Priorität, Filter, Clear) sowie `Schema::tables()` (Kern-Tabellen). Dokumentiert in README.md unter „Tests".
