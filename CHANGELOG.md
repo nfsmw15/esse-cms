@@ -2,6 +2,13 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Automatisierte Tests** (`tests/`): schlanker, abhängigkeitsfreier Test-Runner (`tests/run.php`, kein Composer/PHPUnit nötig) mit Tests für `Updater::isNewer()` (Versionsvergleich), `Totp` (Code-Generierung/-Verifikation nach RFC 6238), `Captcha` (Rechenaufgabe, Honeypot, Mindestzeit, Single-Use), `Auth::csrfToken()`/`verifyCsrf()` (CSRF-Schutz), `Auth::meetsRole()`/`can()`/`canAny()` (Rollen-Hierarchie und Berechtigungen ohne DB), `Hooks` (Listener-Reihenfolge/Priorität, Filter, Clear) sowie `Schema::tables()` (Kern-Tabellen). Dokumentiert in README.md unter „Tests".
+- **Integrationstests** (`tests/integration/`): eigener Runner (`tests/integration/run.php`) startet einen PHP-Built-in-Server gegen eine separate Test-Datenbank (`esse_test`, einmaliges Setup über `tests/integration/setup-db.sql`) und prüft per cURL-Client echte HTTP-Abläufe — Login (falsches Passwort, Sperre nach 5 Fehlversuchen, korrekter Login, CSRF-Schutz bei Login/Abmelden), Seiten-Sichtbarkeit (`/profil`, `/registrieren` für Gast vs. eingeloggten Nutzer), Security-Header (CSP, X-Frame-Options, X-Content-Type-Options etc. auf jeder Antwort) sowie Rollen-/Berechtigungs-Durchsetzung auf Admin-Routen (`/admin`, `/admin/pages`, `/admin/users` für Gast/Member/Forge). Gemeinsames DB-Schema (`core/Schema.php`) wird jetzt sowohl vom Installer als auch von den Tests genutzt.
+
 ## [0.2.1-alpha] - 2026-06-10
 
 ### Fixed

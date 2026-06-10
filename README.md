@@ -128,6 +128,36 @@ The installer optionally stores `config/` and `storage/` outside the webroot ent
 
 ---
 
+## Tests
+
+A minimal, dependency-free test runner lives in `tests/` (no Composer/PHPUnit required, in line with the project's no-external-dependencies philosophy):
+
+```bash
+php tests/run.php
+```
+
+Each `tests/*Test.php` file returns an array of `description => closure` and is executed by `tests/run.php`. Currently covers version comparison (`Updater::isNewer`), TOTP code generation/verification (`Totp`), the CAPTCHA challenge/honeypot logic (`Captcha`), CSRF token generation/validation (`Auth::csrfToken`/`verifyCsrf`), role hierarchy and permission checks (`Auth::meetsRole`/`can`/`canAny`), the hook system (`Hooks`), and the core DB schema (`Schema::tables`).
+
+### Integration tests
+
+`tests/integration/` spins up a real PHP built-in server against a dedicated `esse_test` database and drives it with a small cURL-based HTTP client, covering full request/response cycles (login, lockout, CSRF, page visibility).
+
+One-time setup (creates the `esse_test` database and user):
+
+```bash
+sudo mysql < tests/integration/setup-db.sql
+```
+
+Then run:
+
+```bash
+php tests/integration/run.php
+```
+
+This resets and seeds the test database, starts a temporary server on `127.0.0.1:8089`, runs all `tests/integration/*Test.php` files, and shuts the server down again. It does not touch the local `config/`/`local.php`.
+
+---
+
 ## Tech Stack
 
 - PHP 8.1+

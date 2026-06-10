@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-define('ESSE_GITHUB_REPO', 'nfsmw15/esse-cms');
-define('ESSE_ROOT', __DIR__);
+defined('ESSE_GITHUB_REPO') || define('ESSE_GITHUB_REPO', 'nfsmw15/esse-cms');
+defined('ESSE_ROOT')        || define('ESSE_ROOT', __DIR__);
 
 // local.php can override ESSE_VERSION (for test servers) and define ESSE_PRIVATE_PATH.
 // It is gitignored and never committed.
