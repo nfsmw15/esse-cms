@@ -30,7 +30,18 @@ final class Http
         return $this->request('POST', $path, http_build_query($data), $headers);
     }
 
-    private function request(string $method, string $path, ?string $body, array $headers): array
+    // POST mit multipart/form-data (Datei-Uploads). $files: Feldname => ['path' => ..., 'name' => ..., 'type' => ...]
+    /** @return array{status:int, headers:array<string,list<string>>, body:string} */
+    public function postMultipart(string $path, array $data, array $files, array $headers = []): array
+    {
+        $body = $data;
+        foreach ($files as $field => $file) {
+            $body[$field] = new \CURLFile($file['path'], $file['type'] ?? 'application/octet-stream', $file['name'] ?? basename($file['path']));
+        }
+        return $this->request('POST', $path, $body, $headers);
+    }
+
+    private function request(string $method, string $path, string|array|null $body, array $headers): array
     {
         $ch = curl_init($this->baseUrl . $path);
         curl_setopt_array($ch, [
