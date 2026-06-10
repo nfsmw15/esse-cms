@@ -35,6 +35,13 @@ function sse(string $message, string $type = 'info'): void
     flush();
 }
 
+// Padding: many hosting setups proxy PHP through Apache (mod_proxy_fcgi) and/or nginx,
+// both of which buffer small responses (a few KB) until the script ends. Without this,
+// the SSE stream arrives all at once at the end instead of live. A leading comment
+// block larger than typical proxy buffers (8-32 KB) forces an immediate flush through.
+echo str_repeat(': padding' . str_repeat(' ', 2000) . "\n", 33) . "\n";
+flush();
+
 try {
     // 1. Get latest release info (respect pre-release setting)
     $ts            = \Esse\DB::table('settings');

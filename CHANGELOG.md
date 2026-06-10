@@ -2,6 +2,12 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- **Updater-Live-Ausgabe (`admin/update/run`)**: Bei Hosting-Setups mit nginx→Apache(mod_proxy_fcgi)→PHP-FPM (z.B. HestiaCP) puffern die Proxy-Ebenen kleine SSE-Antworten (wenige hundert Bytes) bis zum Skriptende, sodass der Update-Fortschritt erst komplett am Ende statt live erscheint, obwohl das Update selbst korrekt durchläuft. `X-Accel-Buffering: no` wirkt nur gegen nginx, nicht gegen die Apache-Zwischenebene. Fix: ein ~64 KB großer SSE-Kommentar-Block wird vor den eigentlichen Events gesendet, der die Proxy-Puffer sofort zum Durchreichen zwingt.
+
 ## [0.2.0-alpha] - 2026-06-10
 
 ### Added
