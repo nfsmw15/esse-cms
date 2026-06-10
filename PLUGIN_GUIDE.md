@@ -136,6 +136,10 @@ Router::post('/news/create', fn() => require $this->basePath('frontend/create.ph
 **auth-Werte:** `public`, `member`, `author`, `editor`, `admin`, `forge`,
 oder ein Permission-Slug wie `php_upload`
 
+> Statt `Router::get(...)`/`Router::post(...)` kann innerhalb des Plugins auch der
+> geschützte Helper `$this->route('get', '/news', ...)` verwendet werden — beide Schreibweisen
+> sind gleichwertig, `Router::get/post` ist die gebräuchlichere.
+
 ### Frontend-Output: mit oder ohne Theme-Wrapper
 
 Das ist der häufigste Stolperstein. Ein einfaches `require` gibt **rohes HTML** aus — kein Theme, kein Navbar, kein Footer.
@@ -236,6 +240,15 @@ und Slug-Konflikte erkannt werden:
 ```php
 $this->registerPage('/news',      'News-Liste',  'newspaper');
 $this->registerPage('/news/{id}', 'News-Detail', 'newspaper');
+```
+
+Optionaler vierter Parameter `$visibility` setzt die Standard-Sichtbarkeit der Seite
+(`'public'`, `'guest_only'`, `'registered'`, `'roles'` — siehe
+[Content Visibility](README.md#content-visibility)). Ohne Angabe gilt `public`. Admins können
+die Sichtbarkeit pro Seite weiterhin über die Admin-Seitenliste überschreiben.
+
+```php
+$this->registerPage('/news/intern', 'Internes News', 'newspaper', 'registered');
 ```
 
 ### Hooks verwenden
@@ -379,7 +392,7 @@ use Esse\Auth;
 
 Auth::check();              // bool: eingeloggt?
 Auth::user();               // array: User-Daten (id, display_name, email, role)
-Auth::id();                 // int: User-ID
+Auth::id();                 // ?int: User-ID, null wenn nicht eingeloggt
 Auth::role();               // string: 'forge', 'admin', 'editor', 'author', 'member'
 Auth::meetsRole('editor');  // bool: mindestens Editor?
 Auth::can('php_upload');    // bool: hat Permission?
@@ -491,10 +504,12 @@ const csrf = config.csrf || '';
 
 ## CSP-Richtlinien
 
-ESSE sendet standardmäßig eine strikte Content-Security-Policy:
+ESSE sendet standardmäßig eine strikte Content-Security-Policy (`core/SecurityHeaders.php`):
 
 ```text
-script-src 'self'; style-src 'self'
+default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self';
+form-action 'self'; img-src 'self' data: blob:; font-src 'self' data:;
+script-src 'self'; style-src 'self'; connect-src 'self'
 ```
 
 Das bedeutet für Plugins:
@@ -505,6 +520,8 @@ Das bedeutet für Plugins:
 - CSS immer als Datei ausliefern, z.B. `/plugins/mein-plugin/public/css/admin.css`.
 - PHP-Daten für JavaScript über `$extraScriptConfig` ausgeben; das Admin-Layout rendert daraus sichere JSON-Blöcke mit `type="application/json"`.
 - Interaktionen über `data-*`-Attribute und Event Listener in externen JS-Dateien binden.
+- `connect-src 'self'` blockiert `fetch()`/`XMLHttpRequest` zu fremden Domains — externe APIs müssen über eine eigene PHP-Route im Plugin als Proxy angesprochen werden.
+- `img-src`/`font-src` erlauben zusätzlich `data:`-URIs (z.B. inline-SVG-Icons oder Base64-Fonts), aber keine fremden Hosts.
 
 Beispiel:
 

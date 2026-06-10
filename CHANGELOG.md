@@ -2,7 +2,7 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
-## [Unreleased]
+## [0.2.0-alpha] - 2026-06-10
 
 ### Added
 
@@ -19,15 +19,27 @@ All notable changes to ESSE CMS will be documented in this file.
 - **CSP-Haertung / Inline-JS entfernt**: Passkey-Login, Profil-Passkey-Registrierung, Rollen-Rechte-Toggles, Updater-SSE, Menue-Erstellung, Menueeditor, Seitenliste, Icon-Picker, esse-ui Tabs/Alerts und Admin-Bestaetigungsdialoge wurden von Inline-Skripten/Event-Attributen auf externe Assets unter `public/assets/js/` und JSON-Konfig-Bloecke umgestellt. `script-src 'self'` kommt dadurch ohne `unsafe-inline` aus.
 - **Inline-CSS entfernt**: Admin-, Auth-, Installer- und `esse-base`-Styles wurden aus `<style>`-Bloecken und `style`-Attributen in statische CSS-Assets verschoben. `style-src 'self'` kommt dadurch ohne `unsafe-inline` aus.
 - **Theme-Hook `auth.register.render`**: Themes können `/registrieren` jetzt vollständig im eigenen Design rendern. Die zentrale Registrierungslogik (CSRF, CAPTCHA/Honeypot, Passwortregeln, E-Mail-Eindeutigkeit, User-Erstellung) bleibt im Core.
+- README: Feature-Liste, Sichtbarkeitswerte, Plugin-Repo-Beschreibung und Theme-Verzeichnis an den aktuellen Core-Stand angepasst.
 - Admin-Login (`admin/login.php`), „Passwort vergessen"/„Neues Passwort setzen" (`admin/forgot-password.php`, `admin/reset-password.php`) und Admin-Sidebar (`admin/layout.php`) zeigen jetzt den konfigurierten `site_name`/`site_slogan` statt fest „ESSE CMS"/„forge your web." — wichtig für produktive Instanzen mit eigenem Markennamen. Der Installer (`install/index.php`) behält bewusst das ESSE-CMS-eigene Branding, da dort noch keine Site konfiguriert ist.
 - Einstellungen: redundante Karte „Theme & Menüpositionen" entfernt (Themes sind direkt über die Admin-Navigation unter „Themes verwalten" erreichbar).
 - **PLUGIN_GUIDE.md / THEME_GUIDE.md — README-Vorlage und Badges**: neuer Abschnitt „README-Vorlage" mit einheitlichem Gliederungsschema für Plugin- und Theme-READMEs sowie Badge-Konvention — Release-Badge zieht die Version live über die GitHub-API (immer aktuell, keine manuelle Pflege, keine Drift zur `plugin.json`/`theme.json`-Version), Lizenz- und CMS-Kompatibilitäts-Badge bleiben statisch, da sie sich praktisch nie ändern. Dazu der Hinweis, dass das „ESSE CMS"-Badge bei Plugins exakt `requires.esse` aus `plugin.json` entsprechen sollte (wird beim Aktivieren tatsächlich gegen `ESSE_VERSION` geprüft, siehe `admin/plugins/index.php`), bei Themes dagegen rein informativ ist (kein `requires`-Feld, keine Versionsprüfung im Core). README.md hat denselben Badge-Block (Release/Lizenz/PHP-Version) erhalten.
 - **PLUGIN_GUIDE.md / THEME_GUIDE.md — Navigation und Checklisten**: Inhaltsverzeichnis mit Sprunglinks ergänzt (beide Guides sind mittlerweile über 1000 bzw. 500 Zeilen lang). Plugin-Checkliste um die bisher fehlenden Kern-Routen `/` und `/login` in der Slug-Konflikt-Liste erweitert. Theme-Checkliste um einen Hinweis auf die `auth.login.render`-Hooks ergänzt (inkl. Pflichtfeld `name="_form" value="admin_login"`) sowie um `CHANGELOG.md`/`LICENSE` — die Theme-Grundstruktur und -Checkliste nannten bisher nur `README.md`, obwohl beide bestehenden Theme-Repos (esse-dashboard, esse-cyber) auch CHANGELOG und LICENSE mitbringen und die Plugin-Guide alle drei bereits listete.
+- **PLUGIN_GUIDE.md / THEME_GUIDE.md — CSP-Richtlinien**: neuer Abschnitt „CSP-Richtlinien" beschreibt die Standard-Policy `script-src 'self'; style-src 'self'` und wie Plugins/Themes sie einhalten — keine Inline-Skripte/-Styles, JS/CSS als externe Assets, PHP-Daten über `$extraScriptConfig`/JSON-Konfig-Blöcke statt Inline-`<script>`. Die Plugin-Guide-Beispiele für `$extraScripts` und das Summernote-Setup wurden entsprechend auf `$extraScriptConfig`/`$extraScriptFiles` und externe CSS umgestellt; die Theme-Checkliste enthält jetzt den Punkt „CSP-kompatibel".
+- **THEME_GUIDE.md — Passkey- und 2FA-Anforderungen für eigene Login-Seiten**: Themes, die `/login` über `auth.login.render` selbst rendern, müssen den Core-Passkey-Block (`passkey-login-block`/-`btn`/-`error`, `passkey-login-config`, `webauthn.js`, `passkey-login.js`) übernehmen, sonst verschwindet die passwortlose Anmeldung aus der Theme-Loginseite. 2FA/TOTP läuft ausschließlich zentral über `/admin/verify-2fa` — Themes dürfen hierfür keinen eigenen Dialog bauen. Beide Punkte sind jetzt auch in der Theme-Checkliste verankert.
+- **PLUGIN_GUIDE.md / THEME_GUIDE.md — CSP-Richtlinien vervollständigt**: die bisher gezeigte Kurzform `script-src 'self'; style-src 'self'` durch die vollständige, tatsächlich von `core/SecurityHeaders.php` gesendete Policy ersetzt (inkl. `default-src`, `base-uri`, `object-src 'none'`, `frame-ancestors`, `form-action`, `img-src`/`font-src` mit `data:`, `connect-src 'self'`). Hinweise ergänzt, dass `connect-src 'self'` `fetch()`/`XHR` zu Fremd-Domains blockiert (externe APIs müssen über eine eigene PHP-Route geproxyt werden) und dass `img-src`/`font-src` zwar `data:`-URIs, aber keine fremden Hosts erlauben.
+- **PLUGIN_GUIDE.md — kleinere API-Dokulücken geschlossen**: `registerPage()` hat einen bisher undokumentierten vierten Parameter `$visibility` (`public`/`guest_only`/`registered`/`roles`, Default `public`) zur Vorbelegung der Sichtbarkeit neuer Plugin-Seiten; `Auth::id()` gibt `?int` zurück (nicht `int` — `null`, wenn niemand eingeloggt ist); der Helper `$this->route()` als Alternative zu `Router::get()/post()` ist jetzt erwähnt.
+
+### Removed
+
+- `public/vendor/quill/` (Quill 1.3.7) entfernt — unbenutzter Vendor-Code, das Admin-Panel nutzt ausschließlich Summernote als WYSIWYG-Editor.
 
 ### Fixed
 
 - Security-Migrationen fuer TOTP/Passkeys laufen jetzt bereits beim Boot, auch ohne eingeloggten Nutzer. Dadurch werden `totp_*`-Spalten und `webauthn_credentials` rechtzeitig angelegt, bevor Login-, Passkey- oder Profil-Flows darauf zugreifen.
 - Session-Cookie-Hardening: `PHPSESSID` bekommt auf HTTPS-Installationen jetzt zuverlaessig das `Secure`-Flag, auch wenn PHP hinter Hosting-/Proxy-Setups `$_SERVER['HTTPS']` nicht setzt, solange `ESSE_URL` mit `https://` konfiguriert ist.
+- `PageVisibility::migrate()`: die `visibility`-Spalte in den Tabellen für Seiten und Sichtbarkeits-Overrides wird auf bestehenden Installationen jetzt per `ALTER TABLE` auf `VARCHAR(20) NOT NULL DEFAULT 'public'` korrigiert, falls sie noch aus einer älteren Schema-Version stammt — verhindert Fehler beim Speichern der neuen Sichtbarkeitswerte (`guest_only`, `registered`, `roles`) auf Bestandsinstallationen.
+- Icon-Picker (`public/assets/js/admin-icon-picker.js`): die deutschen Suchsynonyme (z.B. „haus" → `house`, „einstellungen" → `gear`/`sliders`), die beim Verschieben der Inline-Skripte auf externe JS-Assets verloren gegangen waren, sind wiederhergestellt.
+- `vendor/phpmailer/` enthält jetzt die `LICENSE`-Datei — analog zu `vendor/webauthn/`, auf das in der Passkeys-Beschreibung als Vorbild verwiesen wird.
 - CHANGELOG: veralteter Hinweis „Repo-based plugin/theme install (apt-style) not yet implemented" aus „Known Issues / Alpha Limitations" entfernt — das Feature ist bereits seit v0.1.1-alpha implementiert und dort dokumentiert.
 
 ## [0.1.8-alpha] - 2026-06-07
@@ -326,4 +338,4 @@ Initial alpha release. Core systems are functional.
 - Summernote editor: minor tooltip warnings in browser console (cosmetic, does not affect functionality)
 - Menu drag & drop: same-level reorder works; cross-level requires indent/dedent buttons
 - File manager (browse existing uploads) not yet implemented
-- esse-download, esse-gallery and other plugins not yet ported
+- Plugins are maintained in separate repositories and are not bundled with the core release

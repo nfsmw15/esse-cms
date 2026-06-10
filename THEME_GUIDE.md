@@ -291,10 +291,12 @@ Darüber hinaus können einzelne esse-* Klassen gezielt überschrieben werden:
 
 ## CSP-Richtlinien
 
-ESSE sendet standardmäßig eine strikte Content-Security-Policy:
+ESSE sendet standardmäßig eine strikte Content-Security-Policy (`core/SecurityHeaders.php`):
 
 ```text
-script-src 'self'; style-src 'self'
+default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self';
+form-action 'self'; img-src 'self' data: blob:; font-src 'self' data:;
+script-src 'self'; style-src 'self'; connect-src 'self'
 ```
 
 Das bedeutet für Themes:
@@ -305,6 +307,8 @@ Das bedeutet für Themes:
 - Theme-CSS immer als Datei laden, z.B. `<link rel="stylesheet" href="<?= $theme->assetUrl('css/mein-theme.css') ?>">`.
 - PHP-Daten für JavaScript als JSON-Block mit `type="application/json"` ausgeben und im externen JS parsen.
 - Zustände über Klassen und `data-*`-Attribute ausdrücken, nicht über Inline-Styles.
+- `connect-src 'self'` blockiert `fetch()`/`XMLHttpRequest` zu fremden Domains (z.B. externe Font-/Tracking-Dienste).
+- `img-src`/`font-src` erlauben zusätzlich `data:`-URIs, aber keine fremden Hosts — Web-Fonts und Bilder müssen aus dem Theme selbst kommen.
 
 Beispiel:
 

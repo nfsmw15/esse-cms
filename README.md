@@ -20,7 +20,7 @@ Most capable CMS platforms require a commercial license for non-personal use. ES
 
 ---
 
-## Features (planned)
+## Features
 
 - **Passkeys & 2FA built into core** — passwordless WebAuthn/FIDO2 login (Touch ID, Windows Hello, security keys) plus TOTP-based two-factor authentication with backup codes — no plugins required
 - **Code-based routing** — no URL table in the database
@@ -55,9 +55,9 @@ Custom roles with granular permissions can be created. Default roles cannot be d
 
 Each page has a visibility level:
 - `public` — everyone (Guest+)
-- `members` — logged-in users (Member+)
-- `admin` — admins only
-- or any custom role
+- `guest_only` — visitors who are not logged in
+- `registered` — logged-in users
+- `roles` — selected roles only
 
 Global page targets can be configured under Admin → Einstellungen → Seitenzuordnung. Standard pages such as `/login`, `/registrieren` and `/profil` are available alongside CMS pages and plugin-registered pages.
 
@@ -65,8 +65,9 @@ Global page targets can be configured under Admin → Einstellungen → Seitenzu
 
 ## Plugin Repos
 
-- **Official Esse repo** — trusted by default
-- **Community repos** — can be added with a warning; plugins from unverified repos show a warning on install
+- **GitHub-based discovery** — plugins and themes are discovered through `esse-plugin` / `esse-theme` repository topics
+- **Official and community channels** — trusted repositories can be configured separately from community sources
+- **Release-based installs and updates** — available plugins and themes are installed from repository releases
 
 ---
 
@@ -76,7 +77,7 @@ Global page targets can be configured under Admin → Einstellungen → Seitenzu
 esse-cms/
 ├── core/           PHP core (Router, Hooks, Container, Auth, DB, Plugin, Theme)
 ├── plugins/        Installed plugins
-├── themes/         Installed themes (esse-base, esse-dashboard, esse-blank)
+├── themes/         Installed themes (esse-base, esse-blank; more can be installed)
 ├── storage/        Cache, uploads, backups — not web-accessible
 ├── pages/          Custom PHP pages uploaded by admins — not directly web-accessible
 ├── admin/          Admin panel
