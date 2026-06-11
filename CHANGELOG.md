@@ -2,6 +2,18 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [Unreleased]
+
+### Security
+
+- **Stored XSS im Benutzerformular** (`admin/users/form.php`, Rollen-Dropdown): Das Label einer benutzerdefinierten Rolle (`admin/roles.php` → „Eigene Rolle erstellen") wurde unescaped ausgegeben — ein Forge/Admin könnte beim Anlegen einer eigenen Rolle HTML/JS in den Rollennamen schreiben, das dann bei jedem Aufruf des Benutzerformulars ausgeführt würde. Behoben durch `htmlspecialchars()` auf Label und Value. Im Rahmen einer gezielten SQL-Injection-/XSS-Durchsicht der Admin-Templates gefunden — keine weiteren Funde (alle Queries parametrisiert, übrige Ausgaben bereits korrekt escaped).
+
+### Added
+
+- **Sicherheits-Protokoll: Self-Update**: CMS-Updates über `/admin/update/run` werden jetzt ebenfalls im Audit-Log erfasst (`self_update`/`self_update_failed`), inkl. Quell- und Ziel-Version sowie Fehlermeldung bei fehlgeschlagenem Update.
+- **Sicherheits-Protokoll: Backup-Wiederherstellung**: Restore eines Backups über `/admin/backup` wird im Audit-Log erfasst (`backup_restored`/`backup_restore_failed`), inkl. Dateiname und Fehlermeldung bei Fehlschlag.
+- **Sicherheits-Protokoll: Einstellungsänderungen**: Änderungen an sicherheitsrelevanten Einstellungen (Registrierung an/aus, Audit-Log-Aufbewahrungsfrist, SMTP-Passwort, GitHub-Token, Pre-Release-Updates) werden im Audit-Log erfasst (`settings_changed`), bei einfachen Werten inkl. alt/neu, bei Geheimnissen nur als „geändert" ohne Klartext.
+
 ## [0.3.0-alpha] - 2026-06-11
 
 ### Added

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\Updater;
 
 if (!Auth::meetsRole('forge') && !Auth::can('manage_settings')) {
@@ -65,9 +66,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         try {
             Updater::restore($path, fn() => null);
+            AuditLog::record('backup_restored', Auth::id(), Auth::user()['email'] ?? null, ['file' => $file]);
             $_SESSION['flash'] = ['type' => 'success',
                 'message' => "Wiederherstellung aus '{$file}' abgeschlossen."];
         } catch (\Throwable $e) {
+            AuditLog::record('backup_restore_failed', Auth::id(), Auth::user()['email'] ?? null, ['file' => $file, 'error' => $e->getMessage()]);
             $_SESSION['flash'] = ['type' => 'danger',
                 'message' => 'Wiederherstellung fehlgeschlagen: ' . $e->getMessage()];
         }

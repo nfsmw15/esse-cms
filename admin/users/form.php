@@ -259,9 +259,9 @@ ob_start();
                         <label class="form-label">Rolle</label>
                         <select name="role" class="form-select">
                             <?php foreach ($availableRoles as $val => $label): ?>
-                            <option value="<?= $val ?>"
+                            <option value="<?= htmlspecialchars($val) ?>"
                                 <?= ($user['role'] ?? 'member') === $val ? 'selected' : '' ?>>
-                                <?= $label ?>
+                                <?= htmlspecialchars($label) ?>
                             </option>
                             <?php endforeach ?>
                         </select>

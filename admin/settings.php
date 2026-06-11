@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 
 if (!Auth::can('manage_settings')) {
@@ -52,6 +53,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!filter_var($save['site_url'], FILTER_VALIDATE_URL)) $errors[] = 'Ungültige URL.';
 
     if (empty($errors)) {
+        // Sicherheitsrelevante Änderungen erfassen, bevor die neuen Werte geschrieben werden
+        $changes = [];
+        foreach (['registration_enabled', 'audit_log_retention_days'] as $key) {
+            $old = $settings[$key] ?? null;
+            if ($old !== $save[$key]) {
+                $changes[$key] = ['old' => $old, 'new' => $save[$key]];
+            }
+        }
+        if (isset($save['smtp_pass']))   $changes['smtp_pass']   = 'geändert';
+        if (isset($save['github_token'])) $changes['github_token'] = 'geändert';
+
         foreach ($save as $key => $value) {
             DB::query(
                 "INSERT INTO `{$ts}` (`key`, `value`) VALUES (?, ?)
@@ -59,6 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 [$key, $value]
             );
         }
+
+        if ($changes) {
+            AuditLog::record('settings_changed', Auth::id(), Auth::user()['email'] ?? null, $changes);
+        }
+
         $_SESSION['flash'] = ['type' => 'success', 'message' => 'Einstellungen gespeichert.'];
         header('Location: /admin/settings');
         exit;

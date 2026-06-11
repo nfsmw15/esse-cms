@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\Updater;
 
 if (!Auth::meetsRole('forge') && !Auth::can('manage_settings')) {
@@ -37,11 +38,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'refr
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['prerelease_toggle'])) {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
     $ts = \Esse\DB::table('settings');
+    $old = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'update_prerelease'");
     $val = isset($_POST['include_prerelease']) ? '1' : '0';
     \Esse\DB::query(
         "INSERT INTO `{$ts}` (`key`, `value`) VALUES ('update_prerelease','$val')
          ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)"
     );
+    if (($old ?? '0') !== $val) {
+        AuditLog::record('settings_changed', Auth::id(), Auth::user()['email'] ?? null, [
+            'update_prerelease' => ['old' => $old ?? '0', 'new' => $val],
+        ]);
+    }
     @unlink(ESSE_PRIVATE_PATH . '/storage/cache/update_check.json');
     header('Location: /admin/update');
     exit;

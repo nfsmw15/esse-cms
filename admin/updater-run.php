@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\Updater;
 
 // Only forge/admin with manage_settings can run updates
@@ -105,7 +106,18 @@ try {
     sse('Seite wird neu geladen...', 'info');
     sse('done', 'done');
 
+    AuditLog::record('self_update', Auth::id(), Auth::user()['email'] ?? null, [
+        'from' => ESSE_VERSION,
+        'to'   => $info['version'],
+    ]);
+
 } catch (\Throwable $e) {
     sse('Fehler: ' . $e->getMessage(), 'error');
     sse('Update abgebrochen. Das Backup liegt in storage/backups/.', 'error');
+
+    AuditLog::record('self_update_failed', Auth::id(), Auth::user()['email'] ?? null, [
+        'from'  => ESSE_VERSION,
+        'to'    => $info['version'] ?? null,
+        'error' => $e->getMessage(),
+    ]);
 }

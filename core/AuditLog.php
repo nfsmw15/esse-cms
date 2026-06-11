@@ -44,6 +44,11 @@ class AuditLog
         'plugin_enabled'                  => 'Plugin aktiviert',
         'plugin_disabled'                 => 'Plugin deaktiviert',
         'plugin_uninstalled'              => 'Plugin deinstalliert',
+        'self_update'                     => 'CMS-Update durchgeführt',
+        'self_update_failed'              => 'CMS-Update fehlgeschlagen',
+        'backup_restored'                 => 'Backup wiederhergestellt',
+        'backup_restore_failed'           => 'Backup-Wiederherstellung fehlgeschlagen',
+        'settings_changed'                => 'Sicherheitsrelevante Einstellung geändert',
         'user_activated'                  => 'Benutzer aktiviert',
         'user_deactivated'                => 'Benutzer deaktiviert',
     ];

@@ -64,7 +64,11 @@ ob_start();
                     <?php if ($row['details']): ?>
                     <?php $details = json_decode((string) $row['details'], true) ?: []; ?>
                     <?php foreach ($details as $k => $v): ?>
-                        <?php if (is_array($v)) $v = $v ? implode(', ', $v) : '—'; ?>
+                        <?php if (is_array($v)) {
+                            $v = array_keys($v) === ['old', 'new']
+                                ? ($v['old'] ?? '—') . ' → ' . ($v['new'] ?? '—')
+                                : ($v ? implode(', ', $v) : '—');
+                        } ?>
                         <span class="badge bg-secondary"><?= htmlspecialchars((string) $k) ?>: <?= htmlspecialchars((string) $v) ?></span>
                     <?php endforeach ?>
                     <?php endif ?>
