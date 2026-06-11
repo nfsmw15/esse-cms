@@ -236,6 +236,12 @@ $loginFailed = !empty($_GET['login_error']);
                         <a href="<?= htmlspecialchars(\Esse\Menu::itemUrl($link)) ?>"
                            class="text-secondary text-decoration-none small"
                            <?= $link['target'] === '_blank' ? 'target="_blank" rel="noopener"' : '' ?>>
+                            <?php if (!empty($link['icon'])):
+                                $li = $link['icon'];
+                                echo str_contains($li, ' ')
+                                    ? '<i class="' . htmlspecialchars($li) . ' me-1"></i>'
+                                    : \Esse\Ui::icon(preg_replace('/^(bi|ph|ti|lucide|ri)-/', '', $li)) . ' ';
+                            endif; ?>
                             <?= htmlspecialchars($link['label']) ?>
                         </a>
                     </div>

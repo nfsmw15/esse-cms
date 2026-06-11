@@ -2,7 +2,7 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
-## [Unreleased]
+## [0.4.0-alpha] - 2026-06-12
 
 ### Security
 
@@ -13,6 +13,14 @@ All notable changes to ESSE CMS will be documented in this file.
 - **Sicherheits-Protokoll: Self-Update**: CMS-Updates über `/admin/update/run` werden jetzt ebenfalls im Audit-Log erfasst (`self_update`/`self_update_failed`), inkl. Quell- und Ziel-Version sowie Fehlermeldung bei fehlgeschlagenem Update.
 - **Sicherheits-Protokoll: Backup-Wiederherstellung**: Restore eines Backups über `/admin/backup` wird im Audit-Log erfasst (`backup_restored`/`backup_restore_failed`), inkl. Dateiname und Fehlermeldung bei Fehlschlag.
 - **Sicherheits-Protokoll: Einstellungsänderungen**: Änderungen an sicherheitsrelevanten Einstellungen (Registrierung an/aus, Audit-Log-Aufbewahrungsfrist, SMTP-Passwort, GitHub-Token, Pre-Release-Updates) werden im Audit-Log erfasst (`settings_changed`), bei einfachen Werten inkl. alt/neu, bei Geheimnissen nur als „geändert" ohne Klartext.
+
+### Changed
+
+- **Menü-Editor: Drag & Drop über Ebenen hinweg** (`admin/menus/form.php`): Einträge können per Drag & Drop nicht mehr nur innerhalb, sondern auch zwischen Haupt- und Unterebene verschoben werden (eine gemeinsame SortableJS-Gruppe statt getrennter Listen). Die bisherigen Einrücken/Ausrücken-Buttons entfallen. Jede Hauptebene zeigt jetzt immer eine Drop-Zone für Unterpunkte (mit Platzhaltertext, falls leer). Ein Eintrag mit eigenen Unterpunkten kann nicht selbst zum Unterpunkt gemacht werden, und die Verschachtelung bleibt serverseitig auf zwei Ebenen begrenzt (`reorder`-Aktion validiert `parent_id` gegen die übermittelten Top-Level-IDs).
+
+### Fixed
+
+- **Footer-Menü im `esse-base`-Theme** (`themes/esse-base/templates/layout.php`): Ein im Menü-Editor gesetztes Icon wurde bei Footer-Einträgen nicht angezeigt, nur das Label. Wird jetzt analog zum Seiten-Icon pack-agnostisch über `Esse\Ui::icon()` gerendert (mit Fallback auf volle CSS-Klassen für ältere Icon-Werte).
 
 ## [0.3.0-alpha] - 2026-06-11
 

@@ -108,40 +108,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: /admin/menus/edit/{$menuId}");
             exit;
 
-        case 'indent': // make child of previous sibling
-        case 'dedent': // make top-level
-            $itemId = (int) ($_POST['item_id'] ?? 0);
-            $item   = DB::fetch("SELECT * FROM `{$ti}` WHERE id = ? AND menu_id = ?", [$itemId, $menuId]);
-            if ($item) {
-                if ($action === 'dedent') {
-                    DB::update($ti, ['parent_id' => null], ['id' => $itemId]);
-                } else {
-                    // Find the item directly above in the same level
-                    $prev = DB::fetch(
-                        "SELECT * FROM `{$ti}` WHERE menu_id = ? AND parent_id IS NULL AND sort_order < ? ORDER BY sort_order DESC LIMIT 1",
-                        [$menuId, $item['sort_order']]
-                    );
-                    if ($prev && $prev['id'] !== $itemId) {
-                        $maxOrder = (int) DB::value(
-                            "SELECT COALESCE(MAX(sort_order),0) FROM `{$ti}` WHERE menu_id = ? AND parent_id = ?",
-                            [$menuId, $prev['id']]
-                        );
-                        DB::update($ti, ['parent_id' => $prev['id'], 'sort_order' => $maxOrder + 10], ['id' => $itemId]);
+        case 'reorder':
+            // Expects: items=[{id, parent_id, order}, ...] — parent_id 0 = top level.
+            // Nesting is limited to two levels: a parent_id is only honoured if that
+            // item is itself top-level (parent_id 0) within this same payload, and
+            // never points back to itself — prevents invalid 3-level structures
+            // regardless of what the client sends.
+            $items = json_decode($_POST['items'] ?? '[]', true);
+            if (is_array($items)) {
+                $topLevelIds = [];
+                foreach ($items as $row) {
+                    if (is_array($row) && isset($row['id']) && empty($row['parent_id'])) {
+                        $topLevelIds[] = (int) $row['id'];
                     }
                 }
-            }
-            header("Location: /admin/menus/edit/{$menuId}");
-            exit;
-
-        case 'reorder':
-            // Expects: items=[[id,parent_id,sort_order], ...]
-            $items = json_decode($_POST['items'] ?? '[]', true);
-            foreach ($items as $row) {
-                if (!is_array($row) || !isset($row['id'])) continue;
-                DB::update($ti, [
-                    'sort_order' => (int) ($row['order'] ?? 0),
-                    'parent_id'  => ($row['parent_id'] ?? 0) ?: null,
-                ], ['id' => (int) $row['id'], 'menu_id' => $menuId]);
+                foreach ($items as $row) {
+                    if (!is_array($row) || !isset($row['id'])) continue;
+                    $itemId   = (int) $row['id'];
+                    $parentId = (int) ($row['parent_id'] ?? 0) ?: null;
+                    if ($parentId !== null && ($parentId === $itemId || !in_array($parentId, $topLevelIds, true))) {
+                        $parentId = null;
+                    }
+                    DB::update($ti, [
+                        'sort_order' => (int) ($row['order'] ?? 0),
+                        'parent_id'  => $parentId,
+                    ], ['id' => $itemId, 'menu_id' => $menuId]);
+                }
             }
             header('Content-Type: application/json');
             echo json_encode(['ok' => true]);
@@ -167,35 +159,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($itemId) DB::delete($ti, ['id' => $itemId]);
             header("Location: /admin/menus/edit/{$menuId}");
             exit;
-
-        case 'move_up':
-        case 'move_down':
-            $itemId = (int) ($_POST['item_id'] ?? 0);
-            if ($itemId) self_moveItem($ti, $itemId, $menuId, $action === 'move_up');
-            header("Location: /admin/menus/edit/{$menuId}");
-            exit;
-    }
-}
-
-function self_moveItem(string $ti, int $itemId, int $menuId, bool $up): void
-{
-    $item = \Esse\DB::fetch("SELECT * FROM `{$ti}` WHERE id = ? AND menu_id = ?", [$itemId, $menuId]);
-    if (!$item) return;
-
-    $dir    = $up ? '<' : '>';
-    $order  = $up ? 'DESC' : 'ASC';
-    $sibling = \Esse\DB::fetch(
-        "SELECT * FROM `{$ti}` WHERE menu_id = ? AND parent_id " .
-        ($item['parent_id'] ? "= ?" : "IS NULL") .
-        " AND sort_order {$dir} ? ORDER BY sort_order {$order} LIMIT 1",
-        $item['parent_id']
-            ? [$menuId, $item['parent_id'], $item['sort_order']]
-            : [$menuId, $item['sort_order']]
-    );
-
-    if ($sibling) {
-        \Esse\DB::update($ti, ['sort_order' => $sibling['sort_order']], ['id' => $itemId]);
-        \Esse\DB::update($ti, ['sort_order' => $item['sort_order']],    ['id' => $sibling['id']]);
     }
 }
 
@@ -217,24 +180,57 @@ $corePages     = PageTargets::corePages();
 $pluginPages   = PageTargets::pluginPages();
 $allTopItems   = $topItems; // passed to itemEditForm for parent selector
 
-function itemButtons(array $item, int $menuId): string
+function menuItemRow(array $item, int $menuId, array $pages, array $allTopItems): string
 {
-    $csrf = \Esse\Auth::csrfToken();
-    $id   = $item['id'];
-    $out  = '';
-    foreach (['move_up' => '↑', 'move_down' => '↓'] as $mv => $lbl) {
-        $out .= "<form method='post' action='/admin/menus/edit/{$menuId}' class='d-inline'>"
-              . "<input type='hidden' name='_csrf' value='{$csrf}'>"
-              . "<input type='hidden' name='_action' value='{$mv}'>"
-              . "<input type='hidden' name='item_id' value='{$id}'>"
-              . "<button class='btn btn-sm btn-outline-secondary py-0 px-1'>{$lbl}</button></form>";
-    }
-    $out .= "<form method='post' action='/admin/menus/edit/{$menuId}' class='d-inline' data-confirm='Eintrag löschen?'>"
-          . "<input type='hidden' name='_csrf' value='{$csrf}'>"
-          . "<input type='hidden' name='_action' value='delete_item'>"
-          . "<input type='hidden' name='item_id' value='{$id}'>"
-          . "<button class='btn btn-sm btn-outline-danger py-0 px-1'><i class='bi bi-trash'></i></button></form>";
-    return $out;
+    $editId = 'edit-' . $item['id'];
+
+    ob_start();
+    ?>
+    <div class="d-flex align-items-center gap-2 menu-item-row">
+        <span class="drag-handle text-secondary" title="Verschieben">
+            <i class="bi bi-grip-vertical"></i>
+        </span>
+        <i class="bi bi-arrow-return-right text-secondary small menu-item-child-icon"></i>
+        <?php if (!empty($item['icon'])): ?>
+        <i class="bi bi-<?= htmlspecialchars($item['icon']) ?> admin-icon-base menu-item-icon" title="<?= htmlspecialchars($item['icon']) ?>"></i>
+        <?php else: ?>
+        <i class="bi bi-image text-secondary admin-icon-faded admin-icon-base menu-item-icon" title="Kein Icon"></i>
+        <?php endif ?>
+        <span class="fw-semibold flex-grow-1 menu-item-label <?= empty($item['active']) ? 'text-decoration-line-through text-secondary' : '' ?>">
+            <?= htmlspecialchars($item['label']) ?>
+            <?php if ($item['type'] === 'page' && $item['page_slug']): ?>
+                <small class="text-secondary fw-normal"><?= htmlspecialchars(PageTargets::redirectUrl((string) $item['page_slug'])) ?></small>
+            <?php elseif ($item['type'] === 'url' && $item['url']): ?>
+                <small class="text-secondary fw-normal"><?= htmlspecialchars($item['url']) ?></small>
+            <?php endif ?>
+        </span>
+        <?php /* Toggle active */ ?>
+        <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline">
+            <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+            <input type="hidden" name="_action" value="toggle_item">
+            <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
+            <button class="btn btn-sm menu-item-btn <?= empty($item['active']) ? 'btn-outline-success' : 'btn-outline-secondary' ?>"
+                    title="<?= empty($item['active']) ? 'Aktivieren' : 'Deaktivieren' ?>">
+                <i class="bi bi-<?= empty($item['active']) ? 'eye' : 'eye-slash' ?>"></i>
+            </button>
+        </form>
+        <button class="btn btn-sm menu-item-btn btn-outline-primary"
+                data-bs-toggle="collapse" data-bs-target="#<?= $editId ?>">
+            <i class="bi bi-pencil"></i>
+        </button>
+        <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline"
+              data-confirm="Eintrag löschen?">
+            <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+            <input type="hidden" name="_action" value="delete_item">
+            <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
+            <button class="btn btn-sm menu-item-btn btn-outline-danger"><i class="bi bi-trash"></i></button>
+        </form>
+    </div>
+    <div class="collapse mt-2 menu-item-edit" id="<?= $editId ?>">
+        <?= itemEditForm($item, $menuId, $pages, $allTopItems) ?>
+    </div>
+    <?php
+    return ob_get_clean();
 }
 
 function itemEditForm(array $item, int $menuId, array $pages, array $allTopItems = []): string
@@ -355,125 +351,22 @@ ob_start();
             <div class="card-body p-0">
                 <?php if ($topItems): ?>
                 <div id="sortable-top" class="list-group list-group-flush">
-                <?php foreach ($topItems as $item):
-                    $editId = 'edit-' . $item['id']; ?>
-
+                <?php foreach ($topItems as $item): ?>
                     <div class="list-group-item px-3 py-2 <?= empty($item['active']) ? 'opacity-50' : '' ?>"
                          data-id="<?= $item['id'] ?>">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="drag-handle text-secondary" title="Verschieben">
-                                <i class="bi bi-grip-vertical"></i>
-                            </span>
-                            <?php if (!empty($item['icon'])): ?>
-                            <i class="bi bi-<?= htmlspecialchars($item['icon']) ?> admin-icon-base" title="<?= htmlspecialchars($item['icon']) ?>"></i>
-                            <?php else: ?>
-                            <i class="bi bi-image text-secondary admin-icon-faded admin-icon-base" title="Kein Icon"></i>
-                            <?php endif ?>
-                            <span class="fw-semibold flex-grow-1 <?= empty($item['active']) ? 'text-decoration-line-through text-secondary' : '' ?>">
-                                <?= htmlspecialchars($item['label']) ?>
-                                <?php if ($item['type'] === 'page' && $item['page_slug']): ?>
-                                    <small class="text-secondary fw-normal"><?= htmlspecialchars(PageTargets::redirectUrl((string) $item['page_slug'])) ?></small>
-                                <?php elseif ($item['type'] === 'url' && $item['url']): ?>
-                                    <small class="text-secondary fw-normal"><?= htmlspecialchars($item['url']) ?></small>
-                                <?php endif ?>
-                            </span>
-                            <?php /* Toggle active */ ?>
-                            <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline">
-                                <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
-                                <input type="hidden" name="_action"  value="toggle_item">
-                                <input type="hidden" name="item_id"  value="<?= $item['id'] ?>">
-                                <button class="btn btn-sm <?= empty($item['active']) ? 'btn-outline-success' : 'btn-outline-secondary' ?>"
-                                        title="<?= empty($item['active']) ? 'Aktivieren' : 'Deaktivieren' ?>">
-                                    <i class="bi bi-<?= empty($item['active']) ? 'eye' : 'eye-slash' ?>"></i>
-                                </button>
-                            </form>
-                            <?php /* Indent (→) — only if there's an item above */ ?>
-                            <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline" title="Einrücken (Unterebene)">
-                                <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
-                                <input type="hidden" name="_action"  value="indent">
-                                <input type="hidden" name="item_id"  value="<?= $item['id'] ?>">
-                                <button class="btn btn-sm btn-outline-secondary" title="→ Unterebene">
-                                    <i class="bi bi-arrow-bar-right"></i>
-                                </button>
-                            </form>
-                            <button class="btn btn-sm btn-outline-primary"
-                                    data-bs-toggle="collapse" data-bs-target="#<?= $editId ?>">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline"
-                                  data-confirm="Eintrag löschen?">
-                                <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
-                                <input type="hidden" name="_action" value="delete_item">
-                                <input type="hidden" name="item_id" value="<?= $item['id'] ?>">
-                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                            </form>
-                        </div>
+                        <?= menuItemRow($item, $menuId, $pages, $allTopItems) ?>
 
-                        <div class="collapse mt-2" id="<?= $editId ?>">
-                            <?php echo itemEditForm($item, $menuId, $pages, $allTopItems); ?>
-                        </div>
-
-                        <?php if (!empty($item['children'])): ?>
                         <div class="sortable-children mt-2 ps-3 border-start border-secondary"
                              data-parent-id="<?= $item['id'] ?>">
-                        <?php foreach ($item['children'] as $child):
-                            $childEditId = 'edit-' . $child['id']; ?>
-                        <div class="d-flex align-items-center gap-2 py-1 <?= empty($child['active']) ? 'opacity-50' : '' ?>"
-                             data-child-id="<?= $child['id'] ?>">
-                            <span class="drag-handle text-secondary">
-                                <i class="bi bi-grip-vertical"></i>
-                            </span>
-                            <i class="bi bi-arrow-return-right text-secondary small"></i>
-                            <?php if (!empty($child['icon'])): ?>
-                            <i class="bi bi-<?= htmlspecialchars($child['icon']) ?> admin-icon-sm" title="<?= htmlspecialchars($child['icon']) ?>"></i>
-                            <?php else: ?>
-                            <i class="bi bi-image text-secondary admin-icon-faded admin-icon-sm" title="Kein Icon"></i>
-                            <?php endif ?>
-                            <span class="small flex-grow-1 <?= empty($child['active']) ? 'text-decoration-line-through text-secondary' : '' ?>">
-                                <?= htmlspecialchars($child['label']) ?>
-                                <?php if ($child['page_slug']): ?>
-                                    <small class="text-secondary"><?= htmlspecialchars(PageTargets::redirectUrl((string) $child['page_slug'])) ?></small>
-                                <?php elseif ($child['url']): ?>
-                                    <small class="text-secondary"><?= htmlspecialchars($child['url']) ?></small>
-                                <?php endif ?>
-                            </span>
-                            <?php /* Toggle active */ ?>
-                            <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline">
-                                <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
-                                <input type="hidden" name="_action"  value="toggle_item">
-                                <input type="hidden" name="item_id"  value="<?= $child['id'] ?>">
-                                <button class="btn btn-sm py-0 <?= empty($child['active']) ? 'btn-outline-success' : 'btn-outline-secondary' ?>"
-                                        title="<?= empty($child['active']) ? 'Aktivieren' : 'Deaktivieren' ?>">
-                                    <i class="bi bi-<?= empty($child['active']) ? 'eye' : 'eye-slash' ?>"></i>
-                                </button>
-                            </form>
-                            <?php /* Dedent (←) */ ?>
-                            <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline" title="Ausrücken (Hauptebene)">
-                                <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
-                                <input type="hidden" name="_action" value="dedent">
-                                <input type="hidden" name="item_id" value="<?= $child['id'] ?>">
-                                <button class="btn btn-sm btn-outline-secondary py-0" title="← Hauptebene">
-                                    <i class="bi bi-arrow-bar-left"></i>
-                                </button>
-                            </form>
-                            <button class="btn btn-sm btn-outline-primary py-0"
-                                    data-bs-toggle="collapse" data-bs-target="#<?= $childEditId ?>">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline"
-                                  data-confirm="Eintrag löschen?">
-                                <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
-                                <input type="hidden" name="_action" value="delete_item">
-                                <input type="hidden" name="item_id" value="<?= $child['id'] ?>">
-                                <button class="btn btn-sm btn-outline-danger py-0"><i class="bi bi-trash"></i></button>
-                            </form>
-                        </div>
-                        <div class="collapse ps-4 mt-1" id="<?= $childEditId ?>">
-                            <?php echo itemEditForm($child, $menuId, $pages, $allTopItems); ?>
+                        <?php foreach ($item['children'] as $child): ?>
+                        <div class="<?= empty($child['active']) ? 'opacity-50' : '' ?>" data-id="<?= $child['id'] ?>">
+                            <?= menuItemRow($child, $menuId, $pages, $allTopItems) ?>
                         </div>
                         <?php endforeach ?>
+                            <div class="sortable-placeholder text-secondary small text-center py-2<?= $item['children'] ? ' d-none' : '' ?>">
+                                Element hierher ziehen, um es als Unterpunkt einzuordnen
+                            </div>
                         </div>
-                        <?php endif ?>
                     </div>
                 <?php endforeach ?>
                 </div>
