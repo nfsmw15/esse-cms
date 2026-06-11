@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 use Esse\TwoFactor;
 use Esse\Totp;
@@ -69,6 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['verify2fa_failures'], $_SESSION['verify2fa_block_until']
             );
             Auth::login($user);
+            AuditLog::record('login_success', (int) $user['id'], $user['email']);
             $redirect = trim($_POST['redirect'] ?? $_GET['redirect'] ?? '');
             header('Location: ' . ($redirect !== '' ? sanitizeRedirect2fa($redirect) : configuredLoginTarget2fa()));
             exit;
@@ -78,6 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($_SESSION['verify2fa_failures'] >= 5) {
             $_SESSION['verify2fa_block_until'] = $now + 60;
             $_SESSION['verify2fa_failures']    = 0;
+            AuditLog::record('2fa_locked', (int) $user['id'], $user['email']);
+        } else {
+            AuditLog::record('2fa_failed', (int) $user['id'], $user['email']);
         }
         $error = 'Code ungültig oder abgelaufen.';
     }

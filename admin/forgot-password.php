@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\Captcha;
 use Esse\DB;
 use Esse\Hooks;
@@ -49,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Create new token
             $token = bin2hex(random_bytes(32));
             DB::insert($tr, ['token' => $token, 'email' => $email]);
+            AuditLog::record('password_reset_requested', (int) $user['id'], $email);
 
             $ts      = DB::table('settings');
             $siteUrl = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'site_url'") ?? '';

@@ -38,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'smtp_encryption'  => $_POST['smtp_encryption']       ?? 'tls',
         'smtp_from'        => trim($_POST['smtp_from']        ?? ''),
         'smtp_from_name'   => trim($_POST['smtp_from_name']   ?? ''),
+        'audit_log_retention_days' => (string) max(1, (int) ($_POST['audit_log_retention_days'] ?? 90)),
     ];
     // Only update if new value entered — store encrypted
     if (!empty($_POST['smtp_pass'])) {
@@ -177,6 +178,19 @@ ob_start();
                     </div>
                     <div class="form-text">
                         Wenn aktiviert, können sich Besucher unter <code>/registrieren</code> einen Member-Account erstellen.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header py-2"><small class="text-secondary">Sicherheits-Protokoll</small></div>
+                <div class="card-body">
+                    <label class="form-label">Aufbewahrungsdauer (Tage)</label>
+                    <input type="number" name="audit_log_retention_days" class="form-control" min="1" style="max-width: 10rem"
+                           value="<?= htmlspecialchars($settings['audit_log_retention_days'] ?? '90') ?>">
+                    <div class="form-text">
+                        Sicherheitsereignisse (Logins, Passwort-Resets, 2FA-/Passkey-Änderungen, Benutzerverwaltung) werden
+                        unter <a href="/admin/logs">Protokolle</a> angezeigt und nach Ablauf dieser Frist automatisch gelöscht.
                     </div>
                 </div>
             </div>

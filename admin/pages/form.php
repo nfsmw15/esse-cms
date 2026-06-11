@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 
 // $editSlug is injected by the route closure when editing; null for create
@@ -98,6 +99,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         @unlink(ESSE_ROOT . '/pages/' . basename((string)$page['file_path']));
                     }
                     $filePath = $slug . '.' . $ext;
+                    AuditLog::record(
+                        'php_page_uploaded',
+                        Auth::id(),
+                        Auth::user()['email'] ?? null,
+                        ['slug' => $slug, 'file' => $filePath]
+                    );
                 }
             }
         }

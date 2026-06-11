@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 use Esse\Hooks;
 use Esse\Menu;
@@ -57,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (Auth::attempt($login, $password)) {
             unset($_SESSION['login_failures'], $_SESSION['login_block_until']);
+            AuditLog::record('login_success', Auth::id(), Auth::user()['email'] ?? $login);
             $redirect = trim($_POST['redirect'] ?? $_GET['redirect'] ?? '');
             header('Location: ' . ($redirect !== '' ? sanitizeRedirect($redirect) : configuredLoginTarget()));
             exit;
@@ -77,6 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($_SESSION['login_failures'] >= 5) {
             $_SESSION['login_block_until'] = $now + 60;
             $_SESSION['login_failures'] = 0;
+            AuditLog::record('login_locked', null, $login);
+        } else {
+            AuditLog::record('login_failed', null, $login);
         }
         // If the login came from the navbar dropdown (not the admin login page), go back with error param
         $redirect   = sanitizeRedirect($_POST['redirect'] ?? '/');

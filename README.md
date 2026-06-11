@@ -126,6 +126,10 @@ The installer optionally stores `config/` and `storage/` outside the webroot ent
 - Promoting a user to Forge role requires confirming a risk dialog
 - Installer is locked after first run (`install/installed.lock`)
 
+**Audit log (`/admin/logs`, `view_logs` permission):**
+- Tracks security-relevant events: logins (success/failure/lockout), 2FA/passkey enrollment changes, password resets, user management (creation, role changes, additional permissions, activation/deactivation), role management (created/deleted, per-role permission changes), own profile changes (password, email), PHP/HTML page uploads, and plugin management (install/update/enable/disable/uninstall)
+- GDPR/DSGVO-compliant: stored under legitimate interest (Art. 6(1)(f) GDPR) for security purposes, with entries auto-deleted after a configurable retention period (default 90 days, Admin → Settings)
+
 ---
 
 ## Tests
@@ -136,7 +140,7 @@ A minimal, dependency-free test runner lives in `tests/` (no Composer/PHPUnit re
 php tests/run.php
 ```
 
-Each `tests/*Test.php` file returns an array of `description => closure` and is executed by `tests/run.php`. Currently covers version comparison (`Updater::isNewer`), TOTP code generation/verification (`Totp`), the CAPTCHA challenge/honeypot logic (`Captcha`), CSRF token generation/validation (`Auth::csrfToken`/`verifyCsrf`), role hierarchy and permission checks (`Auth::meetsRole`/`can`/`canAny`), the hook system (`Hooks`), and the core DB schema (`Schema::tables`).
+Each `tests/*Test.php` file returns an array of `description => closure` and is executed by `tests/run.php`. Currently covers version comparison (`Updater::isNewer`), TOTP code generation/verification (`Totp`), the CAPTCHA challenge/honeypot logic (`Captcha`), CSRF token generation/validation (`Auth::csrfToken`/`verifyCsrf`), role hierarchy and permission checks (`Auth::meetsRole`/`can`/`canAny`), the hook system (`Hooks`), the core DB schema (`Schema::tables`), and the audit log (`AuditLog`).
 
 ### Integration tests
 

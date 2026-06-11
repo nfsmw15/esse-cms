@@ -8,6 +8,7 @@
  */
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\Crypto;
 use Esse\DB;
 use Esse\QrCode;
@@ -73,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $totpSetup      = null;
                 $newBackupCodes = $plainCodes;
                 $flash = ['type' => 'success', 'message' => 'Zwei-Faktor-Authentifizierung aktiviert.'];
+                AuditLog::record('2fa_enabled', Auth::id(), Auth::user()['email'] ?? null);
                 profilReloadUser($tu);
             }
             break;
@@ -87,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'totp_backup_codes' => null,
                 ], ['id' => Auth::id()]);
                 $flash = ['type' => 'success', 'message' => 'Zwei-Faktor-Authentifizierung deaktiviert.'];
+                AuditLog::record('2fa_disabled', Auth::id(), Auth::user()['email'] ?? null);
                 profilReloadUser($tu);
             }
             break;
@@ -99,6 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 DB::update($tu, ['totp_backup_codes' => TwoFactor::hashBackupCodes($plainCodes)], ['id' => Auth::id()]);
                 $newBackupCodes = $plainCodes;
                 $flash = ['type' => 'success', 'message' => 'Neue Backup-Codes generiert — alte Codes sind ab sofort ungültig.'];
+                AuditLog::record('2fa_backup_codes_regenerated', Auth::id(), Auth::user()['email'] ?? null);
             }
             break;
 
@@ -117,6 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $credId = (int) ($_POST['credential_id'] ?? 0);
             if ($credId > 0 && WebAuthn::removeCredential((int) Auth::id(), $credId)) {
                 $flash = ['type' => 'success', 'message' => 'Passkey entfernt.'];
+                AuditLog::record('passkey_removed', Auth::id(), Auth::user()['email'] ?? null);
             } else {
                 $errors[] = 'Passkey nicht gefunden.';
             }
@@ -143,11 +148,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (empty($errors)) {
+                $oldEmail = Auth::user()['email'] ?? null;
                 $data = ['display_name' => $displayName, 'email' => $email];
                 if ($password) {
                     $data['password'] = password_hash($password, PASSWORD_BCRYPT);
                 }
                 DB::update($tu, $data, ['id' => Auth::id()]);
+
+                if ($password) {
+                    AuditLog::record('profile_password_changed', Auth::id(), $oldEmail);
+                }
+                if ($email !== $oldEmail) {
+                    AuditLog::record('profile_email_changed', Auth::id(), $oldEmail, ['old_email' => $oldEmail, 'new_email' => $email]);
+                }
                 $flash = ['type' => 'success', 'message' => 'Profil gespeichert.'];
                 profilReloadUser($tu);
             }

@@ -2,6 +2,12 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Sicherheits-Protokoll** (`core/AuditLog.php`, `/admin/logs`): protokolliert sicherheitsrelevante Ereignisse — erfolgreiche/fehlgeschlagene Logins (Passwort, 2FA, Passkey), Konto-Sperrungen nach zu vielen Fehlversuchen, Passwort-Reset-Anfragen/-Abschlüsse, Aktivierung/Deaktivierung/Neugenerierung von 2FA und Passkeys, Benutzerverwaltung (Anlage, Rollenänderung, zusätzliche Berechtigungen, Aktivierung/Deaktivierung), Rollen-/Berechtigungsänderungen (Rolle erstellt/gelöscht, Berechtigungen je Rolle geändert), Änderungen am eigenen Profil (Passwort, E-Mail), Hochladen von PHP-/HTML-Seiten sowie Plugin-Verwaltung (Installation, Update, Aktivierung/Deaktivierung, Deinstallation). Zugriff über die bestehende `view_logs`-Berechtigung. **DSGVO-konform**: Speicherung erfolgt auf Basis berechtigten Interesses (Art. 6 Abs. 1 lit. f DSGVO, ErwG 49 — Netz- und Informationssicherheit), Einträge werden nach einer einstellbaren Frist (Standard 90 Tage, Admin → Einstellungen) automatisch gelöscht.
+
 ## [0.2.2-alpha] - 2026-06-11
 
 ### Security

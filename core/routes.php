@@ -155,6 +155,7 @@ Router::post('/admin/passkey/register-verify', function () {
 
     try {
         \Esse\WebAuthn::verifyRegistration(\Esse\Auth::user(), $credential, $label);
+        \Esse\AuditLog::record('passkey_added', \Esse\Auth::id(), \Esse\Auth::user()['email'] ?? null);
         echo json_encode(['ok' => true]);
     } catch (\Throwable $e) {
         echo json_encode(['error' => 'Registrierung fehlgeschlagen. Bitte erneut versuchen.']);
@@ -184,6 +185,7 @@ Router::post('/admin/passkey/auth-verify', function () {
     if (!$user) { echo json_encode(['error' => 'Passkey-Anmeldung fehlgeschlagen.']); return; }
 
     \Esse\Auth::login($user);
+    \Esse\AuditLog::record('login_success', (int) $user['id'], $user['email']);
 
     $redirect = trim((string) ($body['redirect'] ?? ''));
     $target   = ($redirect !== '' && str_starts_with($redirect, '/') && !str_starts_with($redirect, '//'))
@@ -355,6 +357,11 @@ Router::get('/admin/iconpacks', fn() => require ESSE_ROOT . '/admin/iconpacks.ph
 Router::post('/admin/iconpacks', fn() => require ESSE_ROOT . '/admin/iconpacks.php', [
     'name' => 'admin.iconpacks.post',
     'auth' => 'manage_settings',
+]);
+
+Router::get('/admin/logs', fn() => require ESSE_ROOT . '/admin/logs.php', [
+    'name' => 'admin.logs',
+    'auth' => 'view_logs',
 ]);
 
 Router::get('/admin/themes', fn() => require ESSE_ROOT . '/admin/themes/index.php', [

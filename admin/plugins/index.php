@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 use Esse\GitHubApi;
 
@@ -73,6 +74,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $enabled = array_values(array_filter($enabled, fn($s) => $s !== $slug));
         }
         saveEnabled($ts, $enabled);
+        AuditLog::record(
+            $action === 'enable' ? 'plugin_enabled' : 'plugin_disabled',
+            Auth::id(),
+            Auth::user()['email'] ?? null,
+            ['plugin' => $slug]
+        );
         $_SESSION['flash'] = ['type' => 'success', 'message' =>
             "Plugin '{$slug}' " . ($action === 'enable' ? 'aktiviert' : 'deaktiviert') . '.'];
         header('Location: /admin/plugins');
@@ -93,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         packageDeleteDir(ESSE_ROOT . '/plugins/' . $slug);
         $enabled = array_values(array_filter($enabled, fn($s) => $s !== $slug));
         saveEnabled($ts, $enabled);
+        AuditLog::record('plugin_uninstalled', Auth::id(), Auth::user()['email'] ?? null, ['plugin' => $slug]);
         $_SESSION['flash'] = ['type' => 'success', 'message' => "Plugin '{$slug}' deinstalliert."];
         header('Location: /admin/plugins');
         exit;
@@ -171,6 +179,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         }
                     }
+                    AuditLog::record(
+                        $isNew ? 'plugin_installed' : 'plugin_updated',
+                        Auth::id(),
+                        Auth::user()['email'] ?? null,
+                        ['plugin' => $result['name'], 'version' => $result['version'], 'source' => 'repo']
+                    );
                     $_SESSION['flash'] = ['type' => 'success', 'message' => $isNew
                         ? "Plugin '{$result['name']}' v{$result['version']} installiert."
                         : "Plugin '{$result['name']}' auf v{$result['version']} aktualisiert."];
@@ -202,6 +216,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             }
+            AuditLog::record(
+                $isNew ? 'plugin_installed' : 'plugin_updated',
+                Auth::id(),
+                Auth::user()['email'] ?? null,
+                ['plugin' => $result['name'], 'version' => $result['version'], 'source' => 'upload']
+            );
             $_SESSION['flash'] = ['type' => 'success', 'message' => $isNew
                 ? "Plugin '{$result['name']}' v{$result['version']} installiert."
                 : "Plugin '{$result['name']}' auf v{$result['version']} aktualisiert."];

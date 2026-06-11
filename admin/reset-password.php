@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 use Esse\Hooks;
 
@@ -41,6 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
         $hash = password_hash($password, PASSWORD_BCRYPT);
         DB::update($tu, ['password' => $hash], ['email' => $reset['email']]);
         DB::delete($tr, ['token' => $token]);
+        $resetUser = DB::fetch("SELECT id FROM `{$tu}` WHERE email = ?", [$reset['email']]);
+        AuditLog::record('password_reset_completed', $resetUser ? (int) $resetUser['id'] : null, $reset['email']);
         $success = true;
     }
 }

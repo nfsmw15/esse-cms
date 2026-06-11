@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 
 // Only Forge or users with manage_admins can manage roles
@@ -52,12 +53,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   WHERE rp.role_id = ? AND p.slug = ?",
                 [$roleId, $permSlug]
             );
+            AuditLog::record(
+                'role_permissions_changed',
+                Auth::id(),
+                Auth::user()['email'] ?? null,
+                ['role' => $role['slug'], 'permission' => $permSlug, 'granted' => false]
+            );
             echo json_encode(['granted' => false]); exit;
         } else {
             DB::query(
                 "INSERT IGNORE INTO `{$trp}` (role_id, permission_id)
                  SELECT ?, p.id FROM `{$tp}` p WHERE p.slug = ?",
                 [$roleId, $permSlug]
+            );
+            AuditLog::record(
+                'role_permissions_changed',
+                Auth::id(),
+                Auth::user()['email'] ?? null,
+                ['role' => $role['slug'], 'permission' => $permSlug, 'granted' => true]
             );
             echo json_encode(['granted' => true]); exit;
         }
@@ -75,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['flash'] = ['type' => 'danger', 'message' => "Rolle '{$slug}' existiert bereits."];
         } else {
             DB::insert($tr, ['slug' => $slug, 'label' => $label, 'is_default' => 0]);
+            AuditLog::record('role_created', Auth::id(), Auth::user()['email'] ?? null, ['role' => $slug, 'label' => $label]);
             $_SESSION['flash'] = ['type' => 'success', 'message' => "Rolle '{$label}' erstellt."];
         }
         header('Location: /admin/roles');
@@ -91,6 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['flash'] = ['type' => 'danger', 'message' => "Rolle '{$role['label']}' ist noch {$usersWithRole} Benutzer(n) zugewiesen."];
             } else {
                 DB::delete($tr, ['id' => $roleId]);
+                AuditLog::record('role_deleted', Auth::id(), Auth::user()['email'] ?? null, ['role' => $role['slug'], 'label' => $role['label']]);
                 $_SESSION['flash'] = ['type' => 'success', 'message' => "Rolle '{$role['label']}' gelöscht."];
             }
         }

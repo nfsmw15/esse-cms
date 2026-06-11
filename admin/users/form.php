@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 
 $userId ??= null;
@@ -51,6 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Du kannst deinen eigenen Account nicht deaktivieren.';
         } else {
             DB::update($tu, ['active' => $action === 'activate' ? 1 : 0], ['id' => $user['id']]);
+            AuditLog::record(
+                $action === 'activate' ? 'user_activated' : 'user_deactivated',
+                Auth::id(),
+                Auth::user()['email'] ?? null,
+                ['target_user_id' => $user['id'], 'target_email' => $user['email']]
+            );
             $_SESSION['flash'] = ['type' => 'success', 'message' => 'Status geändert.'];
             header('Location: /admin/users');
             exit;
@@ -99,21 +106,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($isEdit) {
+                if ($role !== $user['role']) {
+                    AuditLog::record(
+                        'user_role_changed',
+                        Auth::id(),
+                        Auth::user()['email'] ?? null,
+                        ['target_user_id' => $userId, 'target_email' => $email, 'old_role' => $user['role'], 'new_role' => $role]
+                    );
+                }
                 DB::update($tu, $data, ['id' => $userId]);
 
                 if ($canManageAdmins) {
                     // Save per-user permission overrides
                     $tup = DB::table('user_permissions');
+                    $oldPerms = DB::fetchAll("SELECT permission_slug FROM `{$tup}` WHERE user_id = ? AND granted = 1", [$userId]);
+                    $oldPerms = array_column($oldPerms, 'permission_slug');
+                    sort($oldPerms);
+
                     DB::query("DELETE FROM `{$tup}` WHERE user_id = ?", [$userId]);
+                    $newPerms = [];
                     foreach ($_POST['user_permissions'] ?? [] as $slug) {
                         $slug = preg_replace('/[^a-z_]/', '', $slug);
-                        if ($slug) DB::insert($tup, ['user_id' => $userId, 'permission_slug' => $slug, 'granted' => 1]);
+                        if ($slug) {
+                            DB::insert($tup, ['user_id' => $userId, 'permission_slug' => $slug, 'granted' => 1]);
+                            $newPerms[] = $slug;
+                        }
+                    }
+                    sort($newPerms);
+
+                    if ($oldPerms !== $newPerms) {
+                        AuditLog::record(
+                            'user_permissions_changed',
+                            Auth::id(),
+                            Auth::user()['email'] ?? null,
+                            ['target_user_id' => $userId, 'target_email' => $email, 'old_permissions' => $oldPerms, 'new_permissions' => $newPerms]
+                        );
                     }
                 }
 
                 $_SESSION['flash'] = ['type' => 'success', 'message' => 'Benutzer gespeichert.'];
             } else {
                 $newId = DB::insert($tu, array_merge($data, ['active' => 1]));
+                AuditLog::record(
+                    'user_created',
+                    Auth::id(),
+                    Auth::user()['email'] ?? null,
+                    ['target_user_id' => $newId, 'target_email' => $email, 'role' => $role]
+                );
 
                 if ($canManageAdmins) {
                     // Save per-user permissions for new user
