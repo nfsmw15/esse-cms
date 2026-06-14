@@ -27,6 +27,21 @@
     background: #111 !important;
     color: #e0e0e0 !important;
     min-height: 380px;
+    padding-right: 16px;
+}
+
+.note-editable img {
+    max-width: 100%;
+    height: auto;
+}
+
+.note-handle .note-control-selection .note-control-se.note-control-sizing {
+    width: 16px;
+    height: 16px;
+    bottom: -8px;
+    right: -8px;
+    background-color: #0d6efd;
+    border-color: #0d6efd;
 }
 
 .note-statusbar {

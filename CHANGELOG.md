@@ -2,6 +2,12 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [0.6.1-alpha] - 2026-06-15
+
+### Fixed
+
+- **Bilder im Seiteneditor verkleinern**: Im Summernote-Editor (`admin/pages/form.php`) ragte die untere rechte Resize-Ecke großer Bilder hinter die Scrollbar des Editierbereichs und war praktisch nicht greifbar. Bilder werden im Editor jetzt per `max-width: 100%` auf die Editorbreite begrenzt, der Editierbereich erhält etwas rechten Innenabstand und die Resize-Ecke wird größer und blau hervorgehoben dargestellt, sodass sich Bilder zuverlässig per Drag verkleinern und vergrößern lassen.
+
 ## [0.6.0-alpha] - 2026-06-14
 
 ### Added
