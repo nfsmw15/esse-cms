@@ -7,6 +7,7 @@ All notable changes to ESSE CMS will be documented in this file.
 ### Added
 
 - **Ordner in der Mediathek**: Dateien lassen sich in `/admin/media` jetzt in (verschachtelte) virtuelle Ordner organisieren — Ordner anlegen, umbenennen und löschen (nur wenn leer), Dateien per Edit-Dialog in Ordner verschieben, Navigation per Breadcrumb. Die physische Ablage in `/public/uploads/` und bestehende URL-Referenzen in Seiteninhalten bleiben unverändert; der Mediathek-Picker im Seiteneditor zeigt weiterhin alle Dateien ordnerübergreifend an.
+- **Carousel-Bilder im esse-base-Theme**: Bilder in `.carousel-item` werden jetzt per `object-fit: cover` auf eine einheitliche Höhe (450px, mobil 280px) zugeschnitten, sodass alle Slides unabhängig vom Seitenverhältnis gleich groß erscheinen.
 
 ### Fixed
 
