@@ -20,6 +20,7 @@
 - [Admin-Templates mit Layout](#admin-templates-mit-layout)
 - [Summernote (WYSIWYG) in Plugin-Admin-Seiten](#summernote-wysiwyg-in-plugin-admin-seiten)
 - [Icon-Felder](#icon-felder)
+- [Mediathek-Integration](#mediathek-integration)
 - [Dashboard-Theme-Kompatibilität](#dashboard-theme-kompatibilität)
 - [Plugin-Assets](#plugin-assets)
 - [ZIP-Packaging](#zip-packaging)
@@ -642,6 +643,50 @@ $extraScriptFiles = [
 `summernote-admin.js` enthält die Initialisierung und blendet das Textarea über eine CSS-Klasse aus
 oder lässt Summernote es ersetzen. Alle Editor-Styles gehören in `summernote-admin.css`.
 
+### "Aus Mediathek einfügen"-Button nachrüsten
+
+Der Seiteneditor hat einen zusätzlichen Toolbar-Button, mit dem Bilder aus der
+[Mediathek](#mediathek-integration) eingefügt werden können. Plugins mit eigener
+Summernote-Instanz können diesen Button mit übernehmen:
+
+```php
+$extraHead = '<link rel="stylesheet" href="/public/vendor/summernote/summernote-bs5.min.css">
+<link rel="stylesheet" href="/plugins/mein-plugin/public/css/summernote-admin.css">';
+
+$extraScriptConfig = [
+    'mein-plugin-editor-config' => [
+        'selector' => '#mein-textarea',
+        'uploadUrl' => '/admin/files/upload',
+    ],
+];
+$extraScriptFiles = [
+    '/public/vendor/summernote/jquery.min.js',
+    '/public/vendor/summernote/summernote-bs5.min.js',
+    '/public/vendor/summernote/summernote-de-DE.min.js',
+    '/public/assets/js/media-button.js',   // stellt window.EsseMediaButton bereit
+    '/plugins/mein-plugin/public/js/summernote-admin.js',
+];
+
+require ESSE_ROOT . '/admin/partials/media-picker.php'; // stellt window.EsseMedia bereit
+```
+
+In `summernote-admin.js` den Button im Toolbar registrieren:
+
+```javascript
+$(config.selector).summernote({
+    // ...
+    toolbar: [
+        // ...
+        ['insert', ['link', 'picture', 'media', 'hr']],
+    ],
+    buttons: {
+        media: window.EsseMediaButton,
+    },
+});
+```
+
+`media-button.js` muss **vor** dem eigenen Initialisierungs-Skript geladen werden, das
+Picker-Partial kann an beliebiger Stelle vor `require admin/layout.php` eingebunden werden.
 
 ---
 
@@ -680,6 +725,99 @@ Themes rendern das Icon automatisch vor Label/Titel wenn `icon` gesetzt ist.
 Volle CSS-Klassen (`bi bi-speedometer2`) funktionieren weiterhin (Rückwärtskompatibilität).
 
 **Menü-Icons:** esse-base rendert `$item['icon']` direkt als CSS-Klasse — hier volle Klasse angeben.
+
+---
+
+## Mediathek-Integration
+
+ESSE führt unter `/admin/media` eine zentrale Mediathek: einen Index aller hochgeladenen
+Dateien (Bilder, Dokumente) mit Alt-Text, Beschreibung und Sichtbarkeit (`public`/`private`).
+Der Seiteneditor (Summernote) bietet darüber einen Picker, mit dem bereits vorhandene
+Dateien wiederverwendet werden können, ohne sich die URL merken zu müssen.
+
+**Plugins behalten ihren eigenen Upload und Speicherort** (z.B. `plugins/esse-galerie/uploads/`
+oder `public/uploads/galerie/`). Die Mediathek-Integration ist rein additiv:
+
+- Optional: eigene Dateien per `Media::register()` im zentralen Index anmelden, damit sie
+  in `/admin/media` auftauchen und im Summernote-Picker auswählbar sind.
+- Optional: `EsseMedia.open()` nutzen, um Nutzern in Plugin-Admin-Seiten die Auswahl aus der
+  Mediathek anzubieten (z.B. ein Titelbild für ein Galerie-Album).
+
+Beide Wege sind unabhängig voneinander nutzbar.
+
+### `Media::register()` — Datei im Index anmelden
+
+```php
+use Esse\Media;
+
+Media::register('/plugins/esse-galerie/uploads/foto-123.jpg', [
+    'filename'    => 'foto-123.jpg',
+    'mime_type'   => 'image/jpeg',
+    'size'        => 482_300,           // Bytes
+    'visibility'  => 'public',          // 'public' | 'private' — Standard: 'public'
+    'alt_text'    => 'Sonnenuntergang am See',
+    'description' => '',
+    'uploaded_by' => Auth::id(),
+    'source'      => 'esse-galerie',    // Plugin-Name zur Identifikation, frei wählbar
+]);
+```
+
+`$path` ist der **web-relative Pfad ab `/public` bzw. dem Webroot** (so wie er auch im
+`src`-Attribut eines `<img>`-Tags stehen würde). Beim erneuten `register()` mit demselben
+`$path` wird der bestehende Eintrag aktualisiert (kein Duplikat).
+
+`type` (`image`/`document`/`file`) wird automatisch aus `mime_type` abgeleitet
+(`Media::typeFromMime()`), kann aber auch explizit gesetzt werden.
+
+> **Sichtbarkeit ist wichtig:** Wenn eine Datei nur eingeloggten Nutzern zugänglich sein soll
+> (z.B. interne Download-Dateien), `visibility => 'private'` setzen. Private Dateien werden
+> in der Mediathek mit einem Schloss-Badge markiert, und der Picker warnt, wenn eine private
+> Datei in öffentlichem Seiteninhalt verwendet wird.
+
+### Weitere Methoden
+
+```php
+use Esse\Media;
+
+Media::findByPath('/plugins/esse-galerie/uploads/foto-123.jpg'); // ?array
+Media::find($id);                                                 // ?array
+
+// Nur alt_text, description, visibility sind aktualisierbar:
+Media::update($id, ['visibility' => 'private', 'alt_text' => 'Neuer Alt-Text']);
+
+// Löscht den Index-Eintrag UND die Datei vom Server (außer bei Dateinamen die mit "." beginnen)
+Media::delete($id);
+
+// Seiten, deren Inhalt den Pfad referenziert (für "Wird verwendet"-Warnung vor dem Löschen):
+Media::usages('/plugins/esse-galerie/uploads/foto-123.jpg'); // [['slug' => ..., 'title' => ...], ...]
+```
+
+`Media::delete()` löscht auch die Datei vom Server — bei eigener Lösch-Logik im Plugin
+ggf. nur `Media::find()`/eigenes `DELETE` aus der `media`-Tabelle verwenden, wenn die Datei
+weiterhin vom Plugin selbst verwaltet wird.
+
+### `EsseMedia.open()` — Mediathek-Picker in eigenen Admin-Seiten
+
+Um Nutzern die Auswahl einer vorhandenen Datei aus der Mediathek anzubieten (z.B. Titelbild
+für ein Album), das Picker-Partial einbinden und `EsseMedia.open()` aufrufen:
+
+```php
+// In der Plugin-Admin-Seite, vor require layout.php:
+require ESSE_ROOT . '/admin/partials/media-picker.php';
+```
+
+```javascript
+// In der eigenen JS-Datei (z.B. admin.js):
+document.getElementById('pick-cover-btn').addEventListener('click', function () {
+    window.EsseMedia.open(function (file) {
+        document.getElementById('cover-url').value = file.url;
+        // file: { id, url, filename, type, alt, visibility }
+    }, { type: 'image', warnPrivate: true });
+});
+```
+
+`options.type` filtert den Picker (`'image'`, `'document'`, `'file'` oder weglassen für alle).
+`options.warnPrivate: true` zeigt eine Bestätigung, wenn eine private Datei ausgewählt wird.
 
 ---
 

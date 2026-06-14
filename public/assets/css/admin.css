@@ -9,7 +9,7 @@ body {
 
 #sidebar {
     width: var(--sidebar-w);
-    min-height: 100vh;
+    height: 100vh;
     background: #111;
     border-right: 1px solid #1e1e1e;
     position: fixed;
@@ -52,6 +52,7 @@ body {
 #sidebar nav {
     padding: .75rem 0;
     flex: 1;
+    overflow-y: auto;
 }
 
 #sidebar nav a {
@@ -426,4 +427,92 @@ body {
 
 .sortable-children > [data-id] .menu-item-edit {
     padding-left: 1.5rem;
+}
+
+/* ── Mediathek ──────────────────────────────────────────────────────────── */
+.media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: .75rem;
+}
+
+.media-card {
+    background: #1a1a1a;
+    border: 1px solid #2d2d2d;
+    border-radius: .375rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.media-picker-item {
+    cursor: pointer;
+    transition: border-color .15s;
+}
+
+.media-picker-item:hover {
+    border-color: #0d6efd;
+}
+
+.media-card-thumb {
+    position: relative;
+    height: 100px;
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.media-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.media-thumb-file {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #666;
+}
+
+.media-private-badge {
+    position: absolute;
+    top: .25rem;
+    left: .25rem;
+    font-size: .65rem;
+}
+
+.media-card-body {
+    padding: .4rem .5rem;
+}
+
+.media-card-name {
+    font-size: .8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.media-card-meta {
+    font-size: .7rem;
+}
+
+.media-card-actions {
+    display: flex;
+    gap: .25rem;
+    padding: 0 .5rem .5rem;
+}
+
+.media-filter-q {
+    width: 180px;
+}
+
+.media-filter-select {
+    width: 140px;
+}
+
+.esse-media-search {
+    max-width: 200px;
 }

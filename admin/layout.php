@@ -46,6 +46,11 @@ if (defined('ESSE_DB_NAME')) {
             <i class="bi bi-list-nested"></i> Menüs
         </a>
         <?php endif ?>
+        <?php if (\Esse\Auth::canAny(['manage_files', 'manage_content'])): ?>
+        <a href="/admin/media" class="<?= ($activeNav ?? '') === 'media' ? 'active' : '' ?>">
+            <i class="bi bi-images"></i> Mediathek
+        </a>
+        <?php endif ?>
 
         <?php
         // Plugin-registered nav items

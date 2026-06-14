@@ -14,6 +14,7 @@ return [
             'esse_users', 'esse_permissions', 'esse_roles', 'esse_role_permissions',
             'esse_user_permissions', 'esse_pages', 'esse_settings', 'esse_menus',
             'esse_menu_items', 'esse_password_resets', 'esse_webauthn_credentials',
+            'esse_media',
         ];
         $sql = implode("\n", $tables);
         foreach ($expected as $table) {

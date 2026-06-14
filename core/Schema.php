@@ -134,6 +134,24 @@ class Schema
                 FOREIGN KEY (`field_id`) REFERENCES `{$p}user_fields`(`id`) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+            "CREATE TABLE IF NOT EXISTS `{$p}media` (
+                `id`          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `path`        VARCHAR(500) NOT NULL,
+                `filename`    VARCHAR(255) NOT NULL,
+                `mime_type`   VARCHAR(100) NOT NULL DEFAULT '',
+                `type`        VARCHAR(20)  NOT NULL DEFAULT 'file',
+                `size`        INT UNSIGNED NOT NULL DEFAULT 0,
+                `alt_text`    VARCHAR(255) NOT NULL DEFAULT '',
+                `description` VARCHAR(500) NOT NULL DEFAULT '',
+                `visibility`  ENUM('public','private') NOT NULL DEFAULT 'public',
+                `source`      VARCHAR(100) NOT NULL DEFAULT 'core',
+                `uploaded_by` INT UNSIGNED NULL,
+                `created_at`  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY `uq_path` (`path`),
+                KEY `idx_type` (`type`),
+                KEY `idx_visibility` (`visibility`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
             "CREATE TABLE IF NOT EXISTS `{$p}webauthn_credentials` (
                 `id`            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `user_id`       INT UNSIGNED NOT NULL,

@@ -327,6 +327,7 @@ ob_start();
 </form>
 
 <?php require __DIR__ . '/../partials/icon-picker.php'; ?>
+<?php require __DIR__ . '/../partials/media-picker.php'; ?>
 <?php
 $content      = ob_get_clean();
 $extraHead    = '<link rel="stylesheet" href="/public/vendor/summernote/summernote-bs5.min.css">
@@ -340,6 +341,7 @@ $extraScriptFiles = array_merge($extraScriptFiles ?? [], [
     '/public/vendor/summernote/summernote-bs5.min.js',
     '/public/vendor/summernote/summernote-de-DE.min.js',
     '/public/assets/js/admin-pages-form.js',
+    '/public/assets/js/media-button.js',
     '/public/assets/js/admin-pages-summernote.js',
 ]);
 require dirname(__DIR__) . '/layout.php';

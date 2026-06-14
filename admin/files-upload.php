@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\Media;
 
 if (!Auth::canAny(['manage_files', 'manage_content'])) {
     http_response_code(403);
@@ -70,4 +71,14 @@ if (!move_uploaded_file($file['tmp_name'], $dest)) {
     exit;
 }
 
-echo json_encode(['url' => '/public/uploads/' . $fileName]);
+$path = '/public/uploads/' . $fileName;
+
+Media::register($path, [
+    'filename'    => $file['name'],
+    'mime_type'   => $mime,
+    'size'        => $file['size'],
+    'uploaded_by' => Auth::id(),
+    'source'      => 'editor',
+]);
+
+echo json_encode(['url' => $path]);

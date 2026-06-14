@@ -52,9 +52,12 @@
             ['color', ['color']],
             ['para', ['ul', 'ol', 'paragraph']],
             ['table', ['table']],
-            ['insert', ['link', 'picture', 'hr']],
+            ['insert', ['link', 'picture', 'media', 'hr']],
             ['view', ['fullscreen', 'codeview']],
         ],
+        buttons: {
+            media: window.EsseMediaButton,
+        },
         callbacks: {
             onImageUpload: function (files) {
                 const fd = new FormData();

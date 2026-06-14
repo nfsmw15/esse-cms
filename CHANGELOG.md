@@ -10,6 +10,12 @@ All notable changes to ESSE CMS will be documented in this file.
 - **SEO-Einstellungen**: Neue Karte „SEO" in `admin/settings.php` mit globaler Standard-Meta-Beschreibung (Fallback, wenn eine Seite keine eigene gesetzt hat), Schalter für `/sitemap.xml` und einem optionalen eigenen `/robots.txt`-Inhalt.
 - **Neue Routen** `/robots.txt` (Standardregeln oder eigener Inhalt aus den Einstellungen, inkl. Sitemap-Verweis) und `/sitemap.xml` (XML-Sitemap aller veröffentlichten, öffentlich sichtbaren Seiten — nur aktiv, wenn in den Einstellungen aktiviert).
 - **Profilfelder**: Neuer Admin-Bereich „Profilfelder" (`admin/user-fields.php`, unter Einstellungen) zum Anlegen frei konfigurierbarer Zusatzfelder (Text, Mehrzeiliger Text, Auswahl, Checkbox, Datum) inkl. Pflichtfeld-Option, Sortierung und Sichtbarkeit für Registrierung/Profil. Felder werden bei `/registrieren`, `/profil` und in der Admin-Benutzerverwaltung (`admin/users/form.php`) angezeigt, validiert und in `user_field_values` gespeichert.
+- **Mediathek**: Neuer Admin-Bereich „Mediathek" (`/admin/media`) zur Verwaltung aller hochgeladenen Dateien — Suche, Filter nach Typ, Markierung als „privat", Verwendungsnachweis und Löschen (inkl. Datei-Lösch-Schutz für versteckte Dateien wie `.htaccess`).
+- **Mediathek-Picker im Seiteneditor**: Neuer Button „Aus Mediathek einfügen" im Summernote-Editor (`admin/pages/form.php`), der einen Auswahldialog (`EsseMedia.open()`) mit allen vorhandenen Medien öffnet. Die Picker-Funktionalität ist als globales `window.EsseMediaButton` für Plugins wiederverwendbar (siehe `PLUGIN_GUIDE.md`).
+
+### Fixed
+
+- **Admin-Sidebar**: Navigation scrollt jetzt unabhängig vom Hauptinhalt, sodass alle Menüpunkte auch bei langen Seiten erreichbar bleiben.
 
 ## [0.4.0-alpha] - 2026-06-12
 

@@ -384,6 +384,21 @@ Router::post('/admin/settings', fn() => require ESSE_ROOT . '/admin/settings.php
     'auth' => 'manage_settings',
 ]);
 
+Router::get('/admin/media', fn() => require ESSE_ROOT . '/admin/media.php', [
+    'name' => 'admin.media',
+    'auth' => ['manage_files', 'manage_content'],
+]);
+
+Router::post('/admin/media', fn() => require ESSE_ROOT . '/admin/media.php', [
+    'name' => 'admin.media.post',
+    'auth' => ['manage_files', 'manage_content'],
+]);
+
+Router::get('/admin/media/list', fn() => require ESSE_ROOT . '/admin/media-list.php', [
+    'name' => 'admin.media.list',
+    'auth' => ['manage_files', 'manage_content'],
+]);
+
 Router::get('/admin/user-fields', fn() => require ESSE_ROOT . '/admin/user-fields.php', [
     'name' => 'admin.user_fields',
     'auth' => 'manage_settings',
