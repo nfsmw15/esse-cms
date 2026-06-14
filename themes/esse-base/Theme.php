@@ -30,6 +30,7 @@ class Theme extends \Esse\Theme
 
         $mainMenu = Menu::get($mainSlug);
         $footMenu = $footSlug ? Menu::get($footSlug) : [];
+        $settings = $this->settings;
         $theme    = $this;
 
         // Error pages use a dedicated template

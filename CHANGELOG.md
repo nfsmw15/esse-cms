@@ -2,6 +2,14 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **SEO-Grundlagen**: Neue Karte „SEO" in `admin/pages/form.php` für eine seitenspezifische Meta-Beschreibung (`meta_description`, max. 300 Zeichen), gerendert als `<meta name="description">` und Open-Graph-Beschreibung im `esse-base`-Theme.
+- **SEO-Einstellungen**: Neue Karte „SEO" in `admin/settings.php` mit globaler Standard-Meta-Beschreibung (Fallback, wenn eine Seite keine eigene gesetzt hat), Schalter für `/sitemap.xml` und einem optionalen eigenen `/robots.txt`-Inhalt.
+- **Neue Routen** `/robots.txt` (Standardregeln oder eigener Inhalt aus den Einstellungen, inkl. Sitemap-Verweis) und `/sitemap.xml` (XML-Sitemap aller veröffentlichten, öffentlich sichtbaren Seiten — nur aktiv, wenn in den Einstellungen aktiviert).
+
 ## [0.4.0-alpha] - 2026-06-12
 
 ### Security

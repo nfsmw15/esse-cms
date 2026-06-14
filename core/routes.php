@@ -426,6 +426,29 @@ Router::post('/install', fn() => require ESSE_ROOT . '/install/index.php', [
     'auth' => 'public',
 ]);
 
+// -- SEO --
+
+Router::get('/robots.txt', function () {
+    $ts = \Esse\DB::table('settings');
+    $settings = array_column(\Esse\DB::fetchAll("SELECT `key`, `value` FROM `{$ts}`"), 'value', 'key');
+
+    header('Content-Type: text/plain; charset=utf-8');
+    echo \Esse\Seo::robotsTxt($settings);
+}, ['name' => 'robots', 'auth' => 'public']);
+
+Router::get('/sitemap.xml', function () {
+    $ts = \Esse\DB::table('settings');
+    $settings = array_column(\Esse\DB::fetchAll("SELECT `key`, `value` FROM `{$ts}`"), 'value', 'key');
+
+    if (($settings['seo_sitemap_enabled'] ?? '0') !== '1') {
+        \Esse\Router::abort(404);
+        return;
+    }
+
+    header('Content-Type: application/xml; charset=utf-8');
+    echo \Esse\Seo::sitemapXml($settings);
+}, ['name' => 'sitemap', 'auth' => 'public']);
+
 // -- Frontend pages (must be last — catches any unmatched slug) --
 
 Router::get('/{slug}', fn(string $slug) => \Esse\PageRenderer::render($slug), [

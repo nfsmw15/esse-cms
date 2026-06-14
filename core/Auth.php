@@ -236,6 +236,7 @@ class Auth
             PageVisibility::migrateDb();
             TwoFactor::migrateDb();
             AuditLog::migrateDb();
+            Seo::migrateDb();
             self::$defaultsSynced = true;
         } catch (\Throwable) {
             // Installer or partial migrations may not have permission tables yet.

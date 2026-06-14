@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $title      = trim($_POST['title']      ?? '');
         $icon       = trim($_POST['icon']       ?? '');
         $slug       = trim($_POST['slug']       ?? '');
+        $metaDesc   = trim($_POST['meta_description'] ?? '');
         $content    = $_POST['content']         ?? '';
         $type       = $_POST['type']            ?? 'standard';
         $visibility = $_POST['visibility']      ?? 'public';
@@ -114,6 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'title'      => $title,
                 'icon'       => $icon ?: null,
                 'slug'       => $slug,
+                'meta_description' => $metaDesc ?: null,
                 'content'    => $type === 'standard' ? $content : null,
                 'type'       => $type,
                 'file_path'  => $type === 'php' ? $filePath : null,
@@ -137,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Re-populate on error
-        $page = array_merge($page ?? [], compact('title', 'slug', 'content', 'type', 'visibility', 'status'));
+        $page = array_merge($page ?? [], compact('title', 'slug', 'content', 'type', 'visibility', 'status'), ['meta_description' => $metaDesc]);
         $currentVis      = $visibility;
         $currentVisRoles = $visRoles;
     }
@@ -276,6 +278,20 @@ ob_start();
                             </label>
                         </div>
                         <?php endforeach ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header py-2"><small class="text-secondary">SEO</small></div>
+                <div class="card-body">
+                    <label class="form-label" for="meta_description">Meta-Beschreibung</label>
+                    <textarea name="meta_description" id="meta_description" class="form-control" rows="3"
+                              maxlength="300"><?= htmlspecialchars($page['meta_description'] ?? '') ?></textarea>
+                    <div class="form-text">
+                        Optional — wird als <code>&lt;meta name="description"&gt;</code> und Open-Graph-Beschreibung
+                        verwendet. Leer lassen, um die globale Standard-Beschreibung aus den
+                        <a href="/admin/settings">Einstellungen</a> zu nutzen.
                     </div>
                 </div>
             </div>

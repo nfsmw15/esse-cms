@@ -5,9 +5,11 @@
  * @var string         $siteName
  * @var array          $mainMenu
  * @var array          $footMenu
+ * @var array          $settings
  * @var \EsseBase\Theme $theme
  */
 $loginFailed = !empty($_GET['login_error']);
+$metaDescription = ($page['meta_description'] ?? '') ?: ($settings['seo_meta_description'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="de" data-bs-theme="dark">
@@ -15,6 +17,15 @@ $loginFailed = !empty($_GET['login_error']);
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars($page['title'] . ' — ' . $siteName) ?></title>
+    <?php if ($metaDescription !== ''): ?>
+    <meta name="description" content="<?= htmlspecialchars($metaDescription) ?>">
+    <?php endif ?>
+    <meta property="og:title" content="<?= htmlspecialchars($page['title'] . ' — ' . $siteName) ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<?= htmlspecialchars('https://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '/')) ?>">
+    <?php if ($metaDescription !== ''): ?>
+    <meta property="og:description" content="<?= htmlspecialchars($metaDescription) ?>">
+    <?php endif ?>
     <link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/public/vendor/esse-ui/esse-ui.css">
     <?= \Esse\Ui::iconPackCssTag() ?>

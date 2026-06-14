@@ -40,6 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'smtp_from'        => trim($_POST['smtp_from']        ?? ''),
         'smtp_from_name'   => trim($_POST['smtp_from_name']   ?? ''),
         'audit_log_retention_days' => (string) max(1, (int) ($_POST['audit_log_retention_days'] ?? 90)),
+        'seo_meta_description' => trim($_POST['seo_meta_description'] ?? ''),
+        'seo_sitemap_enabled'  => isset($_POST['seo_sitemap_enabled']) ? '1' : '0',
+        'seo_robots_txt'       => trim($_POST['seo_robots_txt'] ?? ''),
     ];
     // Only update if new value entered — store encrypted
     if (!empty($_POST['smtp_pass'])) {
@@ -208,6 +211,42 @@ ob_start();
                     <div class="form-text">
                         Sicherheitsereignisse (Logins, Passwort-Resets, 2FA-/Passkey-Änderungen, Benutzerverwaltung) werden
                         unter <a href="/admin/logs">Protokolle</a> angezeigt und nach Ablauf dieser Frist automatisch gelöscht.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header py-2"><small class="text-secondary">SEO</small></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Standard-Meta-Beschreibung</label>
+                        <textarea name="seo_meta_description" class="form-control" rows="3" maxlength="300"
+                                  ><?= htmlspecialchars($settings['seo_meta_description'] ?? '') ?></textarea>
+                        <div class="form-text">
+                            Wird als <code>&lt;meta name="description"&gt;</code> und Open-Graph-Beschreibung verwendet,
+                            wenn eine Seite keine eigene Meta-Beschreibung hat.
+                        </div>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="seo_sitemap_enabled"
+                               value="1" id="seo-sitemap-enabled"
+                               <?= ($settings['seo_sitemap_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="seo-sitemap-enabled">
+                            <code>/sitemap.xml</code> bereitstellen
+                        </label>
+                        <div class="form-text">
+                            Erzeugt automatisch eine Sitemap mit allen veröffentlichten Seiten.
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label"><code>/robots.txt</code></label>
+                        <textarea name="seo_robots_txt" class="form-control font-monospace" rows="4"
+                                  placeholder="User-agent: *&#10;Allow: /"
+                                  ><?= htmlspecialchars($settings['seo_robots_txt'] ?? '') ?></textarea>
+                        <div class="form-text">
+                            Optional — eigener Inhalt für <code>/robots.txt</code>. Leer lassen für die Standardregeln
+                            (<code>User-agent: *</code> / <code>Allow: /</code><?= ' ' ?>+ Sitemap-Verweis, falls aktiviert).
+                        </div>
                     </div>
                 </div>
             </div>

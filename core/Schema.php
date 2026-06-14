@@ -63,6 +63,7 @@ class Schema
                 `slug`       VARCHAR(255) NOT NULL,
                 `title`      VARCHAR(500) NOT NULL,
                 `content`    LONGTEXT,
+                `meta_description` VARCHAR(300) DEFAULT NULL,
                 `icon`       VARCHAR(100) DEFAULT NULL,
                 `type`       ENUM('standard','php') NOT NULL DEFAULT 'standard',
                 `file_path`  VARCHAR(500) DEFAULT NULL,
