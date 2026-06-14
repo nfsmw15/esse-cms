@@ -2,6 +2,12 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- **Icon-Packs im Admin**: Nicht-Standard-Icon-Packs (z.B. Phosphor mit Prefix `ph ph-`) wurden im Admin-Bereich (Sidebar-Navigation, Icon-Picker) nicht angezeigt, da nur das CSS von Bootstrap Icons fest eingebunden war. `admin/layout.php` bindet jetzt zusätzlich `\Esse\Ui::iconPackCssTag()` ein, sodass das aktive Icon-Pack auch im Admin korrekt rendert.
+
 ## [0.5.0-alpha] - 2026-06-14
 
 ### Added

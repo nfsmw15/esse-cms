@@ -19,6 +19,7 @@ if (defined('ESSE_DB_NAME')) {
     <title><?= htmlspecialchars($pageTitle ?? 'Admin') ?> — ESSE CMS</title>
     <link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/public/vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <?= \Esse\Ui::iconPackCssTag() ?>
     <link rel="stylesheet" href="/public/assets/css/admin.css">
     <?= $extraHead ?? '' ?>
 </head>
