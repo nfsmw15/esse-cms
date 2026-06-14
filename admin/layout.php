@@ -87,6 +87,9 @@ if (defined('ESSE_DB_NAME')) {
         <a href="/admin/settings" class="<?= ($activeNav ?? '') === 'settings' ? 'active' : '' ?>">
             <i class="bi bi-gear"></i> Einstellungen
         </a>
+        <a href="/admin/user-fields" class="<?= ($activeNav ?? '') === 'user-fields' ? 'active' : '' ?>">
+            <i class="bi bi-input-cursor-text"></i> Profilfelder
+        </a>
         <?php endif ?>
         <?php if (\Esse\Auth::can('manage_plugins')): ?>
         <a href="/admin/plugins" class="<?= ($activeNav ?? '') === 'plugins' ? 'active' : '' ?>">

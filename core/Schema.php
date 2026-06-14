@@ -112,6 +112,28 @@ class Schema
                 KEY `idx_email` (`email`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+            "CREATE TABLE IF NOT EXISTS `{$p}user_fields` (
+                `id`               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `field_key`        VARCHAR(100) NOT NULL,
+                `label`            VARCHAR(255) NOT NULL,
+                `type`             ENUM('text','textarea','select','checkbox','date') NOT NULL DEFAULT 'text',
+                `options`          TEXT NULL,
+                `required`         TINYINT(1) NOT NULL DEFAULT 0,
+                `show_on_register` TINYINT(1) NOT NULL DEFAULT 0,
+                `show_on_profile`  TINYINT(1) NOT NULL DEFAULT 1,
+                `sort_order`       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+                UNIQUE KEY `uq_field_key` (`field_key`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS `{$p}user_field_values` (
+                `user_id`  INT UNSIGNED NOT NULL,
+                `field_id` INT UNSIGNED NOT NULL,
+                `value`    TEXT,
+                PRIMARY KEY (`user_id`, `field_id`),
+                FOREIGN KEY (`user_id`)  REFERENCES `{$p}users`(`id`)       ON DELETE CASCADE,
+                FOREIGN KEY (`field_id`) REFERENCES `{$p}user_fields`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
             "CREATE TABLE IF NOT EXISTS `{$p}webauthn_credentials` (
                 `id`            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `user_id`       INT UNSIGNED NOT NULL,

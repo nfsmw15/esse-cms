@@ -14,6 +14,7 @@ use Esse\DB;
 use Esse\QrCode;
 use Esse\Totp;
 use Esse\TwoFactor;
+use Esse\UserFields;
 use Esse\WebAuthn;
 
 if (!Auth::check()) {
@@ -147,6 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($dup) $errors[] = 'Diese E-Mail-Adresse wird bereits verwendet.';
             }
 
+            $customFields = UserFields::forProfile();
+            $customValues = UserFields::collectFromPost($customFields, $_POST, $errors);
+
             if (empty($errors)) {
                 $oldEmail = Auth::user()['email'] ?? null;
                 $data = ['display_name' => $displayName, 'email' => $email];
@@ -154,6 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $data['password'] = password_hash($password, PASSWORD_BCRYPT);
                 }
                 DB::update($tu, $data, ['id' => Auth::id()]);
+                UserFields::save((int) Auth::id(), $customFields, $customValues);
 
                 if ($password) {
                     AuditLog::record('profile_password_changed', Auth::id(), $oldEmail);
@@ -169,6 +174,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $user = Auth::user();
+$profileFields = UserFields::forProfile();
+$profileValues = UserFields::valuesForUser((int) Auth::id());
 $totpEnabled  = TwoFactor::isEnabled($user);
 $backupCodesLeft = $totpEnabled ? TwoFactor::remainingBackupCodes($user) : 0;
 $passkeys     = WebAuthn::credentialsForUser((int) Auth::id());
@@ -201,6 +208,12 @@ $csrf         = Auth::csrfToken();
                 <input type="email" name="email" class="form-control"
                        value="<?= htmlspecialchars($user['email'] ?? '') ?>" required>
             </div>
+            <?php if ($profileFields): ?>
+            <hr class="border-secondary my-4">
+            <?php foreach ($profileFields as $field): ?>
+            <?= UserFields::renderField($field, (string) ($profileValues[$field['field_key']] ?? '')) ?>
+            <?php endforeach ?>
+            <?php endif ?>
             <hr class="border-secondary my-4">
             <p class="text-secondary small">Passwort ändern — leer lassen um es beizubehalten</p>
             <div class="mb-3">

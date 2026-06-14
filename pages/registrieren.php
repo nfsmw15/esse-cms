@@ -4,6 +4,7 @@ use Esse\Auth;
 use Esse\Captcha;
 use Esse\DB;
 use Esse\Hooks;
+use Esse\UserFields;
 
 // If already logged in → redirect
 if (Auth::check()) {
@@ -17,6 +18,8 @@ $enabled = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'registration_en
 $tu     = DB::table('users');
 $errors = [];
 $done   = false;
+
+$customFields = UserFields::forRegister();
 
 if ($enabled === '1' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
@@ -34,18 +37,21 @@ if ($enabled === '1' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($password !== $passwordC)                    $errors[] = 'Passwörter stimmen nicht überein.';
     if (!Captcha::verify($captchaA, $honeypot))      $errors[] = 'Sicherheitsfrage falsch beantwortet oder zu schnell abgeschickt. Bitte erneut versuchen.';
 
+    $customValues = UserFields::collectFromPost($customFields, $_POST, $errors);
+
     if (empty($errors)) {
         $existing = DB::fetch("SELECT id FROM `{$tu}` WHERE email = ?", [$email]);
         if ($existing) {
             $errors[] = 'Diese E-Mail-Adresse ist bereits registriert.';
         } else {
-            DB::insert($tu, [
+            $newUserId = DB::insert($tu, [
                 'display_name' => $displayName,
                 'email'        => $email,
                 'password'     => password_hash($password, PASSWORD_BCRYPT),
                 'role'         => 'member',
                 'active'       => 1,
             ]);
+            UserFields::save($newUserId, $customFields, $customValues);
             $done = true;
         }
     }
@@ -79,6 +85,7 @@ if (Hooks::has('auth.register.render')) {
             'display_name' => $_POST['display_name'] ?? '',
             'email'        => $_POST['email'] ?? '',
         ],
+        'customFields'        => $customFields,
     ]);
     exit;
 }
@@ -128,6 +135,9 @@ if ($enabled !== '1') {
                 <input type="password" name="password_confirm" class="form-control"
                        autocomplete="new-password" required>
             </div>
+            <?php foreach ($customFields as $field): ?>
+            <?= UserFields::renderField($field, (string) ($_POST['cf_' . $field['field_key']] ?? '')) ?>
+            <?php endforeach ?>
             <div class="mb-4">
                 <label class="form-label"><?= htmlspecialchars($captchaQuestion) ?> = ?</label>
                 <input type="text" name="captcha_answer" class="form-control" inputmode="numeric"

@@ -237,6 +237,7 @@ class Auth
             TwoFactor::migrateDb();
             AuditLog::migrateDb();
             Seo::migrateDb();
+            UserFields::migrateDb();
             self::$defaultsSynced = true;
         } catch (\Throwable) {
             // Installer or partial migrations may not have permission tables yet.

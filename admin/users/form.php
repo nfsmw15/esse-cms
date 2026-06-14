@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Esse\Auth;
 use Esse\AuditLog;
 use Esse\DB;
+use Esse\UserFields;
 
 $userId ??= null;
 $isEdit  = $userId !== null;
@@ -95,6 +96,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($existing) $errors[] = 'Diese E-Mail-Adresse ist bereits vergeben.';
         }
 
+        $customFields = UserFields::all();
+        $customValues = UserFields::collectFromPost($customFields, $_POST, $errors);
+
         if (empty($errors)) {
             $data = [
                 'display_name' => $displayName,
@@ -115,6 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     );
                 }
                 DB::update($tu, $data, ['id' => $userId]);
+                UserFields::save($userId, $customFields, $customValues);
 
                 if ($canManageAdmins) {
                     // Save per-user permission overrides
@@ -147,6 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['flash'] = ['type' => 'success', 'message' => 'Benutzer gespeichert.'];
             } else {
                 $newId = DB::insert($tu, array_merge($data, ['active' => 1]));
+                UserFields::save($newId, $customFields, $customValues);
                 AuditLog::record(
                     'user_created',
                     Auth::id(),
@@ -175,6 +181,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $showForgeWarning = in_array('__forge_confirm__', $errors);
 $errors = array_filter($errors, fn($e) => $e !== '__forge_confirm__');
+
+$customFields = UserFields::all();
+$customValues = $isEdit ? UserFields::valuesForUser($userId) : [];
 
 $pageTitle = $isEdit ? 'Benutzer bearbeiten' : 'Neuer Benutzer';
 $activeNav = 'users';
@@ -266,6 +275,14 @@ ob_start();
                             <?php endforeach ?>
                         </select>
                     </div>
+
+                    <?php if ($customFields): ?>
+                    <hr class="border-secondary my-3">
+                    <?php foreach ($customFields as $field): ?>
+                    <?= UserFields::renderField($field, (string) ($customValues[$field['field_key']] ?? '')) ?>
+                    <?php endforeach ?>
+                    <hr class="border-secondary my-3">
+                    <?php endif ?>
 
                     <?php
                     // Per-user permission overrides — only Forge and manage_admins users can set these

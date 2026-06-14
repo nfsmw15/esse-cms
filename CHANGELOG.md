@@ -9,6 +9,7 @@ All notable changes to ESSE CMS will be documented in this file.
 - **SEO-Grundlagen**: Neue Karte „SEO" in `admin/pages/form.php` für eine seitenspezifische Meta-Beschreibung (`meta_description`, max. 300 Zeichen), gerendert als `<meta name="description">` und Open-Graph-Beschreibung im `esse-base`-Theme.
 - **SEO-Einstellungen**: Neue Karte „SEO" in `admin/settings.php` mit globaler Standard-Meta-Beschreibung (Fallback, wenn eine Seite keine eigene gesetzt hat), Schalter für `/sitemap.xml` und einem optionalen eigenen `/robots.txt`-Inhalt.
 - **Neue Routen** `/robots.txt` (Standardregeln oder eigener Inhalt aus den Einstellungen, inkl. Sitemap-Verweis) und `/sitemap.xml` (XML-Sitemap aller veröffentlichten, öffentlich sichtbaren Seiten — nur aktiv, wenn in den Einstellungen aktiviert).
+- **Profilfelder**: Neuer Admin-Bereich „Profilfelder" (`admin/user-fields.php`, unter Einstellungen) zum Anlegen frei konfigurierbarer Zusatzfelder (Text, Mehrzeiliger Text, Auswahl, Checkbox, Datum) inkl. Pflichtfeld-Option, Sortierung und Sichtbarkeit für Registrierung/Profil. Felder werden bei `/registrieren`, `/profil` und in der Admin-Benutzerverwaltung (`admin/users/form.php`) angezeigt, validiert und in `user_field_values` gespeichert.
 
 ## [0.4.0-alpha] - 2026-06-12
 

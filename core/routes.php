@@ -384,6 +384,16 @@ Router::post('/admin/settings', fn() => require ESSE_ROOT . '/admin/settings.php
     'auth' => 'manage_settings',
 ]);
 
+Router::get('/admin/user-fields', fn() => require ESSE_ROOT . '/admin/user-fields.php', [
+    'name' => 'admin.user_fields',
+    'auth' => 'manage_settings',
+]);
+
+Router::post('/admin/user-fields', fn() => require ESSE_ROOT . '/admin/user-fields.php', [
+    'name' => 'admin.user_fields.post',
+    'auth' => 'manage_settings',
+]);
+
 Router::get('/admin/backup', fn() => require ESSE_ROOT . '/admin/backup.php', [
     'name' => 'admin.backup',
     'auth' => 'manage_settings',
