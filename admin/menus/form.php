@@ -191,6 +191,11 @@ function menuItemRow(array $item, int $menuId, array $pages, array $allTopItems)
             <i class="bi bi-grip-vertical"></i>
         </span>
         <i class="bi bi-arrow-return-right text-secondary small menu-item-child-icon"></i>
+        <?php if (isset($item['children']) && !$item['children']): ?>
+        <div class="sortable-children sortable-children-inline" data-parent-id="<?= $item['id'] ?>" title="Element hierher ziehen, um es diesem Eintrag unterzuordnen">
+            <span class="sortable-children-inline-label"><i class="bi bi-arrow-return-right"></i> Untermenü</span>
+        </div>
+        <?php endif ?>
         <?php if (!empty($item['icon'])): ?>
         <i class="bi bi-<?= htmlspecialchars($item['icon']) ?> admin-icon-base menu-item-icon" title="<?= htmlspecialchars($item['icon']) ?>"></i>
         <?php else: ?>
@@ -204,11 +209,6 @@ function menuItemRow(array $item, int $menuId, array $pages, array $allTopItems)
                 <small class="text-secondary fw-normal"><?= htmlspecialchars($item['url']) ?></small>
             <?php endif ?>
         </span>
-        <?php if (isset($item['children']) && !$item['children']): ?>
-        <div class="sortable-children sortable-children-inline" data-parent-id="<?= $item['id'] ?>" title="Element hierher ziehen, um es als Unterpunkt einzuordnen">
-            <i class="bi bi-arrow-return-right"></i> Unterpunkt
-        </div>
-        <?php endif ?>
         <?php /* Toggle active */ ?>
         <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline">
             <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">

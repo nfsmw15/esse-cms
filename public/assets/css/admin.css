@@ -383,8 +383,8 @@ body {
 
 .sortable-children-inline {
     flex-shrink: 0;
-    width: 6rem;
-    height: 1.75rem;
+    width: 7.5rem;
+    height: 2.25rem;
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -404,6 +404,10 @@ body {
     border-color: var(--bs-primary);
     color: var(--bs-primary);
     background-color: rgba(var(--bs-primary-rgb), .1);
+}
+
+.sortable-children-inline.drag-hover .sortable-children-inline-label {
+    display: none;
 }
 
 .sortable-ghost {

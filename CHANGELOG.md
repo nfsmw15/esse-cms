@@ -12,7 +12,7 @@ All notable changes to ESSE CMS will be documented in this file.
 ### Fixed
 
 - **Icon-Packs im Admin**: Nicht-Standard-Icon-Packs (z.B. Phosphor mit Prefix `ph ph-`) wurden im Admin-Bereich (Sidebar-Navigation, Icon-Picker) nicht angezeigt, da nur das CSS von Bootstrap Icons fest eingebunden war. `admin/layout.php` bindet jetzt zusätzlich `\Esse\Ui::iconPackCssTag()` ein, sodass das aktive Icon-Pack auch im Admin korrekt rendert.
-- **Menü-Editor**: Der umrandete Unterpunkt-Bereich mit dem Hinweis „Element hierher ziehen, um es als Unterpunkt einzuordnen" wurde unter jedem Haupteintrag ohne Unterpunkte permanent angezeigt und sorgte für viel Leerraum. Statt dieses großen Bereichs zeigt jeder Haupteintrag ohne Unterpunkte nun eine kleine, feste Drop-Zone „Unterpunkt" direkt in seiner Zeile neben dem Label. Beim Ablegen eines Eintrags darauf wird daraus der erste Unterpunkt und der vollständige Unterpunkt-Bereich erscheint darunter; wird der letzte Unterpunkt entfernt, kehrt die kleine Drop-Zone zurück.
+- **Menü-Editor**: Der umrandete Unterpunkt-Bereich mit dem Hinweis „Element hierher ziehen, um es als Unterpunkt einzuordnen" wurde unter jedem Haupteintrag ohne Unterpunkte permanent angezeigt und sorgte für viel Leerraum. Statt dieses großen Bereichs zeigt jeder Haupteintrag ohne Unterpunkte nun eine kleine, feste Drop-Zone „Untermenü" direkt vor dem Icon in seiner Zeile. Beim Ablegen eines Eintrags darauf wird daraus der erste Unterpunkt und der vollständige, eingerückte Unterpunkt-Bereich erscheint darunter; wird der letzte Unterpunkt entfernt, kehrt die kleine Drop-Zone zurück. Die Drop-Erkennung wurde zudem per `forceFallback` und größerem `emptyInsertThreshold` deutlich treffsicherer gemacht.
 
 ## [0.5.0-alpha] - 2026-06-14
 

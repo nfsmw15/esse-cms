@@ -66,8 +66,8 @@
         const div = document.createElement('div');
         div.className = 'sortable-children sortable-children-inline';
         div.dataset.parentId = itemEl.dataset.id;
-        div.title = 'Element hierher ziehen, um es als Unterpunkt einzuordnen';
-        div.innerHTML = '<i class="bi bi-arrow-return-right"></i> Unterpunkt';
+        div.title = 'Element hierher ziehen, um es diesem Eintrag unterzuordnen';
+        div.innerHTML = '<span class="sortable-children-inline-label"><i class="bi bi-arrow-return-right"></i> Untermenü</span>';
         Sortable.create(div, sortableOptions());
         return div;
     }
@@ -75,9 +75,9 @@
     function ensureInlineTarget(itemEl) {
         const row = itemEl.querySelector(':scope > .menu-item-row');
         if (!row || row.querySelector(':scope > .sortable-children-inline')) return;
-        const label = row.querySelector(':scope > .menu-item-label');
+        const icon = row.querySelector(':scope > .menu-item-icon');
         const target = makeInlineTarget(itemEl);
-        if (label) label.insertAdjacentElement('afterend', target);
+        if (icon) icon.insertAdjacentElement('beforebegin', target);
         else row.appendChild(target);
     }
 
@@ -167,6 +167,9 @@
             group: 'menu-items',
             handle: '.drag-handle',
             animation: 150,
+            emptyInsertThreshold: 100,
+            forceFallback: true,
+            fallbackTolerance: 3,
             onMove: handleMove,
             onEnd: handleEnd,
         };
