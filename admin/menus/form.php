@@ -204,6 +204,11 @@ function menuItemRow(array $item, int $menuId, array $pages, array $allTopItems)
                 <small class="text-secondary fw-normal"><?= htmlspecialchars($item['url']) ?></small>
             <?php endif ?>
         </span>
+        <?php if (isset($item['children']) && !$item['children']): ?>
+        <div class="sortable-children sortable-children-inline" data-parent-id="<?= $item['id'] ?>" title="Element hierher ziehen, um es als Unterpunkt einzuordnen">
+            <i class="bi bi-arrow-return-right"></i> Unterpunkt
+        </div>
+        <?php endif ?>
         <?php /* Toggle active */ ?>
         <form method="post" action="/admin/menus/edit/<?= $menuId ?>" class="d-inline">
             <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
@@ -356,6 +361,7 @@ ob_start();
                          data-id="<?= $item['id'] ?>">
                         <?= menuItemRow($item, $menuId, $pages, $allTopItems) ?>
 
+                        <?php if ($item['children']): ?>
                         <div class="sortable-children mt-2 ps-3 border-start border-secondary"
                              data-parent-id="<?= $item['id'] ?>">
                         <?php foreach ($item['children'] as $child): ?>
@@ -363,10 +369,8 @@ ob_start();
                             <?= menuItemRow($child, $menuId, $pages, $allTopItems) ?>
                         </div>
                         <?php endforeach ?>
-                            <div class="sortable-placeholder text-secondary small text-center py-2<?= $item['children'] ? ' d-none' : '' ?>">
-                                Element hierher ziehen, um es als Unterpunkt einzuordnen
-                            </div>
                         </div>
+                        <?php endif ?>
                     </div>
                 <?php endforeach ?>
                 </div>

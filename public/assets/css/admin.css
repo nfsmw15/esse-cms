@@ -381,9 +381,29 @@ body {
     min-height: 2.5rem;
 }
 
-.sortable-placeholder {
+.sortable-children-inline {
+    flex-shrink: 0;
+    width: 6rem;
+    height: 1.75rem;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .25rem;
+    margin: 0;
+    padding: 0;
     border: 1px dashed var(--bs-border-color);
     border-radius: .25rem;
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    white-space: nowrap;
+    transition: border-color .15s, background-color .15s, color .15s;
+}
+
+.sortable-children-inline.drag-hover {
+    border-color: var(--bs-primary);
+    color: var(--bs-primary);
+    background-color: rgba(var(--bs-primary-rgb), .1);
 }
 
 .sortable-ghost {

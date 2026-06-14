@@ -11,8 +11,6 @@
         }
     }
 
-    const PLACEHOLDER_TEXT = 'Element hierher ziehen, um es als Unterpunkt einzuordnen';
-
     function updateAddFields() {
         const typeEl = document.getElementById('item-type');
         const pgField = document.getElementById('field-page');
@@ -58,48 +56,72 @@
             .catch(() => {});
     }
 
-    function makePlaceholder() {
-        const div = document.createElement('div');
-        div.className = 'sortable-placeholder text-secondary small text-center py-2';
-        div.textContent = PLACEHOLDER_TEXT;
-        return div;
-    }
-
-    function updatePlaceholder(container) {
-        if (!container || !container.classList.contains('sortable-children')) return;
-        const placeholder = container.querySelector('.sortable-placeholder');
-        const hasItems = container.querySelectorAll(':scope > [data-id]').length > 0;
-        if (placeholder) placeholder.classList.toggle('d-none', hasItems);
-    }
-
     function hasRealChildren(itemEl) {
-        const container = itemEl.querySelector(':scope > .sortable-children');
+        const container = itemEl.querySelector(':scope > .sortable-children:not(.sortable-children-inline)');
         if (!container) return false;
         return container.querySelectorAll(':scope > [data-id]').length > 0;
     }
 
-    function ensureChildContainer(itemEl) {
-        if (itemEl.querySelector(':scope > .sortable-children')) return;
-
-        const container = document.createElement('div');
-        container.className = 'sortable-children mt-2 ps-3 border-start border-secondary';
-        container.dataset.parentId = itemEl.dataset.id;
-        container.appendChild(makePlaceholder());
-        itemEl.appendChild(container);
-
-        Sortable.create(container, sortableOptions());
+    function makeInlineTarget(itemEl) {
+        const div = document.createElement('div');
+        div.className = 'sortable-children sortable-children-inline';
+        div.dataset.parentId = itemEl.dataset.id;
+        div.title = 'Element hierher ziehen, um es als Unterpunkt einzuordnen';
+        div.innerHTML = '<i class="bi bi-arrow-return-right"></i> Unterpunkt';
+        Sortable.create(div, sortableOptions());
+        return div;
     }
 
-    function removeChildContainer(itemEl) {
-        const container = itemEl.querySelector(':scope > .sortable-children');
+    function ensureInlineTarget(itemEl) {
+        const row = itemEl.querySelector(':scope > .menu-item-row');
+        if (!row || row.querySelector(':scope > .sortable-children-inline')) return;
+        const label = row.querySelector(':scope > .menu-item-label');
+        const target = makeInlineTarget(itemEl);
+        if (label) label.insertAdjacentElement('afterend', target);
+        else row.appendChild(target);
+    }
+
+    function removeInlineTarget(itemEl) {
+        itemEl.querySelector(':scope > .menu-item-row > .sortable-children-inline')?.remove();
+    }
+
+    function ensureChildrenContainer(itemEl) {
+        let container = itemEl.querySelector(':scope > .sortable-children:not(.sortable-children-inline)');
+        if (container) return container;
+
+        container = document.createElement('div');
+        container.className = 'sortable-children mt-2 ps-3 border-start border-secondary';
+        container.dataset.parentId = itemEl.dataset.id;
+        itemEl.appendChild(container);
+        Sortable.create(container, sortableOptions());
+
+        removeInlineTarget(itemEl);
+        return container;
+    }
+
+    function removeChildrenContainerIfEmpty(itemEl) {
+        const container = itemEl.querySelector(':scope > .sortable-children:not(.sortable-children-inline)');
         if (container && container.querySelectorAll(':scope > [data-id]').length === 0) {
             container.remove();
+            ensureInlineTarget(itemEl);
         }
+    }
+
+    let hoveredContainer = null;
+
+    function setHoveredContainer(container) {
+        const next = container && container.classList.contains('sortable-children') ? container : null;
+        if (hoveredContainer === next) return;
+        if (hoveredContainer) hoveredContainer.classList.remove('drag-hover');
+        hoveredContainer = next;
+        if (hoveredContainer) hoveredContainer.classList.add('drag-hover');
     }
 
     function handleMove(evt) {
         const dragged = evt.dragged;
         const to = evt.to;
+
+        setHoveredContainer(to);
 
         if (to.classList.contains('sortable-children')) {
             // No nesting beyond two levels
@@ -113,18 +135,29 @@
     }
 
     function handleEnd(evt) {
+        setHoveredContainer(null);
+
         const item = evt.item;
         const fromContainer = evt.from;
-        const toContainer = evt.to;
+        let toContainer = evt.to;
 
         if (toContainer.id === 'sortable-top') {
-            ensureChildContainer(item);
+            ensureInlineTarget(item);
+        } else if (toContainer.classList.contains('sortable-children-inline')) {
+            const parentItem = toContainer.closest('[data-id]');
+            const realContainer = ensureChildrenContainer(parentItem);
+            realContainer.appendChild(item);
+            toContainer = realContainer;
+            removeInlineTarget(item);
         } else if (toContainer.classList.contains('sortable-children')) {
-            removeChildContainer(item);
+            removeInlineTarget(item);
         }
 
-        updatePlaceholder(fromContainer);
-        updatePlaceholder(toContainer);
+        if (fromContainer !== toContainer
+            && fromContainer.classList.contains('sortable-children')
+            && !fromContainer.classList.contains('sortable-children-inline')) {
+            removeChildrenContainerIfEmpty(fromContainer.closest('[data-id]'));
+        }
 
         saveOrder();
     }
@@ -134,7 +167,6 @@
             group: 'menu-items',
             handle: '.drag-handle',
             animation: 150,
-            filter: '.sortable-placeholder',
             onMove: handleMove,
             onEnd: handleEnd,
         };
