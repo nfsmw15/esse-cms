@@ -190,7 +190,10 @@ ob_start();
         </div>
         <div class="media-card-body">
             <div class="media-card-name" title="<?= htmlspecialchars($item['filename']) ?>"><?= htmlspecialchars($item['filename']) ?></div>
-            <div class="media-card-meta text-secondary small"><?= formatSize((int) $item['size']) ?></div>
+            <div class="media-card-meta text-secondary small">
+                <?= formatSize((int) $item['size']) ?>
+                · <span class="badge bg-secondary media-source-badge"><?= htmlspecialchars(Media::sourceLabel($item['source'])) ?></span>
+            </div>
         </div>
         <div class="media-card-actions">
             <button type="button" class="btn btn-sm btn-outline-secondary"

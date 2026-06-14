@@ -93,7 +93,10 @@
                 + 'data-name="' + escapeAttr(item.filename) + '" '
                 + 'data-visibility="' + item.visibility + '">'
                 + '<div class="media-card-thumb">' + thumb + privateBadge + '</div>'
-                + '<div class="media-card-body"><div class="media-card-name" title="' + escapeAttr(item.filename) + '">' + escapeHtml(item.filename) + '</div></div>'
+                + '<div class="media-card-body">'
+                + '<div class="media-card-name" title="' + escapeAttr(item.filename) + '">' + escapeHtml(item.filename) + '</div>'
+                + '<div class="media-card-meta text-secondary small"><span class="badge bg-secondary media-source-badge">' + escapeHtml(item.source) + '</span></div>'
+                + '</div>'
                 + '</div>';
         }).join('');
     }

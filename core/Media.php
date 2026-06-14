@@ -24,6 +24,21 @@ class Media
         }
     }
 
+    // Human-readable label for the "source" column — identifies which plugin/feature registered the file
+    public static function sourceLabel(string $source): string
+    {
+        $labels = [
+            'core'   => 'Core',
+            'import' => 'Import',
+            'media'  => 'Mediathek',
+            'editor' => 'Editor',
+        ];
+        if (isset($labels[$source])) return $labels[$source];
+
+        // Plugin-Slugs wie "esse-gallery" → "Gallery"
+        return ucfirst(preg_replace('/^esse-/', '', $source));
+    }
+
     public static function typeFromMime(string $mime): string
     {
         if (str_starts_with($mime, 'image/')) return 'image';

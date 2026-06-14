@@ -766,6 +766,11 @@ Media::register('/plugins/esse-galerie/uploads/foto-123.jpg', [
 `src`-Attribut eines `<img>`-Tags stehen würde). Beim erneuten `register()` mit demselben
 `$path` wird der bestehende Eintrag aktualisiert (kein Duplikat).
 
+Der `source`-Wert wird in der Mediathek (`/admin/media`) und im Auswahldialog „Aus Mediathek
+einfügen" als Badge angezeigt. `Media::sourceLabel()` wandelt ihn dafür in ein lesbares Label
+um — ein `esse-`-Präfix wird automatisch entfernt und der erste Buchstabe groß geschrieben
+(z.B. `esse-galerie` → „Galerie"). Andere Werte werden mit großem Anfangsbuchstaben angezeigt.
+
 `type` (`image`/`document`/`file`) wird automatisch aus `mime_type` abgeleitet
 (`Media::typeFromMime()`), kann aber auch explizit gesetzt werden.
 

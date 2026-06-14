@@ -27,6 +27,7 @@ $items = array_map(static function (array $item): array {
         'type'       => $item['type'],
         'alt'        => $item['alt_text'],
         'visibility' => $item['visibility'],
+        'source'     => Media::sourceLabel($item['source']),
     ];
 }, Media::list($filters));
 
