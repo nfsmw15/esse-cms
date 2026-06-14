@@ -2,7 +2,7 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
-## [Unreleased]
+## [0.5.0-alpha] - 2026-06-14
 
 ### Added
 
