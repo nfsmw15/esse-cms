@@ -134,6 +134,15 @@ class Schema
                 FOREIGN KEY (`field_id`) REFERENCES `{$p}user_fields`(`id`) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+            "CREATE TABLE IF NOT EXISTS `{$p}media_folders` (
+                `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `name`       VARCHAR(255) NOT NULL,
+                `parent_id`  INT UNSIGNED DEFAULT NULL,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (`parent_id`) REFERENCES `{$p}media_folders`(`id`) ON DELETE CASCADE,
+                KEY `idx_parent` (`parent_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
             "CREATE TABLE IF NOT EXISTS `{$p}media` (
                 `id`          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `path`        VARCHAR(500) NOT NULL,
@@ -146,10 +155,13 @@ class Schema
                 `visibility`  ENUM('public','private') NOT NULL DEFAULT 'public',
                 `source`      VARCHAR(100) NOT NULL DEFAULT 'core',
                 `uploaded_by` INT UNSIGNED NULL,
+                `folder_id`   INT UNSIGNED NULL,
                 `created_at`  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE KEY `uq_path` (`path`),
                 KEY `idx_type` (`type`),
-                KEY `idx_visibility` (`visibility`)
+                KEY `idx_visibility` (`visibility`),
+                KEY `idx_folder` (`folder_id`),
+                FOREIGN KEY (`folder_id`) REFERENCES `{$p}media_folders`(`id`) ON DELETE SET NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
             "CREATE TABLE IF NOT EXISTS `{$p}webauthn_credentials` (

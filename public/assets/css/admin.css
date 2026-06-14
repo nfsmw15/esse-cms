@@ -536,3 +536,42 @@ body {
 .esse-media-search {
     max-width: 200px;
 }
+
+.media-folder-card {
+    cursor: default;
+}
+
+.media-folder-link {
+    color: inherit;
+    text-decoration: none;
+    display: contents;
+}
+
+.media-thumb-folder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #f0c14b;
+    width: 100%;
+    height: 100%;
+}
+
+.media-breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: .75rem;
+}
+
+.media-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+    color: #666;
+}
+
+.media-breadcrumb a {
+    color: #adb5bd;
+    text-decoration: none;
+}
+
+.media-breadcrumb a:hover {
+    color: #fff;
+}

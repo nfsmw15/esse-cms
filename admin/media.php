@@ -18,10 +18,21 @@ $allowedExt = [
     'txt' => 'document', 'zip' => 'file',
 ];
 
+// Aktuell angezeigter Ordner (Root = null)
+$currentFolderId = ($_GET['folder_id'] ?? '') !== '' ? (int) $_GET['folder_id'] : null;
+if ($currentFolderId !== null && !Media::findFolder($currentFolderId)) {
+    $currentFolderId = null;
+}
+$folderQuery = $currentFolderId !== null ? '?folder_id=' . $currentFolderId : '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
 
     $action = $_POST['_action'] ?? '';
+
+    // Ordner, zu dem nach der Aktion zurueck-navigiert werden soll
+    $returnFolderId = ($_POST['return_folder_id'] ?? '') !== '' ? (int) $_POST['return_folder_id'] : null;
+    $returnQuery    = $returnFolderId !== null ? '?folder_id=' . $returnFolderId : '';
 
     // AJAX: check where a file is referenced before deleting
     if ($action === 'usages') {
@@ -60,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (move_uploaded_file($file['tmp_name'], $dest)) {
                     $visibility = ($_POST['visibility'] ?? 'public') === 'private' ? 'private' : 'public';
+                    $uploadFolderId = ($_POST['folder_id'] ?? '') !== '' ? (int) $_POST['folder_id'] : null;
                     Media::register('/public/uploads/' . $fileName, [
                         'filename'    => $file['name'],
                         'mime_type'   => $mime,
@@ -68,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'visibility'  => $visibility,
                         'uploaded_by' => Auth::id(),
                         'source'      => 'media',
+                        'folder_id'   => $uploadFolderId,
                     ]);
                     $_SESSION['flash'] = ['type' => 'success', 'message' => 'Datei hochgeladen.'];
                 } else {
@@ -75,19 +88,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-        header('Location: /admin/media');
+        header('Location: /admin/media' . $returnQuery);
         exit;
     }
 
     if ($action === 'update') {
         $id = (int) ($_POST['id'] ?? 0);
+        $folderId = ($_POST['folder_id'] ?? '') !== '' ? (int) $_POST['folder_id'] : null;
         Media::update($id, [
             'alt_text'    => trim($_POST['alt_text'] ?? ''),
             'description' => trim($_POST['description'] ?? ''),
             'visibility'  => ($_POST['visibility'] ?? 'public') === 'private' ? 'private' : 'public',
+            'folder_id'   => $folderId,
         ]);
         $_SESSION['flash'] = ['type' => 'success', 'message' => 'Datei aktualisiert.'];
-        header('Location: /admin/media');
+        header('Location: /admin/media' . $returnQuery);
         exit;
     }
 
@@ -95,14 +110,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int) ($_POST['id'] ?? 0);
         Media::delete($id);
         $_SESSION['flash'] = ['type' => 'success', 'message' => 'Datei gelöscht.'];
-        header('Location: /admin/media');
+        header('Location: /admin/media' . $returnQuery);
         exit;
     }
 
     if ($action === 'import') {
         $n = Media::scanUploads();
         $_SESSION['flash'] = ['type' => 'success', 'message' => "{$n} Datei(en) importiert."];
-        header('Location: /admin/media');
+        header('Location: /admin/media' . $returnQuery);
+        exit;
+    }
+
+    if ($action === 'create_folder') {
+        $name = trim($_POST['name'] ?? '');
+        if ($name === '') {
+            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Ordnername darf nicht leer sein.'];
+        } else {
+            Media::createFolder($name, $returnFolderId);
+            $_SESSION['flash'] = ['type' => 'success', 'message' => 'Ordner erstellt.'];
+        }
+        header('Location: /admin/media' . $returnQuery);
+        exit;
+    }
+
+    if ($action === 'rename_folder') {
+        $id   = (int) ($_POST['id'] ?? 0);
+        $name = trim($_POST['name'] ?? '');
+        if ($name !== '' && Media::findFolder($id)) {
+            Media::renameFolder($id, $name);
+            $_SESSION['flash'] = ['type' => 'success', 'message' => 'Ordner umbenannt.'];
+        } else {
+            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Ordner konnte nicht umbenannt werden.'];
+        }
+        header('Location: /admin/media' . $returnQuery);
+        exit;
+    }
+
+    if ($action === 'delete_folder') {
+        $id = (int) ($_POST['id'] ?? 0);
+        if (Media::deleteFolder($id)) {
+            $_SESSION['flash'] = ['type' => 'success', 'message' => 'Ordner gelöscht.'];
+        } else {
+            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Ordner ist nicht leer und kann nicht gelöscht werden.'];
+        }
+        header('Location: /admin/media' . $returnQuery);
         exit;
     }
 
@@ -110,13 +161,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-$filters = [
+$filters = array_filter([
     'type'       => $_GET['type'] ?? '',
     'visibility' => $_GET['visibility'] ?? '',
     'q'          => trim($_GET['q'] ?? ''),
-];
+]);
+$filters['folder_id'] = $currentFolderId;
 
-$items = Media::list(array_filter($filters));
+$items      = Media::list($filters);
+$subFolders = Media::listFolders($currentFolderId);
+$breadcrumb = Media::folderPath($currentFolderId);
+$allFolders = Media::allFolders();
 
 $flash = null;
 if (!empty($_SESSION['flash'])) {
@@ -147,20 +202,44 @@ $activeNav = 'media';
 ob_start();
 ?>
 
+<nav aria-label="breadcrumb" class="mb-2">
+    <ol class="breadcrumb media-breadcrumb">
+        <li class="breadcrumb-item<?= $currentFolderId === null ? ' active' : '' ?>">
+            <?php if ($currentFolderId === null): ?>
+                <i class="bi bi-folder2-open"></i> Mediathek
+            <?php else: ?>
+                <a href="/admin/media"><i class="bi bi-folder2-open"></i> Mediathek</a>
+            <?php endif ?>
+        </li>
+        <?php foreach ($breadcrumb as $i => $crumb): ?>
+        <li class="breadcrumb-item<?= $i === count($breadcrumb) - 1 ? ' active' : '' ?>">
+            <?php if ($i === count($breadcrumb) - 1): ?>
+                <?= htmlspecialchars($crumb['name']) ?>
+            <?php else: ?>
+                <a href="/admin/media?folder_id=<?= $crumb['id'] ?>"><?= htmlspecialchars($crumb['name']) ?></a>
+            <?php endif ?>
+        </li>
+        <?php endforeach ?>
+    </ol>
+</nav>
+
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <form method="get" class="d-flex gap-2 flex-wrap">
+        <?php if ($currentFolderId !== null): ?>
+        <input type="hidden" name="folder_id" value="<?= $currentFolderId ?>">
+        <?php endif ?>
         <input type="text" name="q" class="form-control form-control-sm media-filter-q" placeholder="Suche..."
-               value="<?= htmlspecialchars($filters['q']) ?>">
+               value="<?= htmlspecialchars($filters['q'] ?? '') ?>">
         <select name="type" class="form-select form-select-sm media-filter-select media-filter-autosubmit">
             <option value="">Alle Typen</option>
             <?php foreach (Media::TYPES as $val => $label): ?>
-            <option value="<?= $val ?>" <?= $filters['type'] === $val ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+            <option value="<?= $val ?>" <?= ($filters['type'] ?? '') === $val ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
             <?php endforeach ?>
         </select>
         <select name="visibility" class="form-select form-select-sm media-filter-select media-filter-autosubmit">
             <option value="">Alle Sichtbarkeiten</option>
-            <option value="public" <?= $filters['visibility'] === 'public' ? 'selected' : '' ?>>Öffentlich</option>
-            <option value="private" <?= $filters['visibility'] === 'private' ? 'selected' : '' ?>>Privat</option>
+            <option value="public" <?= ($filters['visibility'] ?? '') === 'public' ? 'selected' : '' ?>>Öffentlich</option>
+            <option value="private" <?= ($filters['visibility'] ?? '') === 'private' ? 'selected' : '' ?>>Privat</option>
         </select>
         <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-search"></i></button>
     </form>
@@ -168,18 +247,48 @@ ob_start();
         <form method="post">
             <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
             <input type="hidden" name="_action" value="import">
+            <input type="hidden" name="return_folder_id" value="<?= $currentFolderId ?? '' ?>">
             <button class="btn btn-sm btn-outline-secondary" title="Vorhandene Dateien in /public/uploads importieren">
                 <i class="bi bi-arrow-repeat"></i> Bestand importieren
             </button>
         </form>
+        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newFolderModal">
+            <i class="bi bi-folder-plus"></i> Neuer Ordner
+        </button>
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
             <i class="bi bi-upload"></i> Datei hochladen
         </button>
     </div>
 </div>
 
-<?php if ($items): ?>
+<?php if ($subFolders || $items): ?>
 <div class="media-grid">
+    <?php foreach ($subFolders as $folder): ?>
+    <div class="media-card media-folder-card">
+        <a href="/admin/media?folder_id=<?= $folder['id'] ?>" class="media-folder-link">
+            <div class="media-card-thumb">
+                <div class="media-thumb media-thumb-folder"><i class="bi bi-folder-fill"></i></div>
+            </div>
+            <div class="media-card-body">
+                <div class="media-card-name" title="<?= htmlspecialchars($folder['name']) ?>"><?= htmlspecialchars($folder['name']) ?></div>
+            </div>
+        </a>
+        <div class="media-card-actions">
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    data-bs-toggle="modal" data-bs-target="#renameFolderModal"
+                    data-id="<?= $folder['id'] ?>"
+                    data-name="<?= htmlspecialchars($folder['name'], ENT_QUOTES) ?>">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    data-bs-toggle="modal" data-bs-target="#deleteFolderModal"
+                    data-id="<?= $folder['id'] ?>"
+                    data-name="<?= htmlspecialchars($folder['name'], ENT_QUOTES) ?>">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+    <?php endforeach ?>
     <?php foreach ($items as $item): ?>
     <div class="media-card">
         <div class="media-card-thumb">
@@ -202,6 +311,7 @@ ob_start();
                     data-alt="<?= htmlspecialchars($item['alt_text'], ENT_QUOTES) ?>"
                     data-description="<?= htmlspecialchars($item['description'], ENT_QUOTES) ?>"
                     data-visibility="<?= htmlspecialchars($item['visibility']) ?>"
+                    data-folder-id="<?= $item['folder_id'] !== null ? $item['folder_id'] : '' ?>"
                     data-path="<?= htmlspecialchars($item['path'], ENT_QUOTES) ?>">
                 <i class="bi bi-pencil"></i>
             </button>
@@ -216,7 +326,7 @@ ob_start();
 </div>
 <?php else: ?>
 <div class="text-center text-secondary py-5">
-    Keine Dateien gefunden.
+    Dieser Ordner ist leer.
 </div>
 <?php endif ?>
 
@@ -227,6 +337,8 @@ ob_start();
             <form method="post" enctype="multipart/form-data">
                 <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
                 <input type="hidden" name="_action" value="upload">
+                <input type="hidden" name="folder_id" value="<?= $currentFolderId ?? '' ?>">
+                <input type="hidden" name="return_folder_id" value="<?= $currentFolderId ?? '' ?>">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title">Datei hochladen</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -261,6 +373,7 @@ ob_start();
                 <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
                 <input type="hidden" name="_action" value="update">
                 <input type="hidden" name="id" id="em-id">
+                <input type="hidden" name="return_folder_id" value="<?= $currentFolderId ?? '' ?>">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title">Datei bearbeiten</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -286,6 +399,15 @@ ob_start();
                         </select>
                         <div class="form-text">Private Dateien sind über die öffentliche URL nicht erreichbar und werden in der Mediathek markiert.</div>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ordner</label>
+                        <select name="folder_id" id="em-folder" class="form-select">
+                            <option value="">— Wurzelebene —</option>
+                            <?php foreach ($allFolders as $f): ?>
+                            <option value="<?= $f['id'] ?>"><?= htmlspecialchars($f['name']) ?></option>
+                            <?php endforeach ?>
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
@@ -304,6 +426,7 @@ ob_start();
                 <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
                 <input type="hidden" name="_action" value="delete">
                 <input type="hidden" name="id" id="dm-id">
+                <input type="hidden" name="return_folder_id" value="<?= $currentFolderId ?? '' ?>">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title">Datei löschen</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -311,6 +434,81 @@ ob_start();
                 <div class="modal-body">
                     <p>„<span id="dm-name"></span>“ wirklich löschen?</p>
                     <div id="dm-usages"></div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button class="btn btn-danger">Löschen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ── Neuer-Ordner-Modal ───────────────────────────────────────────────────── -->
+<div class="modal fade" id="newFolderModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content bg-dark border-secondary">
+            <form method="post">
+                <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
+                <input type="hidden" name="_action" value="create_folder">
+                <input type="hidden" name="return_folder_id" value="<?= $currentFolderId ?? '' ?>">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Neuer Ordner</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" name="name" class="form-control" maxlength="255" required autofocus placeholder="Ordnername">
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button class="btn btn-primary">Erstellen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ── Ordner-umbenennen-Modal ──────────────────────────────────────────────── -->
+<div class="modal fade" id="renameFolderModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content bg-dark border-secondary">
+            <form method="post">
+                <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
+                <input type="hidden" name="_action" value="rename_folder">
+                <input type="hidden" name="id" id="rf-id">
+                <input type="hidden" name="return_folder_id" value="<?= $currentFolderId ?? '' ?>">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Ordner umbenennen</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" name="name" id="rf-name" class="form-control" maxlength="255" required>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ── Ordner-löschen-Modal ─────────────────────────────────────────────────── -->
+<div class="modal fade" id="deleteFolderModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content bg-dark border-secondary">
+            <form method="post">
+                <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
+                <input type="hidden" name="_action" value="delete_folder">
+                <input type="hidden" name="id" id="df-id">
+                <input type="hidden" name="return_folder_id" value="<?= $currentFolderId ?? '' ?>">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Ordner löschen</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Ordner „<span id="df-name"></span>“ wirklich löschen?</p>
+                    <p class="text-secondary small mb-0">Nur möglich, wenn der Ordner leer ist.</p>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>

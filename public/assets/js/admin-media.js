@@ -28,6 +28,27 @@
             document.getElementById('em-alt').value = btn.dataset.alt || '';
             document.getElementById('em-description').value = btn.dataset.description || '';
             document.getElementById('em-visibility').value = btn.dataset.visibility || 'public';
+            document.getElementById('em-folder').value = btn.dataset.folderId || '';
+        });
+    }
+
+    const renameFolderModal = document.getElementById('renameFolderModal');
+    if (renameFolderModal) {
+        renameFolderModal.addEventListener('show.bs.modal', function (event) {
+            const btn = event.relatedTarget;
+            if (!btn) return;
+            document.getElementById('rf-id').value = btn.dataset.id || '';
+            document.getElementById('rf-name').value = btn.dataset.name || '';
+        });
+    }
+
+    const deleteFolderModal = document.getElementById('deleteFolderModal');
+    if (deleteFolderModal) {
+        deleteFolderModal.addEventListener('show.bs.modal', function (event) {
+            const btn = event.relatedTarget;
+            if (!btn) return;
+            document.getElementById('df-id').value = btn.dataset.id || '';
+            document.getElementById('df-name').textContent = btn.dataset.name || '';
         });
     }
 

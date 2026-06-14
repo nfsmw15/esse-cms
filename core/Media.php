@@ -18,9 +18,20 @@ class Media
     {
         $p = defined('ESSE_DB_PREFIX') ? \ESSE_DB_PREFIX : 'esse_';
         foreach (Schema::tables($p) as $sql) {
-            if (str_contains($sql, '`' . $p . 'media`')) {
+            if (str_contains($sql, '`' . $p . 'media_folders`') || str_contains($sql, '`' . $p . 'media`')) {
                 DB::query($sql);
             }
+        }
+
+        // Bestandsinstallationen: folder_id-Spalte + FK nachziehen
+        $t = DB::table('media');
+        $cols = DB::fetchAll("SHOW COLUMNS FROM `{$t}` LIKE 'folder_id'");
+        if (!$cols) {
+            DB::query("ALTER TABLE `{$t}` ADD COLUMN `folder_id` INT UNSIGNED NULL");
+            DB::query("ALTER TABLE `{$t}` ADD KEY `idx_folder` (`folder_id`)");
+            $tf = DB::table('media_folders');
+            DB::query("ALTER TABLE `{$t}` ADD CONSTRAINT `fk_media_folder`
+                        FOREIGN KEY (`folder_id`) REFERENCES `{$tf}`(`id`) ON DELETE SET NULL");
         }
     }
 
@@ -63,6 +74,7 @@ class Media
             'visibility'  => in_array($visibility, self::VISIBILITY, true) ? $visibility : 'public',
             'source'      => $meta['source']      ?? 'core',
             'uploaded_by' => $meta['uploaded_by']  ?? null,
+            'folder_id'   => $meta['folder_id']    ?? null,
         ];
 
         $existing = DB::fetch("SELECT id FROM `{$t}` WHERE `path` = ?", [$path]);
@@ -93,6 +105,15 @@ class Media
             $like = '%' . $filters['q'] . '%';
             array_push($params, $like, $like, $like);
         }
+        // array_key_exists statt empty(), da NULL (Root-Ebene) ein gueltiger expliziter Filterwert ist
+        if (array_key_exists('folder_id', $filters)) {
+            if ($filters['folder_id'] === null) {
+                $where[] = '`folder_id` IS NULL';
+            } else {
+                $where[] = '`folder_id` = ?';
+                $params[] = (int) $filters['folder_id'];
+            }
+        }
 
         $sql = "SELECT * FROM `{$t}`";
         if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -116,7 +137,7 @@ class Media
     public static function update(int $id, array $data): void
     {
         $t = DB::table('media');
-        $allowed = array_intersect_key($data, array_flip(['alt_text', 'description', 'visibility']));
+        $allowed = array_intersect_key($data, array_flip(['alt_text', 'description', 'visibility', 'folder_id']));
         if (!$allowed) return;
         DB::update($t, $allowed, ['id' => $id]);
     }
@@ -181,5 +202,78 @@ class Media
         }
 
         return $imported;
+    }
+
+    // ── Ordner-Verwaltung ────────────────────────────────────────────────────
+
+    public static function listFolders(?int $parentId = null): array
+    {
+        $t = DB::table('media_folders');
+        if ($parentId === null) {
+            return DB::fetchAll("SELECT * FROM `{$t}` WHERE `parent_id` IS NULL ORDER BY `name` ASC");
+        }
+        return DB::fetchAll("SELECT * FROM `{$t}` WHERE `parent_id` = ? ORDER BY `name` ASC", [$parentId]);
+    }
+
+    public static function findFolder(int $id): ?array
+    {
+        $t = DB::table('media_folders');
+        return DB::fetch("SELECT * FROM `{$t}` WHERE `id` = ?", [$id]);
+    }
+
+    public static function allFolders(): array
+    {
+        $t = DB::table('media_folders');
+        return DB::fetchAll("SELECT * FROM `{$t}` ORDER BY `name` ASC");
+    }
+
+    public static function createFolder(string $name, ?int $parentId = null): int
+    {
+        $t = DB::table('media_folders');
+        return DB::insert($t, ['name' => trim($name), 'parent_id' => $parentId]);
+    }
+
+    public static function renameFolder(int $id, string $name): void
+    {
+        $t = DB::table('media_folders');
+        DB::update($t, ['name' => trim($name)], ['id' => $id]);
+    }
+
+    /**
+     * Loescht einen Ordner nur, wenn er leer ist (keine Dateien, keine Unterordner).
+     */
+    public static function deleteFolder(int $id): bool
+    {
+        $tf = DB::table('media_folders');
+        $tm = DB::table('media');
+
+        if (!self::findFolder($id)) return false;
+
+        if (DB::fetch("SELECT id FROM `{$tm}` WHERE `folder_id` = ? LIMIT 1", [$id])) return false;
+        if (DB::fetch("SELECT id FROM `{$tf}` WHERE `parent_id` = ? LIMIT 1", [$id])) return false;
+
+        DB::delete($tf, ['id' => $id]);
+        return true;
+    }
+
+    /**
+     * Baut den Breadcrumb-Pfad von der Wurzel bis zum gegebenen Ordner
+     * (aeltester Vorfahre zuerst).
+     */
+    public static function folderPath(?int $folderId): array
+    {
+        $path = [];
+        $current = $folderId;
+        $guard = 0; // Schutz vor Zirkelbezuegen
+
+        while ($current !== null && $guard < 50) {
+            $folder = self::findFolder($current);
+            if (!$folder) break;
+            array_unshift($path, ['id' => (int) $folder['id'], 'name' => $folder['name']]);
+            $current = $folder['parent_id'] !== null ? (int) $folder['parent_id'] : null;
+            $guard++;
+        }
+
+        return $path;
     }
 }

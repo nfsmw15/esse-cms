@@ -4,6 +4,10 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Ordner in der Mediathek**: Dateien lassen sich in `/admin/media` jetzt in (verschachtelte) virtuelle Ordner organisieren — Ordner anlegen, umbenennen und löschen (nur wenn leer), Dateien per Edit-Dialog in Ordner verschieben, Navigation per Breadcrumb. Die physische Ablage in `/public/uploads/` und bestehende URL-Referenzen in Seiteninhalten bleiben unverändert; der Mediathek-Picker im Seiteneditor zeigt weiterhin alle Dateien ordnerübergreifend an.
+
 ### Fixed
 
 - **Icon-Packs im Admin**: Nicht-Standard-Icon-Packs (z.B. Phosphor mit Prefix `ph ph-`) wurden im Admin-Bereich (Sidebar-Navigation, Icon-Picker) nicht angezeigt, da nur das CSS von Bootstrap Icons fest eingebunden war. `admin/layout.php` bindet jetzt zusätzlich `\Esse\Ui::iconPackCssTag()` ein, sodass das aktive Icon-Pack auch im Admin korrekt rendert.

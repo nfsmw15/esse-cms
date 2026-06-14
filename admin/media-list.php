@@ -28,6 +28,7 @@ $items = array_map(static function (array $item): array {
         'alt'        => $item['alt_text'],
         'visibility' => $item['visibility'],
         'source'     => Media::sourceLabel($item['source']),
+        'folder_id'  => $item['folder_id'] !== null ? (int) $item['folder_id'] : null,
     ];
 }, Media::list($filters));
 
