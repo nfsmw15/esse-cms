@@ -6,6 +6,7 @@
 - [plugin.json](#pluginjson)
 - [Plugin.php — Mindestaufbau](#pluginphp--mindestaufbau)
 - [Verfügbare Methoden in boot()](#verfügbare-methoden-in-boot)
+- [Shortcodes/Widgets registrieren](#shortcodeswidgets-registrieren)
 - [Autoloading](#autoloading)
 - [Verfügbare Konstanten](#verfügbare-konstanten)
 - [Plugin-Einstellungen](#plugin-einstellungen)
@@ -261,6 +262,62 @@ $this->on('page.render', function(array $page, string $content) {
 
 \Esse\Hooks::on('my.event', fn() => ...);
 ```
+
+---
+
+## Shortcodes/Widgets registrieren
+
+Normale CMS-Seiten (Typ „Standard") können Platzhalter wie `[news limit="5"]` enthalten.
+Beim Rendern ersetzt `Esse\Shortcodes::render()` diese automatisch durch das HTML, das der
+registrierte Handler zurückgibt — so können Plugins eigene Widgets in beliebige Seiten
+einbetten, ohne dass Redakteure HTML oder PHP schreiben müssen.
+
+```php
+public function boot(): void
+{
+    $this->registerShortcode('news', function (array $attrs): string {
+        $limit = max(1, min(20, (int) ($attrs['limit'] ?? 5)));
+        $items = NewsRepository::listPublic($limit, 0);
+        if (empty($items)) return '';
+
+        $html = '<ul class="list-unstyled esse-widget-news">';
+        foreach ($items as $row) {
+            $html .= '<li><a href="/news/' . (int) $row['id'] . '">'
+                   . \Esse\Ui::e($row['ueberschrift']) . '</a></li>';
+        }
+        return $html . '</ul>';
+    }, [
+        'label'       => 'Neuigkeiten',
+        'description' => 'Zeigt die neuesten News-Einträge als Liste an.',
+        'icon'        => 'newspaper',
+        'attributes'  => [
+            ['name' => 'limit', 'label' => 'Anzahl', 'type' => 'number', 'default' => 5],
+        ],
+    ]);
+}
+```
+
+**Parameter von `registerShortcode(string $tag, callable $handler, array $meta = [])`:**
+
+- `$tag` — der Bezeichner im Shortcode, z.B. `news` für `[news ...]`. Muss aus `\w` (Buchstaben,
+  Ziffern, Unterstrich) bestehen und sollte einmalig sein (Plugin-Präfix verwenden bei generischen Namen).
+- `$handler` — `function(array $attrs): string`. `$attrs` enthält alle im Shortcode angegebenen
+  Attribute als Strings (z.B. `['limit' => '5']`) — Typumwandlung und Validierung übernimmt der
+  Handler selbst. Rückgabewert ist fertiges HTML, das direkt in den Seiteninhalt eingesetzt wird
+  (selbst escapen, z.B. mit `Ui::e()`).
+- `$meta` — Beschreibt das Widget für den „Widget einfügen"-Dialog im Seiteneditor:
+  - `label` (string) — Anzeigename
+  - `description` (string, optional) — Kurzbeschreibung
+  - `icon` (string, optional) — derzeit nur informativ, nicht im Picker dargestellt
+  - `attributes` (array, optional) — Liste der einstellbaren Parameter, je mit
+    `name`, `label`, `type` (`'text'` oder `'number'`) und `default`
+
+**Hinweise:**
+
+- Fehler im Handler (Exceptions) werden geloggt und führen zu leerem Output statt einer Fehlerseite.
+- Unbekannte Shortcodes (kein passender Tag registriert) bleiben unverändert als Text stehen.
+- Shortcodes werden nur in Standard-Seiteninhalten ersetzt, nicht in `type=php`-Seiten oder
+  Plugin-eigenen Templates — dort kann der Handler direkt aufgerufen werden, falls benötigt.
 
 ---
 

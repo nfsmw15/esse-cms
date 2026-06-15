@@ -45,6 +45,7 @@ class PageRenderer
     {
         // Hooks allow themes to wrap the output later
         $content = Hooks::filter('page.content', $page['content'], $page);
+        $content = Shortcodes::render($content, $page);
 
         if (Hooks::has('page.render')) {
             Hooks::fire('page.render', $page, $content);

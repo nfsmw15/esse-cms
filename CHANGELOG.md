@@ -2,6 +2,12 @@
 
 All notable changes to ESSE CMS will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Shortcode/Widget-System**: Plugins können Shortcodes wie `[news limit="5"]` registrieren (`Esse\Shortcodes::register()` bzw. `registerShortcode()` in `core/Plugin.php`), die beim Rendern einer Seite (`core/PageRenderer.php`) durch das Handler-HTML ersetzt werden. Im Seiteneditor (`admin/pages/form.php`) gibt es dafür einen neuen Summernote-Button „Widget einfügen", der über `/admin/shortcodes/list` alle registrierten Widgets mit Beschreibung und Parametern anzeigt und den passenden `[tag attr="..."]`-Code in den Inhalt einfügt.
+
 ## [0.6.1-alpha] - 2026-06-15
 
 ### Fixed
@@ -413,6 +419,4 @@ Initial alpha release. Core systems are functional.
 ### Known Issues / Alpha Limitations
 
 - Summernote editor: minor tooltip warnings in browser console (cosmetic, does not affect functionality)
-- Menu drag & drop: same-level reorder works; cross-level requires indent/dedent buttons
-- File manager (browse existing uploads) not yet implemented
 - Plugins are maintained in separate repositories and are not bundled with the core release

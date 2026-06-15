@@ -52,11 +52,12 @@
             ['color', ['color']],
             ['para', ['ul', 'ol', 'paragraph']],
             ['table', ['table']],
-            ['insert', ['link', 'picture', 'media', 'hr']],
+            ['insert', ['link', 'picture', 'media', 'widget', 'hr']],
             ['view', ['fullscreen', 'codeview']],
         ],
         buttons: {
             media: window.EsseMediaButton,
+            widget: window.EsseShortcodeButton,
         },
         callbacks: {
             onImageUpload: function (files) {

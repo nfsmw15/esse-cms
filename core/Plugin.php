@@ -107,4 +107,10 @@ abstract class Plugin
     {
         Router::$method($pattern, $handler, $options);
     }
+
+    // Convenience: register a shortcode (e.g. [news limit="5"]) from within the plugin
+    final protected function registerShortcode(string $tag, callable $handler, array $meta = []): void
+    {
+        Shortcodes::register($tag, $handler, $meta);
+    }
 }

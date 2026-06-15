@@ -399,6 +399,11 @@ Router::get('/admin/media/list', fn() => require ESSE_ROOT . '/admin/media-list.
     'auth' => ['manage_files', 'manage_content'],
 ]);
 
+Router::get('/admin/shortcodes/list', fn() => require ESSE_ROOT . '/admin/shortcodes-list.php', [
+    'name' => 'admin.shortcodes.list',
+    'auth' => 'manage_content',
+]);
+
 Router::get('/admin/user-fields', fn() => require ESSE_ROOT . '/admin/user-fields.php', [
     'name' => 'admin.user_fields',
     'auth' => 'manage_settings',
