@@ -168,6 +168,7 @@ $metaDescription = ($page['meta_description'] ?? '') ?: ($settings['seo_meta_des
                             · <a href="/registrieren" class="text-secondary small">Registrieren</a>
                             <?php endif ?>
                         </div>
+                        <?php if (($page['slug'] ?? '') !== 'login'): ?>
                         <div class="d-none mt-3" id="passkey-login-block">
                             <div class="d-flex align-items-center my-2">
                                 <hr class="border-secondary flex-grow-1 my-0">
@@ -179,6 +180,7 @@ $metaDescription = ($page['meta_description'] ?? '') ?: ($settings['seo_meta_des
                             </button>
                             <div class="text-danger small mt-2 d-none" id="passkey-login-error"></div>
                         </div>
+                        <?php endif ?>
                     </div>
                 </li>
                 <?php endif ?>
@@ -281,7 +283,7 @@ $metaDescription = ($page['meta_description'] ?? '') ?: ($settings['seo_meta_des
 <script src="/public/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script type="application/json" id="frontend-login-config"><?= json_encode(['loginFailed' => $loginFailed], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?></script>
 <script src="/public/assets/js/frontend-login-dropdown.js"></script>
-<?php if (!\Esse\Auth::check()): ?>
+<?php if (!\Esse\Auth::check() && ($page['slug'] ?? '') !== 'login'): ?>
 <script type="application/json" id="passkey-login-config"><?= json_encode([
     'csrf'     => \Esse\Auth::csrfToken(),
     'redirect' => $_SERVER['REQUEST_URI'] ?? '/',

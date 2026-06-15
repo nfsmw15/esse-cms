@@ -97,8 +97,6 @@ if ($enabled !== '1') {
 ?>
 <div class="row justify-content-center">
     <div class="col-lg-5">
-        <h1 class="h3 mb-4">Registrieren</h1>
-
         <?php if ($done): ?>
         <div class="alert alert-success">
             Account erstellt! Du kannst dich jetzt <a href="/login">anmelden</a>.
@@ -111,45 +109,49 @@ if ($enabled !== '1') {
         </div>
         <?php endif ?>
 
-        <form method="post" action="/registrieren">
-            <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
-            <div class="mb-3">
-                <label class="form-label">Anzeigename</label>
-                <input type="text" name="display_name" class="form-control"
-                       value="<?= htmlspecialchars($_POST['display_name'] ?? '') ?>" required autofocus>
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post" action="/registrieren">
+                    <input type="hidden" name="_csrf" value="<?= Auth::csrfToken() ?>">
+                    <div class="mb-3">
+                        <label class="form-label">Anzeigename</label>
+                        <input type="text" name="display_name" class="form-control"
+                               value="<?= htmlspecialchars($_POST['display_name'] ?? '') ?>" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">E-Mail</label>
+                        <input type="email" name="email" class="form-control"
+                               value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
+                               autocomplete="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Passwort</label>
+                        <input type="password" name="password" class="form-control"
+                               autocomplete="new-password" required>
+                        <div class="form-text">Mindestens 10 Zeichen</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Passwort bestätigen</label>
+                        <input type="password" name="password_confirm" class="form-control"
+                               autocomplete="new-password" required>
+                    </div>
+                    <?php foreach ($customFields as $field): ?>
+                    <?= UserFields::renderField($field, (string) ($_POST['cf_' . $field['field_key']] ?? '')) ?>
+                    <?php endforeach ?>
+                    <div class="mb-4">
+                        <label class="form-label"><?= htmlspecialchars($captchaQuestion) ?> = ?</label>
+                        <input type="text" name="captcha_answer" class="form-control" inputmode="numeric"
+                               autocomplete="off" required>
+                    </div>
+                    <div class="esse-honeypot" aria-hidden="true">
+                        <label for="reg-website">Website</label>
+                        <input type="text" id="reg-website" name="<?= Captcha::HONEYPOT_FIELD ?>"
+                               tabindex="-1" autocomplete="off">
+                    </div>
+                    <button class="btn btn-primary w-100">Account erstellen</button>
+                </form>
             </div>
-            <div class="mb-3">
-                <label class="form-label">E-Mail</label>
-                <input type="email" name="email" class="form-control"
-                       value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
-                       autocomplete="email" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Passwort</label>
-                <input type="password" name="password" class="form-control"
-                       autocomplete="new-password" required>
-                <div class="form-text">Mindestens 10 Zeichen</div>
-            </div>
-            <div class="mb-4">
-                <label class="form-label">Passwort bestätigen</label>
-                <input type="password" name="password_confirm" class="form-control"
-                       autocomplete="new-password" required>
-            </div>
-            <?php foreach ($customFields as $field): ?>
-            <?= UserFields::renderField($field, (string) ($_POST['cf_' . $field['field_key']] ?? '')) ?>
-            <?php endforeach ?>
-            <div class="mb-4">
-                <label class="form-label"><?= htmlspecialchars($captchaQuestion) ?> = ?</label>
-                <input type="text" name="captcha_answer" class="form-control" inputmode="numeric"
-                       autocomplete="off" required>
-            </div>
-            <div class="esse-honeypot" aria-hidden="true">
-                <label for="reg-website">Website</label>
-                <input type="text" id="reg-website" name="<?= Captcha::HONEYPOT_FIELD ?>"
-                       tabindex="-1" autocomplete="off">
-            </div>
-            <button class="btn btn-primary w-100">Account erstellen</button>
-        </form>
+        </div>
         <div class="text-center mt-3">
             <a href="/login" class="text-secondary small">Bereits registriert? Anmelden</a>
         </div>
