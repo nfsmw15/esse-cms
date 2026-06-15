@@ -168,6 +168,17 @@ $metaDescription = ($page['meta_description'] ?? '') ?: ($settings['seo_meta_des
                             · <a href="/registrieren" class="text-secondary small">Registrieren</a>
                             <?php endif ?>
                         </div>
+                        <div class="d-none mt-3" id="passkey-login-block">
+                            <div class="d-flex align-items-center my-2">
+                                <hr class="border-secondary flex-grow-1 my-0">
+                                <span class="text-secondary small mx-2">oder</span>
+                                <hr class="border-secondary flex-grow-1 my-0">
+                            </div>
+                            <button type="button" id="passkey-login-btn" class="btn btn-outline-light btn-sm w-100">
+                                <i class="bi bi-fingerprint me-1"></i>Mit Passkey anmelden
+                            </button>
+                            <div class="text-danger small mt-2 d-none" id="passkey-login-error"></div>
+                        </div>
                     </div>
                 </li>
                 <?php endif ?>
@@ -270,5 +281,13 @@ $metaDescription = ($page['meta_description'] ?? '') ?: ($settings['seo_meta_des
 <script src="/public/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script type="application/json" id="frontend-login-config"><?= json_encode(['loginFailed' => $loginFailed], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?></script>
 <script src="/public/assets/js/frontend-login-dropdown.js"></script>
+<?php if (!\Esse\Auth::check()): ?>
+<script type="application/json" id="passkey-login-config"><?= json_encode([
+    'csrf'     => \Esse\Auth::csrfToken(),
+    'redirect' => $_SERVER['REQUEST_URI'] ?? '/',
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?></script>
+<script src="/public/assets/js/webauthn.js"></script>
+<script src="/public/assets/js/passkey-login.js"></script>
+<?php endif ?>
 </body>
 </html>

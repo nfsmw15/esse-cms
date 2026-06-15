@@ -9,6 +9,10 @@ All notable changes to ESSE CMS will be documented in this file.
 - **Shortcode/Widget-System**: Plugins können Shortcodes wie `[news limit="5"]` registrieren (`Esse\Shortcodes::register()` bzw. `registerShortcode()` in `core/Plugin.php`), die beim Rendern einer Seite (`core/PageRenderer.php`) durch das Handler-HTML ersetzt werden. Im Seiteneditor (`admin/pages/form.php`) gibt es dafür einen neuen Summernote-Button „Widget einfügen", der über `/admin/shortcodes/list` alle registrierten Widgets mit Beschreibung und Parametern anzeigt und den passenden `[tag attr="..."]`-Code in den Inhalt einfügt.
 - **Überschrift pro Seite ausblendbar**: Neue Karte „Layout" im Seiteneditor (`admin/pages/form.php`) mit Checkbox „Überschrift auf der Seite ausblenden" (`hide_title`-Spalte in `pages`). Titel/Icon werden weiterhin in Menüs, Browser-Tab und SEO-Metadaten verwendet — nur die `<h1>` am Seitenanfang entfällt. Unterstützt von `esse-base`, `esse-cyber` und `esse-dashboard`.
 
+### Fixed
+
+- **Passkey-Login im esse-base-Theme**: Das Login-Dropdown in der Navbar (`themes/esse-base/templates/layout.php`) bot bisher keine Möglichkeit zur Passkey-Anmeldung, obwohl `/admin/login` diese bereits unterstützt. Das Dropdown zeigt jetzt — wie auf der Login-Seite — einen „Mit Passkey anmelden"-Button, der nur erscheint, wenn der Browser WebAuthn/Passkeys unterstützt.
+
 ## [0.6.1-alpha] - 2026-06-15
 
 ### Fixed
