@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ts      = DB::table('settings');
             $siteUrl = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'site_url'") ?? '';
             $siteName = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'site_name'") ?? 'ESSE CMS';
-            $resetUrl = rtrim($siteUrl, '/') . '/admin/reset-password?token=' . $token;
+            $resetUrl = rtrim($siteUrl, '/') . '/neues-passwort?token=' . $token;
 
             try {
                 Mailer::send(
@@ -95,7 +95,9 @@ if (defined('ESSE_DB_NAME')) {
 }
 
 // Themes dürfen diese Seite im eigenen Design rendern (analog zu auth.login.render).
-if (Hooks::has('auth.forgot_password.render')) {
+// /admin/forgot-password bleibt IMMER beim Standard-Rendering (Fail-Safe-Notausgang).
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.forgot_password.render')) {
     Hooks::fire('auth.forgot_password.render', [
         'sent'            => $sent,
         'errors'          => $errors,

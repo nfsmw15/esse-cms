@@ -1,6 +1,6 @@
 <?php
 /**
- * Content partial for /admin/reset-password (auth.reset_password.render hook).
+ * Content partial for /neues-passwort (auth.reset_password.render hook).
  *
  * @var array $data
  */
@@ -17,7 +17,7 @@
         <div class="alert alert-danger">
             Dieser Link ist ungültig oder abgelaufen.
         </div>
-        <a href="/admin/forgot-password" class="btn btn-outline-secondary w-100">
+        <a href="/passwort-vergessen" class="btn btn-outline-secondary w-100">
             Neuen Link anfordern
         </a>
 

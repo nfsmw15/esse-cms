@@ -163,7 +163,7 @@ $metaDescription = ($page['meta_description'] ?? '') ?: ($settings['seo_meta_des
                         $reg = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'registration_enabled'");
                         ?>
                         <div class="mt-2 text-center">
-                            <a href="/admin/forgot-password" class="text-secondary small">Passwort vergessen?</a>
+                            <a href="/passwort-vergessen" class="text-secondary small">Passwort vergessen?</a>
                             <?php if ($reg === '1'): ?>
                             · <a href="/registrieren" class="text-secondary small">Registrieren</a>
                             <?php endif ?>

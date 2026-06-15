@@ -1,6 +1,6 @@
 <?php
 /**
- * Content partial for /admin/forgot-password (auth.forgot_password.render hook).
+ * Content partial for /passwort-vergessen (auth.forgot_password.render hook).
  *
  * @var array $data
  */
@@ -30,7 +30,7 @@
 
         <div class="card">
             <div class="card-body p-4">
-                <form method="post" action="/admin/forgot-password">
+                <form method="post" action="/passwort-vergessen">
                     <input type="hidden" name="_csrf" value="<?= htmlspecialchars($data['csrfToken'] ?? '') ?>">
                     <div class="mb-3">
                         <label class="form-label">E-Mail</label>

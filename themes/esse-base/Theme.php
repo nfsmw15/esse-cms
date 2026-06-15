@@ -39,7 +39,7 @@ class Theme extends \Esse\Theme
     {
         $content = $this->renderPartial('templates/forgot-password.php', ['data' => $data]);
         $this->renderPage([
-            'slug'    => 'admin/forgot-password',
+            'slug'    => 'passwort-vergessen',
             'title'   => 'Passwort vergessen',
             'icon'    => 'key',
             'content' => $content,
@@ -50,7 +50,7 @@ class Theme extends \Esse\Theme
     {
         $content = $this->renderPartial('templates/reset-password.php', ['data' => $data]);
         $this->renderPage([
-            'slug'    => 'admin/reset-password',
+            'slug'    => 'neues-passwort',
             'title'   => 'Neues Passwort',
             'icon'    => 'shield-lock',
             'content' => $content,

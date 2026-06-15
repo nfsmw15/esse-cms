@@ -44,7 +44,7 @@
         </div>
 
         <div class="text-center mt-3 d-flex justify-content-center gap-3">
-            <a href="/admin/forgot-password" class="text-secondary small">Passwort vergessen?</a>
+            <a href="/passwort-vergessen" class="text-secondary small">Passwort vergessen?</a>
             <?php if (!empty($data['registrationEnabled'])): ?>
             <a href="/registrieren" class="text-secondary small">Registrieren</a>
             <?php endif ?>

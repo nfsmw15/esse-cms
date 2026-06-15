@@ -98,12 +98,30 @@ Router::post('/admin/login', fn() => require ESSE_ROOT . '/admin/login.php', [
     'auth' => 'public',
 ]);
 
+Router::get('/passwort-vergessen', fn() => require ESSE_ROOT . '/admin/forgot-password.php', [
+    'name' => 'forgot_password',
+    'auth' => 'public',
+]);
+Router::post('/passwort-vergessen', fn() => require ESSE_ROOT . '/admin/forgot-password.php', [
+    'name' => 'forgot_password.post',
+    'auth' => 'public',
+]);
+
 Router::get('/admin/forgot-password', fn() => require ESSE_ROOT . '/admin/forgot-password.php', [
     'name' => 'admin.forgot_password',
     'auth' => 'public',
 ]);
 Router::post('/admin/forgot-password', fn() => require ESSE_ROOT . '/admin/forgot-password.php', [
     'name' => 'admin.forgot_password.post',
+    'auth' => 'public',
+]);
+
+Router::get('/neues-passwort', fn() => require ESSE_ROOT . '/admin/reset-password.php', [
+    'name' => 'reset_password',
+    'auth' => 'public',
+]);
+Router::post('/neues-passwort', fn() => require ESSE_ROOT . '/admin/reset-password.php', [
+    'name' => 'reset_password.post',
     'auth' => 'public',
 ]);
 
