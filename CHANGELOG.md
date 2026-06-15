@@ -7,6 +7,7 @@ All notable changes to ESSE CMS will be documented in this file.
 ### Added
 
 - **Shortcode/Widget-System**: Plugins können Shortcodes wie `[news limit="5"]` registrieren (`Esse\Shortcodes::register()` bzw. `registerShortcode()` in `core/Plugin.php`), die beim Rendern einer Seite (`core/PageRenderer.php`) durch das Handler-HTML ersetzt werden. Im Seiteneditor (`admin/pages/form.php`) gibt es dafür einen neuen Summernote-Button „Widget einfügen", der über `/admin/shortcodes/list` alle registrierten Widgets mit Beschreibung und Parametern anzeigt und den passenden `[tag attr="..."]`-Code in den Inhalt einfügt.
+- **Überschrift pro Seite ausblendbar**: Neue Karte „Layout" im Seiteneditor (`admin/pages/form.php`) mit Checkbox „Überschrift auf der Seite ausblenden" (`hide_title`-Spalte in `pages`). Titel/Icon werden weiterhin in Menüs, Browser-Tab und SEO-Metadaten verwendet — nur die `<h1>` am Seitenanfang entfällt. Unterstützt von `esse-base`, `esse-cyber` und `esse-dashboard`.
 
 ## [0.6.1-alpha] - 2026-06-15
 

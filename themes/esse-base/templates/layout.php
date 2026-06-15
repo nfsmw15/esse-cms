@@ -178,7 +178,7 @@ $metaDescription = ($page['meta_description'] ?? '') ?: ($settings['seo_meta_des
 
 <!-- Content -->
 <main class="container py-5">
-    <?php if (!empty($page['icon']) || $page['title']): ?>
+    <?php if (empty($page['hide_title']) && (!empty($page['icon']) || $page['title'])): ?>
     <h1 class="mb-4">
         <?php if (!empty($page['icon'])): ?>
         <?php

@@ -6,7 +6,7 @@ namespace Esse;
 
 class Seo
 {
-    // Add meta_description column to existing installations (fresh installs get it via Schema.php)
+    // Add meta_description/hide_title columns to existing installations (fresh installs get them via Schema.php)
     public static function migrateDb(): void
     {
         $tp = DB::table('pages');
@@ -14,6 +14,9 @@ class Seo
         $cols = DB::fetchAll("SHOW COLUMNS FROM `{$tp}`");
         if (!in_array('meta_description', array_column($cols, 'Field'), true)) {
             DB::query("ALTER TABLE `{$tp}` ADD COLUMN `meta_description` VARCHAR(300) DEFAULT NULL AFTER `content`");
+        }
+        if (!in_array('hide_title', array_column($cols, 'Field'), true)) {
+            DB::query("ALTER TABLE `{$tp}` ADD COLUMN `hide_title` TINYINT(1) NOT NULL DEFAULT 0 AFTER `icon`");
         }
     }
 

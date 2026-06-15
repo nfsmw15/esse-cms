@@ -38,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $title      = trim($_POST['title']      ?? '');
         $icon       = trim($_POST['icon']       ?? '');
+        $hideTitle  = !empty($_POST['hide_title']) ? 1 : 0;
         $slug       = trim($_POST['slug']       ?? '');
         $metaDesc   = trim($_POST['meta_description'] ?? '');
         $content    = $_POST['content']         ?? '';
@@ -114,6 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = [
                 'title'      => $title,
                 'icon'       => $icon ?: null,
+                'hide_title' => $hideTitle,
                 'slug'       => $slug,
                 'meta_description' => $metaDesc ?: null,
                 'content'    => $type === 'standard' ? $content : null,
@@ -139,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Re-populate on error
-        $page = array_merge($page ?? [], compact('title', 'slug', 'content', 'type', 'visibility', 'status'), ['meta_description' => $metaDesc]);
+        $page = array_merge($page ?? [], compact('title', 'slug', 'content', 'type', 'visibility', 'status'), ['meta_description' => $metaDesc, 'hide_title' => $hideTitle]);
         $currentVis      = $visibility;
         $currentVisRoles = $visRoles;
     }
@@ -278,6 +280,21 @@ ob_start();
                             </label>
                         </div>
                         <?php endforeach ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header py-2"><small class="text-secondary">Layout</small></div>
+                <div class="card-body">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="hide_title" id="hide_title" value="1"
+                               <?= !empty($page['hide_title']) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="hide_title">Überschrift auf der Seite ausblenden</label>
+                    </div>
+                    <div class="form-text">
+                        Titel und Icon werden weiterhin in Menüs, im Browser-Tab und für SEO verwendet —
+                        nur die <code>&lt;h1&gt;</code> am Seitenanfang wird nicht angezeigt.
                     </div>
                 </div>
             </div>

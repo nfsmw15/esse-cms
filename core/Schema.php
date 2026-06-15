@@ -65,6 +65,7 @@ class Schema
                 `content`    LONGTEXT,
                 `meta_description` VARCHAR(300) DEFAULT NULL,
                 `icon`       VARCHAR(100) DEFAULT NULL,
+                `hide_title` TINYINT(1)   NOT NULL DEFAULT 0,
                 `type`       ENUM('standard','php') NOT NULL DEFAULT 'standard',
                 `file_path`  VARCHAR(500) DEFAULT NULL,
                 `visibility` VARCHAR(20) NOT NULL DEFAULT 'public',
