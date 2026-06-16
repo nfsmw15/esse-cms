@@ -4,6 +4,8 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+## [0.7.0-alpha] - 2026-06-16
+
 ### Added
 
 - **Shortcode/Widget-System**: Plugins können Shortcodes wie `[news limit="5"]` registrieren (`Esse\Shortcodes::register()` bzw. `registerShortcode()` in `core/Plugin.php`), die beim Rendern einer Seite (`core/PageRenderer.php`) durch das Handler-HTML ersetzt werden. Im Seiteneditor (`admin/pages/form.php`) gibt es dafür einen neuen Summernote-Button „Widget einfügen", der über `/admin/shortcodes/list` alle registrierten Widgets mit Beschreibung und Parametern anzeigt und den passenden `[tag attr="..."]`-Code in den Inhalt einfügt.
