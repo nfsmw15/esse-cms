@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\AuditLog;
+use Esse\Flash;
 use Esse\Updater;
 
 if (!Auth::meetsRole('forge') && !Auth::can('manage_settings')) {
@@ -13,11 +14,7 @@ if (!Auth::meetsRole('forge') && !Auth::can('manage_settings')) {
 $backupDir = ESSE_PRIVATE_PATH . '/storage/backups';
 if (!is_dir($backupDir)) mkdir($backupDir, 0750, true);
 
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 // -- POST actions --
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -29,11 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'create') {
         try {
             $path = Updater::createBackup(fn() => null, 'manual');
-            $_SESSION['flash'] = ['type' => 'success',
-                'message' => 'Backup erstellt: ' . basename($path)];
+            Flash::set('success', 'Backup erstellt: ' . basename($path));
         } catch (\Throwable $e) {
-            $_SESSION['flash'] = ['type' => 'danger',
-                'message' => 'Backup fehlgeschlagen: ' . $e->getMessage()];
+            Flash::set('danger', 'Backup fehlgeschlagen: ' . $e->getMessage());
         }
         header('Location: /admin/backup');
         exit;
@@ -45,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $path = $backupDir . '/' . $file;
         if ($file && file_exists($path) && str_ends_with($file, '.zip')) {
             unlink($path);
-            $_SESSION['flash'] = ['type' => 'success', 'message' => "Backup '{$file}' gelöscht."];
+            Flash::set('success', "Backup '{$file}' gelöscht.");
         }
         header('Location: /admin/backup');
         exit;
@@ -56,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $file = basename($_POST['file'] ?? '');
         $path = $backupDir . '/' . $file;
         if (!$file || !file_exists($path)) {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Backup nicht gefunden.'];
+            Flash::set('danger', 'Backup nicht gefunden.');
             header('Location: /admin/backup');
             exit;
         }
@@ -67,12 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             Updater::restore($path, fn() => null);
             AuditLog::record('backup_restored', Auth::id(), Auth::user()['email'] ?? null, ['file' => $file]);
-            $_SESSION['flash'] = ['type' => 'success',
-                'message' => "Wiederherstellung aus '{$file}' abgeschlossen."];
+            Flash::set('success', "Wiederherstellung aus '{$file}' abgeschlossen.");
         } catch (\Throwable $e) {
             AuditLog::record('backup_restore_failed', Auth::id(), Auth::user()['email'] ?? null, ['file' => $file, 'error' => $e->getMessage()]);
-            $_SESSION['flash'] = ['type' => 'danger',
-                'message' => 'Wiederherstellung fehlgeschlagen: ' . $e->getMessage()];
+            Flash::set('danger', 'Wiederherstellung fehlgeschlagen: ' . $e->getMessage());
         }
         header('Location: /admin/backup');
         exit;

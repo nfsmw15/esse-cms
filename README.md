@@ -105,6 +105,7 @@ Security is a first-class design goal in ESSE — not an afterthought.
 - Optional two-factor authentication (TOTP / authenticator app) with one-time backup codes — classic second factor on top of the password, including a self-hosted, pure-PHP QR code generator (no JS vendoring, no CDN)
 - Passwordless login via Passkeys (WebAuthn/FIDO2, discoverable credentials) — a standalone login method that replaces password *and* TOTP entirely (Touch ID, Windows Hello, security keys)
 - Both are optional and per-user; WebAuthn cryptography (attestation/assertion verification, CBOR decoding) is handled by the vendored `report-uri/passkeys-php` library rather than custom crypto code
+- IP-based rate limiting on login, 2FA verification and password-reset requests — persisted in the database, so it survives a cleared session cookie
 - Session cookies are `HttpOnly`, `SameSite=Lax` and automatically `Secure` on HTTPS installations
 - Core responses send browser hardening headers, including CSP, frame protection, referrer policy, permissions policy and `X-Content-Type-Options`
 - Inline JavaScript and inline CSS have been moved to static assets plus JSON configuration blocks; the default CSP uses `script-src 'self'` and `style-src 'self'` without `unsafe-inline`

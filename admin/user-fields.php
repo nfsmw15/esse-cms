@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\Flash;
 use Esse\UserFields;
 
 if (!Auth::can('manage_settings')) {
@@ -21,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         $id = (int) ($_POST['id'] ?? 0);
         DB::query("DELETE FROM `{$t}` WHERE id = ?", [$id]);
-        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Feld gelöscht.'];
+        Flash::set('success', 'Feld gelöscht.');
         header('Location: /admin/user-fields');
         exit;
     }
@@ -66,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($id > 0) {
                 DB::update($t, $data, ['id' => $id]);
-                $_SESSION['flash'] = ['type' => 'success', 'message' => 'Feld gespeichert.'];
+                Flash::set('success', 'Feld gespeichert.');
             } else {
                 $key = strtolower(preg_replace('/[^a-z0-9]+/', '_', $label));
                 $key = trim($key, '_');
@@ -79,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $data['field_key']  = $key;
                 $data['sort_order'] = $maxOrder + 1;
                 DB::insert($t, $data);
-                $_SESSION['flash'] = ['type' => 'success', 'message' => "Feld '{$label}' erstellt."];
+                Flash::set('success', "Feld '{$label}' erstellt.");
             }
 
             header('Location: /admin/user-fields');
@@ -95,11 +96,7 @@ $editField = $editId ? DB::fetch("SELECT * FROM `{$t}` WHERE id = ?", [$editId])
 $isNew     = isset($_GET['new']);
 $showForm  = $isNew || $editField !== null;
 
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 $pageTitle = 'Profilfelder';
 $activeNav = 'user-fields';

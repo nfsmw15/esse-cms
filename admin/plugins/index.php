@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Esse\Auth;
 use Esse\AuditLog;
 use Esse\DB;
+use Esse\Flash;
 use Esse\GitHubApi;
 
 // Plugin installation = PHP code execution — require explicit permission or Forge role
@@ -33,11 +34,7 @@ foreach (glob(ESSE_ROOT . '/plugins/*/plugin.json') ?: [] as $jsonFile) {
     $plugins[$slug]  = $meta;
 }
 
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 // -- POST actions --
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -65,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             if ($error) {
-                $_SESSION['flash'] = ['type' => 'danger', 'message' => $error];
+                Flash::set('danger', $error);
                 header('Location: /admin/plugins');
                 exit;
             }
@@ -80,8 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Auth::user()['email'] ?? null,
             ['plugin' => $slug]
         );
-        $_SESSION['flash'] = ['type' => 'success', 'message' =>
-            "Plugin '{$slug}' " . ($action === 'enable' ? 'aktiviert' : 'deaktiviert') . '.'];
+        Flash::set('success', "Plugin '{$slug}' " . ($action === 'enable' ? 'aktiviert' : 'deaktiviert') . '.');
         header('Location: /admin/plugins');
         exit;
     }
@@ -101,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $enabled = array_values(array_filter($enabled, fn($s) => $s !== $slug));
         saveEnabled($ts, $enabled);
         AuditLog::record('plugin_uninstalled', Auth::id(), Auth::user()['email'] ?? null, ['plugin' => $slug]);
-        $_SESSION['flash'] = ['type' => 'success', 'message' => "Plugin '{$slug}' deinstalliert."];
+        Flash::set('success', "Plugin '{$slug}' deinstalliert.");
         header('Location: /admin/plugins');
         exit;
     }
@@ -115,8 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "INSERT IGNORE INTO `{$tr}` (owner, label, trusted) VALUES (?, ?, 0)",
                 [$owner, $label ?: $owner]
             );
-            $_SESSION['flash'] = ['type' => 'warning',
-                'message' => "Kanal '{$owner}' hinzugefügt. Nicht verifizierter Kanal — nur vertrauenswürdige Quellen installieren."];
+            Flash::set('warning', "Kanal '{$owner}' hinzugefügt. Nicht verifizierter Kanal — nur vertrauenswürdige Quellen installieren.");
         }
         header('Location: /admin/plugins?tab=available');
         exit;
@@ -128,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $repo   = DB::fetch("SELECT * FROM `{$tr}` WHERE id = ?", [$repoId]);
         if ($repo && !$repo['trusted']) {
             DB::delete($tr, ['id' => $repoId]);
-            $_SESSION['flash'] = ['type' => 'success', 'message' => "Kanal '{$repo['owner']}' entfernt."];
+            Flash::set('success', "Kanal '{$repo['owner']}' entfernt.");
         }
         header('Location: /admin/plugins?tab=available');
         exit;
@@ -157,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($data === false || $code < 200 || $code >= 300
                     || strlen($data) < 100 || substr($data, 0, 2) !== 'PK') {
-                    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Download fehlgeschlagen oder ungültige ZIP-Datei.'];
+                    Flash::set('danger', 'Download fehlgeschlagen oder ungültige ZIP-Datei.');
                     header('Location: /admin/plugins?tab=available');
                     exit;
                 }
@@ -185,14 +180,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         Auth::user()['email'] ?? null,
                         ['plugin' => $result['name'], 'version' => $result['version'], 'source' => 'repo']
                     );
-                    $_SESSION['flash'] = ['type' => 'success', 'message' => $isNew
+                    Flash::set('success', $isNew
                         ? "Plugin '{$result['name']}' v{$result['version']} installiert."
-                        : "Plugin '{$result['name']}' auf v{$result['version']} aktualisiert."];
+                        : "Plugin '{$result['name']}' auf v{$result['version']} aktualisiert.");
                 } else {
-                    $_SESSION['flash'] = ['type' => 'danger', 'message' => $result];
+                    Flash::set('danger', $result);
                 }
             } else {
-                $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Kein Release gefunden.'];
+                Flash::set('danger', 'Kein Release gefunden.');
             }
         }
         header('Location: /admin/plugins?tab=available');
@@ -222,11 +217,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Auth::user()['email'] ?? null,
                 ['plugin' => $result['name'], 'version' => $result['version'], 'source' => 'upload']
             );
-            $_SESSION['flash'] = ['type' => 'success', 'message' => $isNew
+            Flash::set('success', $isNew
                 ? "Plugin '{$result['name']}' v{$result['version']} installiert."
-                : "Plugin '{$result['name']}' auf v{$result['version']} aktualisiert."];
+                : "Plugin '{$result['name']}' auf v{$result['version']} aktualisiert.");
         } else {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => $result];
+            Flash::set('danger', $result);
         }
         header('Location: /admin/plugins');
         exit;

@@ -251,6 +251,7 @@ class Auth
 
         try {
             TwoFactor::migrateDb();
+            RateLimit::migrateDb();
             self::$securityMigrationsSynced = true;
         } catch (\Throwable) {
             // Installer or partially configured databases may not have users/settings yet.

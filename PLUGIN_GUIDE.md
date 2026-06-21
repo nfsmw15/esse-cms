@@ -606,10 +606,15 @@ document.addEventListener('click', event => {
 ## Flash-Messages
 
 ```php
+use Esse\Flash;
+
 // Setzen (vor einem Redirect)
-$_SESSION['flash'] = ['type' => 'success', 'message' => 'Gespeichert.'];
+Flash::set('success', 'Gespeichert.');
 header('Location: /admin/mein-plugin');
 exit;
+
+// Lesen + Loeschen (am Anfang der Zielseite, vor dem Aufruf von layout.php)
+$flash = Flash::consume();
 
 // Das Admin-Layout rendert $flash automatisch.
 // type: 'success', 'danger', 'warning', 'info'
@@ -624,12 +629,9 @@ exit;
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\Flash;
 
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 $pageTitle = 'News';
 $activeNav = 'admin.news';  // MUSS exakt mit activeSlug aus addAdminNav() übereinstimmen!

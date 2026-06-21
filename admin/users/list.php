@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\Flash;
 
 $tu = DB::table('users');
 
@@ -13,11 +14,7 @@ $users = DB::fetchAll(
       ORDER BY FIELD(role,'forge','admin','editor','author','member'), display_name ASC"
 );
 
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 $roleLabels = [
     'forge'  => ['badge-forge', 'Forge'],

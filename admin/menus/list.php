@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\Flash;
 
 $tm    = DB::table('menus');
 $ti    = DB::table('menu_items');
@@ -15,11 +16,7 @@ $menus = DB::fetchAll(
    ORDER BY m.name ASC"
 );
 
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 // Handle create new menu (POST on this page)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'create_menu') {
@@ -48,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'dele
     $id = (int) ($_POST['menu_id'] ?? 0);
     if ($id) {
         DB::delete($tm, ['id' => $id]);
-        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Menü gelöscht.'];
+        Flash::set('success', 'Menü gelöscht.');
     }
     header('Location: /admin/menus');
     exit;

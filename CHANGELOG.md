@@ -4,6 +4,14 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+
+- **IP-basierte Sperre statt Session-Zähler**: Die Brute-Force-Bremse für `/login`, `/admin/verify-2fa` und `/admin/forgot-password` beruhte bisher auf `$_SESSION`-Zählern und war durch einfaches Verwerfen des Session-Cookies umgehbar. Neue Klasse `core/RateLimit.php` zählt Fehlversuche stattdessen IP-basiert (bei 2FA pro Benutzer) in einer DB-Tabelle (`rate_limits`) und übersteht damit auch eine neue Session. Schwellen unverändert: 5 Versuche/60s für Login und 2FA, 3 Anfragen/15min für Passwort-Reset.
+
+### Changed
+
+- **Flash-Messages zentralisiert**: Das in rund 15 Admin-Seiten verstreute `$_SESSION['flash']`-Pattern wurde durch die neue Klasse `core/Flash.php` (`Flash::set()` / `Flash::consume()`) ersetzt. Verhalten unverändert, `PLUGIN_GUIDE.md` aktualisiert.
+
 ## [0.7.0-alpha] - 2026-06-16
 
 ### Added

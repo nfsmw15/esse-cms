@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Esse\Auth;
 use Esse\AuditLog;
 use Esse\DB;
+use Esse\Flash;
 
 // Only Forge or users with manage_admins can manage roles
 if (!Auth::meetsRole('forge') && !Auth::can('manage_admins')) {
@@ -16,11 +17,7 @@ $tp  = DB::table('permissions');
 $trp = DB::table('role_permissions');
 $tu  = DB::table('users');
 
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 // -- POST actions --
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -83,13 +80,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $slug  = trim($slug, '-');
 
         if (!$label || !$slug) {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Rollenname ist Pflichtfeld.'];
+            Flash::set('danger', 'Rollenname ist Pflichtfeld.');
         } elseif (DB::fetch("SELECT id FROM `{$tr}` WHERE slug = ?", [$slug])) {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => "Rolle '{$slug}' existiert bereits."];
+            Flash::set('danger', "Rolle '{$slug}' existiert bereits.");
         } else {
             DB::insert($tr, ['slug' => $slug, 'label' => $label, 'is_default' => 0]);
             AuditLog::record('role_created', Auth::id(), Auth::user()['email'] ?? null, ['role' => $slug, 'label' => $label]);
-            $_SESSION['flash'] = ['type' => 'success', 'message' => "Rolle '{$label}' erstellt."];
+            Flash::set('success', "Rolle '{$label}' erstellt.");
         }
         header('Location: /admin/roles');
         exit;
@@ -102,11 +99,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($role) {
             $usersWithRole = (int) DB::value("SELECT COUNT(*) FROM `{$tu}` WHERE role = ?", [$role['slug']]);
             if ($usersWithRole > 0) {
-                $_SESSION['flash'] = ['type' => 'danger', 'message' => "Rolle '{$role['label']}' ist noch {$usersWithRole} Benutzer(n) zugewiesen."];
+                Flash::set('danger', "Rolle '{$role['label']}' ist noch {$usersWithRole} Benutzer(n) zugewiesen.");
             } else {
                 DB::delete($tr, ['id' => $roleId]);
                 AuditLog::record('role_deleted', Auth::id(), Auth::user()['email'] ?? null, ['role' => $role['slug'], 'label' => $role['label']]);
-                $_SESSION['flash'] = ['type' => 'success', 'message' => "Rolle '{$role['label']}' gelöscht."];
+                Flash::set('success', "Rolle '{$role['label']}' gelöscht.");
             }
         }
         header('Location: /admin/roles');

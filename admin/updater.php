@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\AuditLog;
+use Esse\Flash;
 use Esse\Updater;
 
 if (!Auth::meetsRole('forge') && !Auth::can('manage_settings')) {
     http_response_code(403); echo '403 Forbidden'; exit;
 }
 
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 // Generate one-time run token for SSE update stream
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'prepare_run') {

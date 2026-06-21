@@ -8,6 +8,7 @@ use Esse\Captcha;
 use Esse\DB;
 use Esse\Hooks;
 use Esse\Mailer;
+use Esse\RateLimit;
 
 // Already logged in → redirect
 if (Auth::check()) {
@@ -17,12 +18,7 @@ if (Auth::check()) {
 
 $sent   = false;
 $errors = [];
-$now = time();
-$_SESSION['password_reset_requests'] ??= [];
-$_SESSION['password_reset_requests'] = array_values(array_filter(
-    $_SESSION['password_reset_requests'],
-    fn($ts) => is_int($ts) && $ts > $now - 900
-));
+$rateLimitBucket = 'password_reset:' . RateLimit::clientIp();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
@@ -31,14 +27,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $captchaA = trim($_POST['captcha_answer'] ?? '');
     $honeypot = trim($_POST[Captcha::HONEYPOT_FIELD] ?? '');
 
-    if (count($_SESSION['password_reset_requests']) >= 3) {
+    if (RateLimit::tooMany($rateLimitBucket, 3, 900)) {
         $errors[] = 'Zu viele Anfragen. Bitte warte einige Minuten.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Bitte eine gültige E-Mail-Adresse eingeben.';
     } elseif (!Captcha::verify($captchaA, $honeypot)) {
         $errors[] = 'Sicherheitsfrage falsch beantwortet oder zu schnell abgeschickt. Bitte erneut versuchen.';
     } else {
-        $_SESSION['password_reset_requests'][] = $now;
+        RateLimit::hit($rateLimitBucket);
         $tu   = DB::table('users');
         $user = DB::fetch("SELECT * FROM `{$tu}` WHERE email = ? AND active = 1", [$email]);
 

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\Flash;
 use Esse\Media;
 
 if (!Auth::canAny(['manage_files', 'manage_content'])) {
@@ -49,16 +50,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
         if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Upload fehlgeschlagen.'];
+            Flash::set('danger', 'Upload fehlgeschlagen.');
         } elseif (!isset($allowedExt[$ext])) {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Dateityp nicht erlaubt. Erlaubt: ' . implode(', ', array_keys($allowedExt))];
+            Flash::set('danger', 'Dateityp nicht erlaubt. Erlaubt: ' . implode(', ', array_keys($allowedExt)));
         } elseif ($file['size'] > 10 * 1024 * 1024) {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Datei zu groß (max. 10 MB).'];
+            Flash::set('danger', 'Datei zu groß (max. 10 MB).');
         } else {
             $mime = mime_content_type($file['tmp_name']) ?: '';
 
             if ($allowedExt[$ext] === 'image' && (!str_starts_with($mime, 'image/') || @getimagesize($file['tmp_name']) === false)) {
-                $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Ungültige Bilddatei.'];
+                Flash::set('danger', 'Ungültige Bilddatei.');
             } else {
                 $uploadDir = ESSE_ROOT . '/public/uploads/';
                 if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
@@ -82,9 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'source'      => 'media',
                         'folder_id'   => $uploadFolderId,
                     ]);
-                    $_SESSION['flash'] = ['type' => 'success', 'message' => 'Datei hochgeladen.'];
+                    Flash::set('success', 'Datei hochgeladen.');
                 } else {
-                    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Speichern fehlgeschlagen.'];
+                    Flash::set('danger', 'Speichern fehlgeschlagen.');
                 }
             }
         }
@@ -101,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'visibility'  => ($_POST['visibility'] ?? 'public') === 'private' ? 'private' : 'public',
             'folder_id'   => $folderId,
         ]);
-        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Datei aktualisiert.'];
+        Flash::set('success', 'Datei aktualisiert.');
         header('Location: /admin/media' . $returnQuery);
         exit;
     }
@@ -109,14 +110,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         $id = (int) ($_POST['id'] ?? 0);
         Media::delete($id);
-        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Datei gelöscht.'];
+        Flash::set('success', 'Datei gelöscht.');
         header('Location: /admin/media' . $returnQuery);
         exit;
     }
 
     if ($action === 'import') {
         $n = Media::scanUploads();
-        $_SESSION['flash'] = ['type' => 'success', 'message' => "{$n} Datei(en) importiert."];
+        Flash::set('success', "{$n} Datei(en) importiert.");
         header('Location: /admin/media' . $returnQuery);
         exit;
     }
@@ -124,10 +125,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'create_folder') {
         $name = trim($_POST['name'] ?? '');
         if ($name === '') {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Ordnername darf nicht leer sein.'];
+            Flash::set('danger', 'Ordnername darf nicht leer sein.');
         } else {
             Media::createFolder($name, $returnFolderId);
-            $_SESSION['flash'] = ['type' => 'success', 'message' => 'Ordner erstellt.'];
+            Flash::set('success', 'Ordner erstellt.');
         }
         header('Location: /admin/media' . $returnQuery);
         exit;
@@ -138,9 +139,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = trim($_POST['name'] ?? '');
         if ($name !== '' && Media::findFolder($id)) {
             Media::renameFolder($id, $name);
-            $_SESSION['flash'] = ['type' => 'success', 'message' => 'Ordner umbenannt.'];
+            Flash::set('success', 'Ordner umbenannt.');
         } else {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Ordner konnte nicht umbenannt werden.'];
+            Flash::set('danger', 'Ordner konnte nicht umbenannt werden.');
         }
         header('Location: /admin/media' . $returnQuery);
         exit;
@@ -149,9 +150,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete_folder') {
         $id = (int) ($_POST['id'] ?? 0);
         if (Media::deleteFolder($id)) {
-            $_SESSION['flash'] = ['type' => 'success', 'message' => 'Ordner gelöscht.'];
+            Flash::set('success', 'Ordner gelöscht.');
         } else {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Ordner ist nicht leer und kann nicht gelöscht werden.'];
+            Flash::set('danger', 'Ordner ist nicht leer und kann nicht gelöscht werden.');
         }
         header('Location: /admin/media' . $returnQuery);
         exit;
@@ -173,11 +174,7 @@ $subFolders = Media::listFolders($currentFolderId);
 $breadcrumb = Media::folderPath($currentFolderId);
 $allFolders = Media::allFolders();
 
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 function mediaThumb(array $item): string
 {

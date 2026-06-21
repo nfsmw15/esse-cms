@@ -24,6 +24,7 @@ require TEST_CONFIG_DIR . '/config/config.php';
 \Esse\PageVisibility::migrateDb();
 \Esse\TwoFactor::migrateDb();
 \Esse\AuditLog::migrateDb();
+\Esse\RateLimit::migrateDb();
 
 $root = dirname(__DIR__, 2);
 [$host, $port] = ['127.0.0.1', 8089];

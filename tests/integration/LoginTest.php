@@ -39,6 +39,10 @@ return [
         ]);
 
         Assert::true(str_contains($res['body'], 'Fehlversuche'), 'Sperr-Meldung nach 5 Fehlversuchen erwartet');
+
+        // Die Sperre ist IP-basiert (nicht session-basiert) und wuerde sonst alle
+        // nachfolgenden Tests von derselben Test-IP (127.0.0.1) betreffen.
+        \Esse\RateLimit::clear('login:127.0.0.1');
     },
 
     'POST /login: korrekte Zugangsdaten fuehren zu Redirect' => function (Http $http) {

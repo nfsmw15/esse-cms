@@ -7,6 +7,7 @@ use Esse\AuditLog;
 use Esse\DB;
 use Esse\Hooks;
 use Esse\Menu;
+use Esse\RateLimit;
 
 // Sanitize redirect — only allow same-site paths
 function sanitizeRedirect(string $url): string
@@ -33,9 +34,7 @@ if (Auth::check()) {
 }
 
 $error = '';
-$now = time();
-$_SESSION['login_failures'] ??= 0;
-$_SESSION['login_block_until'] ??= 0;
+$rateLimitBucket = 'login:' . RateLimit::clientIp();
 
 // Load footer menu from active theme settings
 $footMenu = [];
@@ -50,14 +49,15 @@ if (defined('ESSE_DB_NAME')) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) {
         $error = 'Ungültige Anfrage. Bitte die Seite neu laden.';
-    } elseif ($_SESSION['login_block_until'] > $now) {
+    } elseif (RateLimit::tooMany($rateLimitBucket, 5, 60)) {
         $error = 'Zu viele Fehlversuche. Bitte kurz warten und erneut versuchen.';
+        AuditLog::record('login_locked', null, trim($_POST['login'] ?? ''));
     } else {
         $login    = trim($_POST['login']    ?? '');
         $password = $_POST['password'] ?? '';
 
         if (Auth::attempt($login, $password)) {
-            unset($_SESSION['login_failures'], $_SESSION['login_block_until']);
+            RateLimit::clear($rateLimitBucket);
             AuditLog::record('login_success', Auth::id(), Auth::user()['email'] ?? $login);
             $redirect = trim($_POST['redirect'] ?? $_GET['redirect'] ?? '');
             header('Location: ' . ($redirect !== '' ? sanitizeRedirect($redirect) : configuredLoginTarget()));
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Passwort korrekt, aber TOTP als zweiter Faktor erforderlich — Auth::attempt()
         // hat das in der Session vermerkt. Kein Fehlversuch, sondern Weiterleitung zur Prüfung.
         if (!empty($_SESSION['esse_2fa_uid'])) {
-            unset($_SESSION['login_failures'], $_SESSION['login_block_until']);
+            RateLimit::clear($rateLimitBucket);
             $redirect = trim($_POST['redirect'] ?? $_GET['redirect'] ?? '');
             $target   = '/admin/verify-2fa';
             if ($redirect !== '') $target .= '?redirect=' . rawurlencode(sanitizeRedirect($redirect));
@@ -75,14 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $_SESSION['login_failures']++;
-        if ($_SESSION['login_failures'] >= 5) {
-            $_SESSION['login_block_until'] = $now + 60;
-            $_SESSION['login_failures'] = 0;
-            AuditLog::record('login_locked', null, $login);
-        } else {
-            AuditLog::record('login_failed', null, $login);
-        }
+        RateLimit::hit($rateLimitBucket);
+        AuditLog::record('login_failed', null, $login);
         // If the login came from the navbar dropdown (not the admin login page), go back with error param
         $redirect   = sanitizeRedirect($_POST['redirect'] ?? '/');
         $fromAdmin  = ($_POST['_form'] ?? '') === 'admin_login'

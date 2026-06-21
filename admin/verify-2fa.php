@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Esse\Auth;
 use Esse\AuditLog;
 use Esse\DB;
+use Esse\RateLimit;
 use Esse\TwoFactor;
 use Esse\Totp;
 
@@ -42,15 +43,14 @@ if (!$user || !TwoFactor::isEnabled($user)) {
 }
 
 $error = '';
-$now   = time();
-$_SESSION['verify2fa_failures']    ??= 0;
-$_SESSION['verify2fa_block_until'] ??= 0;
+$rateLimitBucket = '2fa:' . $uid;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) {
         $error = 'Ungültige Anfrage. Bitte die Seite neu laden.';
-    } elseif ($_SESSION['verify2fa_block_until'] > $now) {
+    } elseif (RateLimit::tooMany($rateLimitBucket, 5, 60)) {
         $error = 'Zu viele Fehlversuche. Bitte kurz warten und erneut versuchen.';
+        AuditLog::record('2fa_locked', (int) $user['id'], $user['email']);
     } else {
         $code    = trim($_POST['code'] ?? '');
         $isValid = false;
@@ -65,10 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($isValid) {
-            unset(
-                $_SESSION['esse_2fa_uid'], $_SESSION['esse_2fa_at'],
-                $_SESSION['verify2fa_failures'], $_SESSION['verify2fa_block_until']
-            );
+            unset($_SESSION['esse_2fa_uid'], $_SESSION['esse_2fa_at']);
+            RateLimit::clear($rateLimitBucket);
             Auth::login($user);
             AuditLog::record('login_success', (int) $user['id'], $user['email']);
             $redirect = trim($_POST['redirect'] ?? $_GET['redirect'] ?? '');
@@ -76,14 +74,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $_SESSION['verify2fa_failures']++;
-        if ($_SESSION['verify2fa_failures'] >= 5) {
-            $_SESSION['verify2fa_block_until'] = $now + 60;
-            $_SESSION['verify2fa_failures']    = 0;
-            AuditLog::record('2fa_locked', (int) $user['id'], $user['email']);
-        } else {
-            AuditLog::record('2fa_failed', (int) $user['id'], $user['email']);
-        }
+        RateLimit::hit($rateLimitBucket);
+        AuditLog::record('2fa_failed', (int) $user['id'], $user['email']);
         $error = 'Code ungültig oder abgelaufen.';
     }
 }

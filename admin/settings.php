@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Esse\Auth;
 use Esse\AuditLog;
 use Esse\DB;
+use Esse\Flash;
 
 if (!Auth::can('manage_settings')) {
     http_response_code(403); echo '403 Forbidden'; exit;
@@ -18,11 +19,7 @@ $settings = array_column($rows, 'value', 'key');
 
 $errors = [];
 
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
@@ -79,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             AuditLog::record('settings_changed', Auth::id(), Auth::user()['email'] ?? null, $changes);
         }
 
-        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Einstellungen gespeichert.'];
+        Flash::set('success', 'Einstellungen gespeichert.');
         header('Location: /admin/settings');
         exit;
     }

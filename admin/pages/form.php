@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Esse\Auth;
 use Esse\AuditLog;
 use Esse\DB;
+use Esse\Flash;
 
 // $editSlug is injected by the route closure when editing; null for create
 $editSlug ??= null;
@@ -128,10 +129,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($isEdit) {
                 DB::update($t, $data, ['id' => $page['id']]);
-                $_SESSION['flash'] = ['type' => 'success', 'message' => 'Seite gespeichert.'];
+                Flash::set('success', 'Seite gespeichert.');
             } else {
                 DB::insert($t, $data);
-                $_SESSION['flash'] = ['type' => 'success', 'message' => "Seite '{$title}' erstellt."];
+                Flash::set('success', "Seite '{$title}' erstellt.");
             }
 
             \Esse\PageVisibility::saveCmsPage($slug, $visibility, $visRoles);

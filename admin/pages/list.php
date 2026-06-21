@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\Flash;
 use Esse\PageVisibility;
 use Esse\Plugin;
 
@@ -133,11 +134,7 @@ foreach ($ptSettings as $key => $slug) {
 }
 
 // Flash
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\Flash;
 
 if (!Auth::meetsRole('forge') && !Auth::can('manage_settings')) {
     http_response_code(403); echo '403 Forbidden'; exit;
@@ -13,11 +14,7 @@ require_once __DIR__ . '/package-install.php';
 
 $ts = DB::table('settings');
 
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 // Discover installed icon packs
 function discoverIconPacks(): array
@@ -51,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
                 [$name]
             );
-            $_SESSION['flash'] = ['type' => 'success', 'message' => "Icon-Pack '{$name}' aktiviert."];
+            Flash::set('success', "Icon-Pack '{$name}' aktiviert.");
         }
         header('Location: /admin/iconpacks');
         exit;
@@ -60,9 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Upload ZIP
     if ($action === 'upload' && !empty($_FILES['pack_zip']['tmp_name'])) {
         $result = installIconPack($_FILES['pack_zip']['tmp_name']);
-        $_SESSION['flash'] = is_string($result)
-            ? ['type' => 'danger',  'message' => $result]
-            : ['type' => 'success', 'message' => "Icon-Pack '{$result['name']}' v{$result['version']} installiert."];
+        if (is_string($result)) {
+            Flash::set('danger', $result);
+        } else {
+            Flash::set('success', "Icon-Pack '{$result['name']}' v{$result['version']} installiert.");
+        }
         header('Location: /admin/iconpacks');
         exit;
     }
@@ -74,12 +73,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $active = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'icon_pack'") ?? '';
 
         if ($name === $active) {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Das aktive Icon-Pack kann nicht gelöscht werden.'];
+            Flash::set('danger', 'Das aktive Icon-Pack kann nicht gelöscht werden.');
         } elseif (isset($packs[$name]) && $packs[$name]['dir'] !== 'bootstrap-icons') {
             packageDeleteDir(ESSE_ROOT . '/public/vendor/' . $packs[$name]['dir']);
-            $_SESSION['flash'] = ['type' => 'success', 'message' => "Icon-Pack '{$name}' gelöscht."];
+            Flash::set('success', "Icon-Pack '{$name}' gelöscht.");
         } else {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Dieses Pack kann nicht gelöscht werden.'];
+            Flash::set('danger', 'Dieses Pack kann nicht gelöscht werden.');
         }
         header('Location: /admin/iconpacks');
         exit;

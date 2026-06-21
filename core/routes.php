@@ -229,9 +229,9 @@ Router::post('/admin/settings/test-mail', function () {
         $to = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'admin_email'")
             ?: \Esse\Auth::user()['email'];
         \Esse\Mailer::send($to, 'Admin', 'ESSE CMS Test-Mail', '<p>SMTP funktioniert.</p>');
-        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Test-Mail erfolgreich gesendet.'];
+        \Esse\Flash::set('success', 'Test-Mail erfolgreich gesendet.');
     } catch (\Throwable $e) {
-        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'SMTP-Fehler: ' . $e->getMessage()];
+        \Esse\Flash::set('danger', 'SMTP-Fehler: ' . $e->getMessage());
     }
     header('Location: /admin/settings');
     exit;
@@ -292,7 +292,7 @@ Router::post('/admin/pages/delete/{slug}', function (string $slug) {
             @unlink(ESSE_ROOT . '/pages/' . basename((string)$page['file_path']));
         }
         \Esse\DB::delete($t, ['id' => $page['id']]);
-        $_SESSION['flash'] = ['type' => 'success', 'message' => "Seite '{$page['title']}' gelöscht."];
+        \Esse\Flash::set('success', "Seite '{$page['title']}' gelöscht.");
     }
 
     header('Location: /admin/pages');

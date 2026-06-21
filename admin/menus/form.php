@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\Flash;
 use Esse\PageTargets;
 
 $menuId ??= 0;
@@ -35,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     DB::update($tm, ['name' => $name, 'slug' => $slug], ['id' => $menuId]);
                     $menu = DB::fetch("SELECT * FROM `{$tm}` WHERE id = ?", [$menuId]);
-                    $_SESSION['flash'] = ['type' => 'success', 'message' => 'Menü gespeichert.'];
+                    Flash::set('success', 'Menü gespeichert.');
                     header("Location: /admin/menus/edit/{$menuId}");
                     exit;
                 }

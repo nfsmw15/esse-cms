@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Esse\Auth;
 use Esse\AuditLog;
 use Esse\DB;
+use Esse\Flash;
 use Esse\UserFields;
 
 $userId ??= null;
@@ -59,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Auth::user()['email'] ?? null,
                 ['target_user_id' => $user['id'], 'target_email' => $user['email']]
             );
-            $_SESSION['flash'] = ['type' => 'success', 'message' => 'Status geändert.'];
+            Flash::set('success', 'Status geändert.');
             header('Location: /admin/users');
             exit;
         }
@@ -149,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                $_SESSION['flash'] = ['type' => 'success', 'message' => 'Benutzer gespeichert.'];
+                Flash::set('success', 'Benutzer gespeichert.');
             } else {
                 $newId = DB::insert($tu, array_merge($data, ['active' => 1]));
                 UserFields::save($newId, $customFields, $customValues);
@@ -169,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                $_SESSION['flash'] = ['type' => 'success', 'message' => "Benutzer '{$displayName}' erstellt."];
+                Flash::set('success', "Benutzer '{$displayName}' erstellt.");
             }
             header('Location: /admin/users');
             exit;

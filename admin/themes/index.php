@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Esse\Auth;
 use Esse\DB;
+use Esse\Flash;
 use Esse\GitHubApi;
 
 // Theme installation = PHP code execution — require explicit permission or Forge role
@@ -39,11 +40,7 @@ foreach (glob(ESSE_ROOT . '/themes/*/theme.json') ?: [] as $jsonFile) {
     }
 }
 
-$flash = null;
-if (!empty($_SESSION['flash'])) {
-    $flash = $_SESSION['flash'];
-    unset($_SESSION['flash']);
-}
+$flash = Flash::consume();
 
 // POST: activate theme or save menu positions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -55,9 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = $_POST['theme_name'] ?? '';
         if (isset($themes[$name]) && $name !== $activeTheme) {
             packageDeleteDir(ESSE_ROOT . '/themes/' . $name);
-            $_SESSION['flash'] = ['type' => 'success', 'message' => "Theme '{$name}' gelöscht."];
+            Flash::set('success', "Theme '{$name}' gelöscht.");
         } elseif ($name === $activeTheme) {
-            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Das aktive Theme kann nicht gelöscht werden.'];
+            Flash::set('danger', 'Das aktive Theme kann nicht gelöscht werden.');
         }
         header('Location: /admin/themes');
         exit;
@@ -71,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
                 [$name]
             );
-            $_SESSION['flash'] = ['type' => 'success', 'message' => "Theme '{$name}' aktiviert."];
+            Flash::set('success', "Theme '{$name}' aktiviert.");
         }
         header('Location: /admin/themes');
         exit;
@@ -91,19 +88,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $data = curl_exec($ch);
                 $code = (int) curl_getinfo($ch, \CURLINFO_HTTP_CODE);
                 if ($data === false || $code < 200 || $code >= 300 || strlen($data) < 100 || substr($data, 0, 2) !== 'PK') {
-                    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Download fehlgeschlagen oder ungültige ZIP-Datei.'];
+                    Flash::set('danger', 'Download fehlgeschlagen oder ungültige ZIP-Datei.');
                     header('Location: /admin/themes?tab=available'); exit;
                 }
                 file_put_contents($tmpFile, $data);
                 $result = packageInstallZip($tmpFile, 'theme');
                 @unlink($tmpFile);
-                $_SESSION['flash'] = is_string($result)
-                    ? ['type' => 'danger',  'message' => $result]
-                    : ['type' => 'success', 'message' => empty($result['_updated'])
+                if (is_string($result)) {
+                    Flash::set('danger', $result);
+                } else {
+                    Flash::set('success', empty($result['_updated'])
                         ? "Theme '{$result['name']}' v{$result['version']} installiert."
-                        : "Theme '{$result['name']}' auf v{$result['version']} aktualisiert."];
+                        : "Theme '{$result['name']}' auf v{$result['version']} aktualisiert.");
+                }
             } else {
-                $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Kein Release gefunden.'];
+                Flash::set('danger', 'Kein Release gefunden.');
             }
         }
         header('Location: /admin/themes?tab=available');
@@ -112,11 +111,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'upload_theme' && !empty($_FILES['theme_zip']['tmp_name'])) {
         $result = packageInstallZip($_FILES['theme_zip']['tmp_name'], 'theme');
-        $_SESSION['flash'] = is_string($result)
-            ? ['type' => 'danger',  'message' => $result]
-            : ['type' => 'success', 'message' => empty($result['_updated'])
+        if (is_string($result)) {
+            Flash::set('danger', $result);
+        } else {
+            Flash::set('success', empty($result['_updated'])
                 ? "Theme '{$result['name']}' v{$result['version']} installiert."
-                : "Theme '{$result['name']}' auf v{$result['version']}' aktualisiert."];
+                : "Theme '{$result['name']}' auf v{$result['version']}' aktualisiert.");
+        }
         header('Location: /admin/themes');
         exit;
     }
@@ -136,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
             }
         }
-        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Theme-Einstellungen gespeichert.'];
+        Flash::set('success', 'Theme-Einstellungen gespeichert.');
         header('Location: /admin/themes');
         exit;
     }
