@@ -4,6 +4,8 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.0-alpha] - 2026-06-22
+
 ### Added
 
 - **Eingebautes `[carousel]`-Widget**: Neue theme-unabhängige Komponente `\Esse\Ui::carousel()` (`core/Ui.php`, CSS in `public/vendor/esse-ui/esse-ui.css`, Navigation/Autoplay in `public/assets/js/esse-ui.js`) zeigt ausgewählte Mediathek-Bilder als Slideshow mit horizontalem Slide-Übergang — funktioniert in allen Themes ohne Bootstrap-JS-Abhängigkeit (reines CSS `transform`/Vanilla-JS). Registriert als Core-Shortcode `[carousel images="3,17,42" interval="5" height="md"]` (`core/CoreShortcodes.php`) mit wählbarer Höhe (Klein/Mittel/Groß/Volle Breite). Im „Widget einfügen"-Dialog gibt es dafür die neuen Attribut-Typen `'images'` und `'select'` (`public/assets/js/shortcode-picker.js`): ein Button öffnet wiederholt die Mediathek-Auswahl und sammelt Vorschau-Chips, ohne den bestehenden Mediathek-Picker zu verändern.
