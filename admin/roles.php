@@ -178,6 +178,9 @@ ob_start();
                             data-perm="<?= htmlspecialchars($perm['slug']) ?>"
                             title="<?= htmlspecialchars($perm['slug'] . ': ' . ($perm['description'] ?? '')) ?>">
                         <?= htmlspecialchars($perm['label'] ?? $perm['slug']) ?>
+                        <?php if ($perm['slug'] === 'php_upload'): ?>
+                        <i class="bi bi-exclamation-triangle-fill ms-1" title="Gefährlich"></i>
+                        <?php endif ?>
                     </button>
                     <?php endforeach ?>
                 </div>

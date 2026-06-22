@@ -2,14 +2,17 @@
 
 declare(strict_types=1);
 
-// Already installed?
-if (file_exists(__DIR__ . '/installed.lock')) {
+// Already installed? Lock-Datei ODER vorhandene config.php als zweites, unabhängiges
+// Gate — falls installed.lock je verloren geht (Backup, manuelles Aufräumen), bleibt
+// der Installer trotzdem gesperrt, solange schon eine Konfiguration existiert.
+$installedConfigFile = (defined('ESSE_PRIVATE_PATH') ? \ESSE_PRIVATE_PATH : dirname(__DIR__)) . '/config/config.php';
+if (file_exists(__DIR__ . '/installed.lock') || file_exists($installedConfigFile)) {
     http_response_code(403);
     echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>ESSE CMS</title>'
         . '<link rel="stylesheet" href="/public/vendor/bootstrap/css/bootstrap.min.css"></head>'
         . '<body class="d-flex align-items-center justify-content-center vh-100 bg-dark text-white">'
         . '<div class="text-center"><h1 class="display-4">Already installed.</h1>'
-        . '<p class="text-secondary">Delete <code>install/installed.lock</code> to reinstall.</p></div></body></html>';
+        . '<p class="text-secondary">Delete <code>install/installed.lock</code> and the existing <code>config.php</code> to reinstall.</p></div></body></html>';
     exit;
 }
 

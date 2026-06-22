@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use Esse\Auth;
 
-// Only Forge/Admin with manage_settings
-if (!Auth::meetsRole('forge') && !Auth::can('manage_settings')) {
+// Only Forge or users with manage_backups
+if (!Auth::meetsRole('forge') && !Auth::can('manage_backups')) {
     http_response_code(403); exit;
 }
 

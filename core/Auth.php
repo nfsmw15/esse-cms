@@ -21,6 +21,7 @@ class Auth
         'manage_themes'   => ['Themes verwalten',        'Themes installieren und wechseln'],
         'manage_repos'    => ['Repos verwalten',         'Plugin- und Theme-Repos hinzufügen und entfernen'],
         'manage_settings' => ['Einstellungen verwalten', 'Systemeinstellungen ändern'],
+        'manage_backups'  => ['Backups verwalten',       'Backups erstellen, herunterladen und löschen — enthält vollständigen DB-Dump inkl. Zugangsdaten'],
         'manage_content'  => ['Inhalte verwalten',       'Seiten, Menüs und Inhalte verwalten'],
         'manage_files'    => ['Dateien verwalten',       'Dateien hochladen und verwalten'],
         'view_logs'       => ['Logs einsehen',           'System- und Zugriffslogs anzeigen'],
@@ -181,6 +182,12 @@ class Auth
             if (self::can($permission)) return true;
         }
         return false;
+    }
+
+    // Re-Auth-Gate für sicherheitsrelevante Aktionen (E-Mail/Passwort ändern, Passkeys verwalten).
+    public static function verifyCurrentPassword(string $plain): bool
+    {
+        return self::$currentUser !== null && password_verify($plain, self::$currentUser['password']);
     }
 
     public static function syncDefaultPermissions(): void

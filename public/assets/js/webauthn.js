@@ -92,8 +92,8 @@
     }
 
     // Registrierungs-Ceremony: Passkey zum aktuellen Konto hinzufügen (von /profil aus).
-    async function register(csrfToken, label) {
-        const options  = await postJson('/admin/passkey/register-options', csrfToken, {});
+    async function register(csrfToken, label, confirmPassword) {
+        const options  = await postJson('/admin/passkey/register-options', csrfToken, { confirm_password: confirmPassword || '' });
         const publicKey = decodeOptions(options.publicKey);
 
         const credential = await navigator.credentials.create({ publicKey });

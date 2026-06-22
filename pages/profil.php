@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'totp_disable':
-            if (!password_verify((string) ($_POST['confirm_password'] ?? ''), Auth::user()['password'])) {
+            if (!Auth::verifyCurrentPassword((string) ($_POST['confirm_password'] ?? ''))) {
                 $errors[] = 'Passwort falsch.';
             } else {
                 DB::update($tu, [
@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'totp_regenerate_backup_codes':
-            if (!password_verify((string) ($_POST['confirm_password'] ?? ''), Auth::user()['password'])) {
+            if (!Auth::verifyCurrentPassword((string) ($_POST['confirm_password'] ?? ''))) {
                 $errors[] = 'Passwort falsch.';
             } else {
                 $plainCodes = TwoFactor::generateBackupCodes();
@@ -112,7 +112,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'passkey_rename':
             $credId = (int) ($_POST['credential_id'] ?? 0);
             $label  = trim($_POST['label'] ?? '');
-            if ($credId > 0 && $label !== '') {
+            if (!Auth::verifyCurrentPassword((string) ($_POST['confirm_password'] ?? ''))) {
+                $errors[] = 'Passwort falsch.';
+            } elseif ($credId > 0 && $label !== '') {
                 WebAuthn::renameCredential((int) Auth::id(), $credId, $label);
                 $flash = ['type' => 'success', 'message' => 'Passkey umbenannt.'];
             }
@@ -120,7 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         case 'passkey_remove':
             $credId = (int) ($_POST['credential_id'] ?? 0);
-            if ($credId > 0 && WebAuthn::removeCredential((int) Auth::id(), $credId)) {
+            if (!Auth::verifyCurrentPassword((string) ($_POST['confirm_password'] ?? ''))) {
+                $errors[] = 'Passwort falsch.';
+            } elseif ($credId > 0 && WebAuthn::removeCredential((int) Auth::id(), $credId)) {
                 $flash = ['type' => 'success', 'message' => 'Passkey entfernt.'];
                 AuditLog::record('passkey_removed', Auth::id(), Auth::user()['email'] ?? null);
             } else {
@@ -146,6 +150,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($errors)) {
                 $dup = DB::fetch("SELECT id FROM `{$tu}` WHERE email = ? AND id != ?", [$email, Auth::id()]);
                 if ($dup) $errors[] = 'Diese E-Mail-Adresse wird bereits verwendet.';
+            }
+
+            // E-Mail- oder Passwort-Änderung erfordert Bestätigung des aktuellen Passworts
+            if (empty($errors) && ($email !== (Auth::user()['email'] ?? null) || $password)) {
+                if (!Auth::verifyCurrentPassword((string) ($_POST['confirm_password'] ?? ''))) {
+                    $errors[] = 'Aktuelles Passwort ist falsch.';
+                }
             }
 
             $customFields = UserFields::forProfile();
@@ -227,6 +238,11 @@ $csrf         = Auth::csrfToken();
                 <label class="form-label">Passwort bestätigen</label>
                 <input type="password" name="password_confirm" class="form-control"
                        autocomplete="new-password">
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Aktuelles Passwort <small class="text-secondary">(zur Bestätigung bei E-Mail- oder Passwort-Änderung)</small></label>
+                <input type="password" name="confirm_password" class="form-control"
+                       autocomplete="current-password">
             </div>
             <button class="btn btn-primary">Speichern</button>
             <a href="/" class="btn btn-outline-secondary ms-2">Abbrechen</a>
@@ -378,19 +394,42 @@ $csrf         = Auth::csrfToken();
                                     <?php endif ?>
                                 </div>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#passkeyRemoveModal<?= (int) $pk['id'] ?>">
-                                Entfernen
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#passkeyRenameModal<?= (int) $pk['id'] ?>">
+                                    Umbenennen
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#passkeyRemoveModal<?= (int) $pk['id'] ?>">
+                                    Entfernen
+                                </button>
+                            </div>
                         </div>
-                        <form method="post" action="/profil" class="d-flex gap-2">
-                            <input type="hidden" name="_csrf" value="<?= $csrf ?>">
-                            <input type="hidden" name="_action" value="passkey_rename">
-                            <input type="hidden" name="credential_id" value="<?= (int) $pk['id'] ?>">
-                            <input type="text" name="label" class="form-control form-control-sm profile-label-input"
-                                   value="<?= htmlspecialchars($pk['label']) ?>" placeholder="Bezeichnung">
-                            <button class="btn btn-sm btn-outline-light">Umbenennen</button>
-                        </form>
                     </li>
+
+                    <div class="modal fade" id="passkeyRenameModal<?= (int) $pk['id'] ?>" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content bg-dark border-secondary">
+                                <form method="post" action="/profil">
+                                    <input type="hidden" name="_csrf" value="<?= $csrf ?>">
+                                    <input type="hidden" name="_action" value="passkey_rename">
+                                    <input type="hidden" name="credential_id" value="<?= (int) $pk['id'] ?>">
+                                    <div class="modal-header border-secondary">
+                                        <h5 class="modal-title">Passkey umbenennen</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <input type="text" name="label" class="form-control mb-2"
+                                               value="<?= htmlspecialchars($pk['label']) ?>" placeholder="Bezeichnung">
+                                        <p class="text-secondary small">Bitte bestätige dein Passwort.</p>
+                                        <input type="password" name="confirm_password" class="form-control" autocomplete="current-password" required>
+                                    </div>
+                                    <div class="modal-footer border-secondary">
+                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                                        <button class="btn btn-primary">Umbenennen</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="modal fade" id="passkeyRemoveModal<?= (int) $pk['id'] ?>" tabindex="-1">
                         <div class="modal-dialog">
@@ -404,10 +443,12 @@ $csrf         = Auth::csrfToken();
                                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                     </div>
                                     <div class="modal-body">
-                                        <p class="mb-0">
+                                        <p>
                                             „<?= htmlspecialchars($pk['label'] !== '' ? $pk['label'] : 'Passkey') ?>“ wirklich entfernen?
                                             Mit diesem Passkey ist danach keine Anmeldung mehr möglich.
                                         </p>
+                                        <p class="text-secondary small">Bitte bestätige dein Passwort.</p>
+                                        <input type="password" name="confirm_password" class="form-control" autocomplete="current-password" required>
                                     </div>
                                     <div class="modal-footer border-secondary">
                                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
@@ -423,10 +464,35 @@ $csrf         = Auth::csrfToken();
                 <p class="text-secondary small fst-italic">Noch keine Passkeys registriert.</p>
                 <?php endif ?>
 
-                <button type="button" id="passkey-add-btn" class="btn btn-primary btn-sm">
+                <button type="button" id="passkey-add-btn" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#passkeyAddModal">
                     <i class="bi bi-fingerprint me-1"></i>Passkey hinzufügen
                 </button>
                 <div class="text-danger small mt-2 d-none" id="passkey-add-error"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="passkeyAddModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Passkey hinzufügen</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Bezeichnung</label>
+                    <input type="text" id="passkey-add-label" class="form-control" placeholder="z.B. Laptop, YubiKey">
+                </div>
+                <div class="mb-0">
+                    <label class="form-label">Aktuelles Passwort</label>
+                    <input type="password" id="passkey-add-password" class="form-control" autocomplete="current-password" required>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" id="passkey-add-confirm" class="btn btn-primary">Weiter</button>
             </div>
         </div>
     </div>

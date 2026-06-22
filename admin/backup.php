@@ -7,7 +7,7 @@ use Esse\AuditLog;
 use Esse\Flash;
 use Esse\Updater;
 
-if (!Auth::meetsRole('forge') && !Auth::can('manage_settings')) {
+if (!Auth::meetsRole('forge') && !Auth::can('manage_backups')) {
     http_response_code(403); echo '403 Forbidden'; exit;
 }
 

@@ -153,6 +153,11 @@ Router::post('/admin/passkey/register-options', function () {
     header('Content-Type: application/json');
     if (!\Esse\Auth::check())      { http_response_code(403); echo json_encode(['error' => 'Nicht eingeloggt.']); return; }
     if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); echo json_encode(['error' => 'Ungültige Anfrage.']); return; }
+
+    $body = json_decode((string) file_get_contents('php://input'), true) ?: [];
+    if (!\Esse\Auth::verifyCurrentPassword((string) ($body['confirm_password'] ?? ''))) {
+        http_response_code(403); echo json_encode(['error' => 'Passwort falsch.']); return;
+    }
     try {
         echo json_encode(\Esse\WebAuthn::registrationOptions(\Esse\Auth::user()));
     } catch (\Throwable $e) {
