@@ -37,4 +37,20 @@ return [
         Assert::true($row !== null, 'Es sollte ein login_failed-Eintrag existieren');
         Assert::same(TEST_MEMBER_EMAIL, $row['email'] ?? null);
     },
+
+    'POST ohne gueltiges CSRF-Token wird als csrf_failed protokolliert' => function (Http $http) {
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+
+        $tl = DB::table('audit_log');
+        DB::query("DELETE FROM `{$tl}` WHERE event = 'csrf_failed'");
+
+        $http->post('/admin/backup', ['_csrf' => 'invalid-token', '_action' => 'create']);
+
+        $row = DB::fetch("SELECT * FROM `{$tl}` WHERE event = 'csrf_failed' ORDER BY id DESC LIMIT 1");
+        Assert::true($row !== null, 'Es sollte ein csrf_failed-Eintrag existieren');
+        $details = json_decode($row['details'] ?? '{}', true);
+        Assert::same('/admin/backup', $details['path'] ?? null);
+        Assert::same('POST', $details['method'] ?? null);
+        Assert::same('create', $details['_action'] ?? null);
+    },
 ];

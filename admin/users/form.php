@@ -177,11 +177,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Save per-user permissions for new user
                     $isForge = Auth::meetsRole('forge');
                     $tup = DB::table('user_permissions');
+                    $grantedPerms = [];
                     foreach ($_POST['user_permissions'] ?? [] as $slug) {
                         $slug = preg_replace('/[^a-z_]/', '', $slug);
                         if (!$slug || !array_key_exists($slug, Auth::PERMISSIONS)) continue;
                         if (!$isForge && in_array($slug, Auth::FORGE_ONLY_PERMISSIONS, true)) continue;
                         DB::insert($tup, ['user_id' => $newId, 'permission_slug' => $slug, 'granted' => 1]);
+                        $grantedPerms[] = $slug;
+                    }
+                    if ($grantedPerms) {
+                        sort($grantedPerms);
+                        AuditLog::record(
+                            'user_permissions_changed',
+                            Auth::id(),
+                            Auth::user()['email'] ?? null,
+                            ['target_user_id' => $newId, 'target_email' => $email, 'old_permissions' => [], 'new_permissions' => $grantedPerms]
+                        );
                     }
                 }
 

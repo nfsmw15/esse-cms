@@ -205,7 +205,10 @@ Router::post('/admin/passkey/auth-verify', function () {
     if (!is_array($credential)) { echo json_encode(['error' => 'Ungültige Antwort des Browsers.']); return; }
 
     $user = \Esse\WebAuthn::verifyPasswordlessAuth($credential);
-    if (!$user) { echo json_encode(['error' => 'Passkey-Anmeldung fehlgeschlagen.']); return; }
+    if (!$user) {
+        \Esse\AuditLog::record('passkey_login_failed', null, null, ['credential_id' => $credential['id'] ?? null]);
+        echo json_encode(['error' => 'Passkey-Anmeldung fehlgeschlagen.']); return;
+    }
 
     \Esse\Auth::login($user);
     \Esse\AuditLog::record('login_success', (int) $user['id'], $user['email']);

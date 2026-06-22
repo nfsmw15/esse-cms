@@ -93,11 +93,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try { (new $class())->uninstall(); } catch (\Throwable $e) {}
             }
         }
-        packageDeleteDir(ESSE_ROOT . '/plugins/' . $slug);
+        $pluginDir = ESSE_ROOT . '/plugins/' . $slug;
+        packageDeleteDir($pluginDir);
         $enabled = array_values(array_filter($enabled, fn($s) => $s !== $slug));
         saveEnabled($ts, $enabled);
-        AuditLog::record('plugin_uninstalled', Auth::id(), Auth::user()['email'] ?? null, ['plugin' => $slug]);
-        Flash::set('success', "Plugin '{$slug}' deinstalliert.");
+        if (is_dir($pluginDir)) {
+            AuditLog::record('plugin_uninstall_failed', Auth::id(), Auth::user()['email'] ?? null, ['plugin' => $slug]);
+            Flash::set('danger', "Plugin '{$slug}' konnte nicht vollständig entfernt werden.");
+        } else {
+            AuditLog::record('plugin_uninstalled', Auth::id(), Auth::user()['email'] ?? null, ['plugin' => $slug]);
+            Flash::set('success', "Plugin '{$slug}' deinstalliert.");
+        }
         header('Location: /admin/plugins');
         exit;
     }
@@ -152,6 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($data === false || $code < 200 || $code >= 300
                     || strlen($data) < 100 || substr($data, 0, 2) !== 'PK') {
+                    AuditLog::record('plugin_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['source' => 'repo', 'repo' => $fullName, 'reason' => 'download_failed']);
                     Flash::set('danger', 'Download fehlgeschlagen oder ungültige ZIP-Datei.');
                     header('Location: /admin/plugins?tab=available');
                     exit;
@@ -184,9 +191,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ? "Plugin '{$result['name']}' v{$result['version']} installiert."
                         : "Plugin '{$result['name']}' auf v{$result['version']} aktualisiert.");
                 } else {
+                    AuditLog::record('plugin_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['source' => 'repo', 'repo' => $fullName, 'reason' => $result]);
                     Flash::set('danger', $result);
                 }
             } else {
+                AuditLog::record('plugin_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['source' => 'repo', 'repo' => $fullName, 'reason' => 'no_release']);
                 Flash::set('danger', 'Kein Release gefunden.');
             }
         }
@@ -221,6 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ? "Plugin '{$result['name']}' v{$result['version']} installiert."
                 : "Plugin '{$result['name']}' auf v{$result['version']} aktualisiert.");
         } else {
+            AuditLog::record('plugin_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['source' => 'upload', 'reason' => $result]);
             Flash::set('danger', $result);
         }
         header('Location: /admin/plugins');

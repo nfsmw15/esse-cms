@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 use Esse\Flash;
 use Esse\GitHubApi;
@@ -51,8 +52,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         $name = $_POST['theme_name'] ?? '';
         if (isset($themes[$name]) && $name !== $activeTheme) {
-            packageDeleteDir(ESSE_ROOT . '/themes/' . $name);
-            Flash::set('success', "Theme '{$name}' gelöscht.");
+            $themeDir = ESSE_ROOT . '/themes/' . $name;
+            packageDeleteDir($themeDir);
+            if (is_dir($themeDir)) {
+                AuditLog::record('theme_delete_failed', Auth::id(), Auth::user()['email'] ?? null, ['theme' => $name]);
+                Flash::set('danger', "Theme '{$name}' konnte nicht vollständig entfernt werden.");
+            } else {
+                AuditLog::record('theme_deleted', Auth::id(), Auth::user()['email'] ?? null, ['theme' => $name]);
+                Flash::set('success', "Theme '{$name}' gelöscht.");
+            }
         } elseif ($name === $activeTheme) {
             Flash::set('danger', 'Das aktive Theme kann nicht gelöscht werden.');
         }
@@ -88,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $data = curl_exec($ch);
                 $code = (int) curl_getinfo($ch, \CURLINFO_HTTP_CODE);
                 if ($data === false || $code < 200 || $code >= 300 || strlen($data) < 100 || substr($data, 0, 2) !== 'PK') {
+                    AuditLog::record('theme_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['source' => 'repo', 'repo' => $fullName, 'reason' => 'download_failed']);
                     Flash::set('danger', 'Download fehlgeschlagen oder ungültige ZIP-Datei.');
                     header('Location: /admin/themes?tab=available'); exit;
                 }
@@ -95,13 +104,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $result = packageInstallZip($tmpFile, 'theme');
                 @unlink($tmpFile);
                 if (is_string($result)) {
+                    AuditLog::record('theme_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['source' => 'repo', 'repo' => $fullName, 'reason' => $result]);
                     Flash::set('danger', $result);
                 } else {
+                    AuditLog::record('theme_installed', Auth::id(), Auth::user()['email'] ?? null, ['theme' => $result['name'], 'version' => $result['version'], 'source' => 'repo']);
                     Flash::set('success', empty($result['_updated'])
                         ? "Theme '{$result['name']}' v{$result['version']} installiert."
                         : "Theme '{$result['name']}' auf v{$result['version']} aktualisiert.");
                 }
             } else {
+                AuditLog::record('theme_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['source' => 'repo', 'repo' => $fullName, 'reason' => 'no_release']);
                 Flash::set('danger', 'Kein Release gefunden.');
             }
         }
@@ -112,8 +124,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'upload_theme' && !empty($_FILES['theme_zip']['tmp_name'])) {
         $result = packageInstallZip($_FILES['theme_zip']['tmp_name'], 'theme');
         if (is_string($result)) {
+            AuditLog::record('theme_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['source' => 'upload', 'reason' => $result]);
             Flash::set('danger', $result);
         } else {
+            AuditLog::record('theme_installed', Auth::id(), Auth::user()['email'] ?? null, ['theme' => $result['name'], 'version' => $result['version'], 'source' => 'upload']);
             Flash::set('success', empty($result['_updated'])
                 ? "Theme '{$result['name']}' v{$result['version']} installiert."
                 : "Theme '{$result['name']}' auf v{$result['version']}' aktualisiert.");

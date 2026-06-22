@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 use Esse\Flash;
 use Esse\PageVisibility;
@@ -52,6 +53,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $ts = DB::table('settings');
 
+        // Login-/Logout-Ziel sind sicherheitsrelevant (bestimmen, wohin nach Anmeldung/Abmeldung
+        // geleitet wird) — Alt-Wert vorher festhalten, um nur echte Änderungen zu protokollieren.
+        $securityKeys = ['login_homepage_slug', 'logout_page_slug'];
+        $before = array_column(
+            DB::fetchAll("SELECT `key`, `value` FROM `{$ts}` WHERE `key` IN ('" . implode("','", $securityKeys) . "')"),
+            'value', 'key'
+        );
+
         foreach ($allowed as $key) {
             if (in_array($key, $targets, true)) {
                 DB::query(
@@ -63,6 +72,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Only clear if currently pointing to this slug
                 DB::query("UPDATE `{$ts}` SET `value` = '' WHERE `key` = ? AND `value` = ?", [$key, $slug]);
             }
+        }
+
+        $changes = [];
+        foreach ($securityKeys as $key) {
+            $old = $before[$key] ?? '';
+            $new = in_array($key, $targets, true) ? $slug : ($old === $slug ? '' : $old);
+            if ($old !== $new) $changes[$key] = ['old' => $old, 'new' => $new];
+        }
+        if ($changes) {
+            AuditLog::record('settings_changed', Auth::id(), Auth::user()['email'] ?? null, $changes);
         }
 
         echo json_encode(['success' => true, 'assigned' => $targets]); exit;

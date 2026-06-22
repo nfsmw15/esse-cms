@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         // Sicherheitsrelevante Änderungen erfassen, bevor die neuen Werte geschrieben werden
         $changes = [];
-        foreach (['registration_enabled', 'audit_log_retention_days'] as $key) {
+        foreach (['registration_enabled', 'audit_log_retention_days', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_encryption', 'smtp_from'] as $key) {
             $old = $settings[$key] ?? null;
             if ($old !== $save[$key]) {
                 $changes[$key] = ['old' => $old, 'new' => $save[$key]];

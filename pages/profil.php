@@ -48,11 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $secret = Totp::generateSecret();
             $_SESSION['totp_setup'] = ['secret' => $secret, 'at' => time()];
             $totpSetup = $_SESSION['totp_setup'];
+            AuditLog::record('totp_setup_started', Auth::id(), Auth::user()['email'] ?? null);
             break;
 
         case 'totp_setup_cancel':
             unset($_SESSION['totp_setup']);
             $totpSetup = null;
+            AuditLog::record('totp_setup_cancelled', Auth::id(), Auth::user()['email'] ?? null);
             break;
 
         case 'totp_setup_confirm':

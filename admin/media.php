@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\Flash;
 use Esse\Media;
 
@@ -50,15 +51,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
         if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+            AuditLog::record('file_upload_rejected', Auth::id(), Auth::user()['email'] ?? null, ['reason' => 'upload_error', 'filename' => $file['name'] ?? null]);
             Flash::set('danger', 'Upload fehlgeschlagen.');
         } elseif (!isset($allowedExt[$ext])) {
+            AuditLog::record('file_upload_rejected', Auth::id(), Auth::user()['email'] ?? null, ['reason' => 'extension', 'filename' => $file['name'], 'extension' => $ext]);
             Flash::set('danger', 'Dateityp nicht erlaubt. Erlaubt: ' . implode(', ', array_keys($allowedExt)));
         } elseif ($file['size'] > 10 * 1024 * 1024) {
+            AuditLog::record('file_upload_rejected', Auth::id(), Auth::user()['email'] ?? null, ['reason' => 'size', 'filename' => $file['name'], 'size' => $file['size']]);
             Flash::set('danger', 'Datei zu groß (max. 10 MB).');
         } else {
             $mime = mime_content_type($file['tmp_name']) ?: '';
 
             if ($allowedExt[$ext] === 'image' && (!str_starts_with($mime, 'image/') || @getimagesize($file['tmp_name']) === false)) {
+                AuditLog::record('file_upload_rejected', Auth::id(), Auth::user()['email'] ?? null, ['reason' => 'image_invalid', 'filename' => $file['name'], 'mime_type' => $mime]);
                 Flash::set('danger', 'Ungültige Bilddatei.');
             } else {
                 $uploadDir = ESSE_ROOT . '/public/uploads/';
@@ -73,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (move_uploaded_file($file['tmp_name'], $dest)) {
                     $visibility = ($_POST['visibility'] ?? 'public') === 'private' ? 'private' : 'public';
                     $uploadFolderId = ($_POST['folder_id'] ?? '') !== '' ? (int) $_POST['folder_id'] : null;
-                    Media::register('/public/uploads/' . $fileName, [
+                    $mediaId = Media::register('/public/uploads/' . $fileName, [
                         'filename'    => $file['name'],
                         'mime_type'   => $mime,
                         'type'        => $allowedExt[$ext],
@@ -82,6 +87,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'uploaded_by' => Auth::id(),
                         'source'      => 'media',
                         'folder_id'   => $uploadFolderId,
+                    ]);
+                    AuditLog::record('media_uploaded', Auth::id(), Auth::user()['email'] ?? null, [
+                        'media_id'   => $mediaId,
+                        'path'       => '/public/uploads/' . $fileName,
+                        'filename'   => $file['name'],
+                        'mime_type'  => $mime,
+                        'size'       => $file['size'],
+                        'visibility' => $visibility,
                     ]);
                     Flash::set('success', 'Datei hochgeladen.');
                 } else {
@@ -96,12 +109,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update') {
         $id = (int) ($_POST['id'] ?? 0);
         $folderId = ($_POST['folder_id'] ?? '') !== '' ? (int) $_POST['folder_id'] : null;
+        $newVisibility = ($_POST['visibility'] ?? 'public') === 'private' ? 'private' : 'public';
+
+        $before = Media::find($id);
+
         Media::update($id, [
             'alt_text'    => trim($_POST['alt_text'] ?? ''),
             'description' => trim($_POST['description'] ?? ''),
-            'visibility'  => ($_POST['visibility'] ?? 'public') === 'private' ? 'private' : 'public',
+            'visibility'  => $newVisibility,
             'folder_id'   => $folderId,
         ]);
+
+        if ($before && $before['visibility'] !== $newVisibility) {
+            AuditLog::record('media_visibility_changed', Auth::id(), Auth::user()['email'] ?? null, [
+                'media_id' => $id,
+                'path'     => $before['path'],
+                'filename' => $before['filename'],
+                'old'      => $before['visibility'],
+                'new'      => $newVisibility,
+            ]);
+        }
+
         Flash::set('success', 'Datei aktualisiert.');
         header('Location: /admin/media' . $returnQuery);
         exit;

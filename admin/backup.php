@@ -26,6 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'create') {
         try {
             $path = Updater::createBackup(fn() => null, 'manual');
+            AuditLog::record('backup_created', Auth::id(), Auth::user()['email'] ?? null, [
+                'file' => basename($path), 'size' => @filesize($path) ?: null,
+            ]);
             Flash::set('success', 'Backup erstellt: ' . basename($path));
         } catch (\Throwable $e) {
             Flash::set('danger', 'Backup fehlgeschlagen: ' . $e->getMessage());
@@ -40,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $path = $backupDir . '/' . $file;
         if ($file && file_exists($path) && str_ends_with($file, '.zip')) {
             unlink($path);
+            AuditLog::record('backup_deleted', Auth::id(), Auth::user()['email'] ?? null, ['file' => $file]);
             Flash::set('success', "Backup '{$file}' gelöscht.");
         }
         header('Location: /admin/backup');

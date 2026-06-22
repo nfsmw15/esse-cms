@@ -4,6 +4,12 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.4-alpha] - 2026-06-22
+
+### Security
+
+- **Audit-Log um sicherheitsrelevante Ereignisse erweitert**: `csrf_failed` wird jetzt zentral in `Auth::verifyCsrf()` protokolliert (mit `path`, `method`, optionalem `_action`) — deckt damit automatisch alle ~34 Stellen im Projekt ab, die diese Methode aufrufen, statt jede einzeln nachzuziehen. Neu außerdem: `media_uploaded`/`media_deleted`/`media_delete_failed`/`media_visibility_changed` (`core/Media.php`, `admin/files-upload.php`, `admin/media.php`), `file_upload_rejected` mit Ablehnungsgrund (Extension/MIME/Größe/Bildprüfung), `update_prepare`, `backup_created`/`backup_deleted`, `plugin_install_failed`/`plugin_uninstall_failed`, `theme_installed`/`theme_install_failed`/`theme_deleted`/`theme_delete_failed` (Theme-Erfolgsereignisse fehlten bisher komplett — Plugins hatten sie schon), `rate_limit_locked` (Passwort-Reset, ergänzt die bestehenden `login_locked`/`2fa_locked`), `password_reset_invalid_token`, `passkey_login_failed`, `totp_setup_started`/`totp_setup_cancelled`. Bestehendes `settings_changed` deckt jetzt auch SMTP-Host/-User/-Port/-Verschlüsselung/-Absender sowie Login-/Logout-Zielseite ab (`admin/settings.php`, `admin/pages/list.php`) — vorher nur `registration_enabled`, `audit_log_retention_days`, `smtp_pass` und `github_token`. `user_permissions_changed` greift jetzt auch beim Anlegen eines neuen Nutzers mit initialen Berechtigungen, nicht nur beim nachträglichen Bearbeiten. Keine Passwörter, Tokens, Reset-Links, TOTP-Secrets oder SMTP-Passwörter werden dabei protokolliert — nur Metadaten (Dateiname, Pfad, Größe, Grund, alt/neu-Werte).
+
 ## [0.8.3-alpha] - 2026-06-22
 
 ### Fixed

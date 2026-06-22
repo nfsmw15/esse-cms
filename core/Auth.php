@@ -285,6 +285,16 @@ class Auth
     public static function verifyCsrf(): bool
     {
         $token = $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-        return isset($_SESSION['esse_csrf']) && hash_equals($_SESSION['esse_csrf'], $token);
+        $ok    = isset($_SESSION['esse_csrf']) && hash_equals($_SESSION['esse_csrf'], $token);
+
+        if (!$ok) {
+            AuditLog::record('csrf_failed', self::id(), self::user()['email'] ?? null, [
+                'path'    => $_SERVER['REQUEST_URI']    ?? null,
+                'method'  => $_SERVER['REQUEST_METHOD'] ?? null,
+                '_action' => $_POST['_action']          ?? null,
+            ]);
+        }
+
+        return $ok;
     }
 }

@@ -158,13 +158,24 @@ class Media
 
         // Versteckte Dateien (z.B. .htaccess, .gitkeep) nie vom Server loeschen,
         // nur den fehlerhaften Mediathek-Eintrag entfernen.
+        $fileRemains = false;
         if (!str_starts_with(basename($media['path']), '.')) {
             $base = realpath(ESSE_ROOT . '/public/uploads');
             $file = realpath(ESSE_ROOT . $media['path']);
             if ($base && $file && str_starts_with($file, $base . DIRECTORY_SEPARATOR) && is_file($file)) {
                 @unlink($file);
+                clearstatcache(true, $file);
+                $fileRemains = is_file($file);
             }
         }
+
+        $details = ['media_id' => $id, 'path' => $media['path'], 'filename' => $media['filename']];
+        AuditLog::record(
+            $fileRemains ? 'media_delete_failed' : 'media_deleted',
+            Auth::id(),
+            Auth::user()['email'] ?? null,
+            $details
+        );
 
         return true;
     }

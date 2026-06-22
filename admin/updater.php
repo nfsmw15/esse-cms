@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'prep
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
     $token = bin2hex(random_bytes(16));
     $_SESSION['update_run_token'] = $token;
+    AuditLog::record('update_prepare', Auth::id(), Auth::user()['email'] ?? null);
     header('Content-Type: application/json');
     echo json_encode(['token' => $token]);
     exit;

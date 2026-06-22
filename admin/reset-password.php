@@ -22,7 +22,12 @@ $reset   = $token ? DB::fetch("SELECT * FROM `{$tr}` WHERE token = ?", [$token])
 $expired = $reset && (strtotime($reset['created_at']) < time() - 3600);
 $valid   = $reset && !$expired;
 
+if ($token && !$reset) {
+    AuditLog::record('password_reset_invalid_token', null, null, ['reason' => 'not_found']);
+}
+
 if ($reset && $expired) {
+    AuditLog::record('password_reset_invalid_token', null, $reset['email'], ['reason' => 'expired']);
     DB::delete($tr, ['token' => $token]);
     $reset = null;
 }

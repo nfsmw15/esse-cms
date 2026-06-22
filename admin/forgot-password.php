@@ -28,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $honeypot = trim($_POST[Captcha::HONEYPOT_FIELD] ?? '');
 
     if (RateLimit::tooMany($rateLimitBucket, 3, 900)) {
+        AuditLog::record('rate_limit_locked', null, $email ?: null, ['bucket' => 'password_reset']);
         $errors[] = 'Zu viele Anfragen. Bitte warte einige Minuten.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Bitte eine gültige E-Mail-Adresse eingeben.';
