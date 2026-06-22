@@ -4,6 +4,18 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.6-alpha] - 2026-06-22
+
+### Fixed
+
+- **`/admin/plugins` lieferte auf frischen Installationen HTTP 500**: Die Seite fragt die Tabelle `plugin_repos` ab (individuelle GitHub-Repo-Kanäle), die nirgends per `CREATE TABLE` angelegt wurde — existierte nur auf bereits länger laufenden Instanzen als Altlast. Tabelle jetzt in `Schema.php` definiert und über eine Lazy-Migration in `Auth::syncDefaultPermissions()` für Bestandsinstallationen nachgezogen (gleiches Muster wie `Media::migrateDb()`).
+
+### Security
+
+- **ZIP-Upload für Plugins/Themes zu breit erlaubt**: Ein Admin mit `manage_plugins`/`manage_themes` konnte beliebige ZIP-Dateien hochladen und damit PHP-Code direkt installieren. Direct-Upload ist jetzt auf `forge` beschränkt (`admin/plugins/index.php`, `admin/themes/index.php`) — Installation aus Repo-Kanälen bleibt für diese Admins weiterhin möglich.
+- **Forge konnte sich selbst zu Admin herabstufen**: Risiko von Selbst-Lockout bzw. Verlust des letzten Forge-Accounts. Selbst-Herabstufung ist jetzt blockiert, wenn kein anderer aktiver Forge-Account existiert, und erfordert sonst eine explizite Bestätigung (gleiches Muster wie die bestehende Forge-Beförderungs-Bestätigung).
+- **Plugin/Theme-ZIP ohne Entpack-Limits**: `packageInstallZip()` prüft jetzt ZIP-Größe, Dateianzahl, Einzeldatei- und Gesamt-Entpackgröße vorab anhand der Central-Directory-Metadaten (vor dem Dekomprimieren) und überspringt Symlink-Einträge — schützt vor Zip-Bomben und übergroßen Paketen. Zusätzlich `CURLOPT_MAXFILESIZE` beim Repo-Download als zweite Verteidigungslinie.
+
 ## [0.8.5-alpha] - 2026-06-22
 
 ### Security

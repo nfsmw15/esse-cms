@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $dir = dirname($tmpFile);
                 if (!is_dir($dir)) mkdir($dir, 0750, true);
                 $ch = curl_init($release['download_url']);
-                curl_setopt_array($ch, [\CURLOPT_RETURNTRANSFER => true, \CURLOPT_FOLLOWLOCATION => true, \CURLOPT_TIMEOUT => 30, \CURLOPT_USERAGENT => 'ESSE-CMS/' . \ESSE_VERSION, \CURLOPT_FAILONERROR => true]);
+                curl_setopt_array($ch, [\CURLOPT_RETURNTRANSFER => true, \CURLOPT_FOLLOWLOCATION => true, \CURLOPT_TIMEOUT => 30, \CURLOPT_USERAGENT => 'ESSE-CMS/' . \ESSE_VERSION, \CURLOPT_FAILONERROR => true, \CURLOPT_MAXFILESIZE => 50 * 1024 * 1024]);
                 $data = curl_exec($ch);
                 $code = (int) curl_getinfo($ch, \CURLINFO_HTTP_CODE);
                 if ($data === false || $code < 200 || $code >= 300 || strlen($data) < 100 || substr($data, 0, 2) !== 'PK') {
@@ -121,7 +121,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // ZIP upload — Direct-Upload eines beliebigen ZIPs ist riskanter als Installation aus einem
+    // geprüften Repo-Kanal, daher zusätzlich auf Forge beschränkt (manage_themes reicht hier nicht).
     if ($action === 'upload_theme' && !empty($_FILES['theme_zip']['tmp_name'])) {
+        if (!Auth::meetsRole('forge')) {
+            AuditLog::record('theme_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['source' => 'upload', 'reason' => 'forbidden_role']);
+            http_response_code(403); echo '403 Forbidden'; exit;
+        }
         $result = packageInstallZip($_FILES['theme_zip']['tmp_name'], 'theme');
         if (is_string($result)) {
             AuditLog::record('theme_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['source' => 'upload', 'reason' => $result]);
@@ -342,7 +348,8 @@ if (!$available) {
 </div>
 <?php endforeach ?>
 </div>
-<!-- Theme ZIP Upload -->
+<!-- Theme ZIP Upload — nur Forge, Installation aus Repo-Kanälen bleibt für manage_themes-Admins -->
+<?php if (Auth::meetsRole('forge')): ?>
 <div class="card mt-4">
     <div class="card-header py-2"><small class="text-secondary">Theme installieren</small></div>
     <div class="card-body">
@@ -360,6 +367,7 @@ if (!$available) {
         </form>
     </div>
 </div>
+<?php endif ?>
 <?php endif /* tab check */ ?>
 <?php
 $content = ob_get_clean();

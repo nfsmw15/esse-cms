@@ -59,6 +59,16 @@ class Schema
                 FOREIGN KEY (`user_id`) REFERENCES `{$p}users`(`id`) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+            "CREATE TABLE IF NOT EXISTS `{$p}plugin_repos` (
+                `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `owner`      VARCHAR(100) NOT NULL,
+                `label`      VARCHAR(255) NOT NULL,
+                `trusted`    TINYINT(1)   NOT NULL DEFAULT 0,
+                `active`     TINYINT(1)   NOT NULL DEFAULT 1,
+                `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY `uq_owner` (`owner`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
             "CREATE TABLE IF NOT EXISTS `{$p}pages` (
                 `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `slug`       VARCHAR(255) NOT NULL,

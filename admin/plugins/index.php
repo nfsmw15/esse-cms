@@ -152,6 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     \CURLOPT_TIMEOUT        => 30,
                     \CURLOPT_USERAGENT      => 'ESSE-CMS/' . \ESSE_VERSION,
                     \CURLOPT_FAILONERROR    => true,
+                    \CURLOPT_MAXFILESIZE    => 50 * 1024 * 1024, // gleiche Grenze wie packageInstallZip()
                 ]);
                 $data = curl_exec($ch);
                 $code = (int) curl_getinfo($ch, \CURLINFO_HTTP_CODE);
@@ -203,8 +204,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // ZIP upload
+    // ZIP upload — Direct-Upload eines beliebigen ZIPs ist riskanter als Installation aus einem
+    // geprüften Repo-Kanal, daher zusätzlich auf Forge beschränkt (manage_plugins reicht hier nicht).
     if ($action === 'upload' && !empty($_FILES['plugin_zip']['tmp_name'])) {
+        if (!Auth::meetsRole('forge')) {
+            AuditLog::record('plugin_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['source' => 'upload', 'reason' => 'forbidden_role']);
+            http_response_code(403); echo '403 Forbidden'; exit;
+        }
         $result = packageInstallZip($_FILES['plugin_zip']['tmp_name'], 'plugin');
         if (!is_string($result)) {
             $isNew = empty($result['_updated']);
@@ -493,7 +499,8 @@ foreach ($plugins as $p) {
 <?php else: ?>
 <!-- ── INSTALLED TAB ── -->
 
-<!-- ZIP Upload -->
+<!-- ZIP Upload — nur Forge, Installation aus Repo-Kanälen bleibt für manage_plugins-Admins -->
+<?php if (Auth::meetsRole('forge')): ?>
 <div class="card mb-4">
     <div class="card-header py-2"><small class="text-secondary">Plugin installieren</small></div>
     <div class="card-body">
@@ -510,6 +517,7 @@ foreach ($plugins as $p) {
         </form>
     </div>
 </div>
+<?php endif ?>
 
 <!-- Plugin list -->
 <?php if ($plugins): ?>

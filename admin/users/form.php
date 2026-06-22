@@ -41,6 +41,7 @@ if ($isEdit) {
         http_response_code(403); echo '403 Forbidden'; exit;
     }
 }
+$originalRole = $user['role'] ?? null;
 
 // -- POST handling --
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -85,6 +86,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($role === 'forge' && (!$isEdit || $user['role'] !== 'forge')) {
             if (($_POST['forge_confirmed'] ?? '') !== '1') {
                 $errors[] = '__forge_confirm__';
+            }
+        }
+
+        // Selbst-Herabstufung von Forge: nur möglich, wenn noch ein anderer aktiver Forge
+        // existiert (sonst Lockout-Risiko), und nur nach expliziter Bestätigung.
+        if ($isEdit && $userId === Auth::id() && $originalRole === 'forge' && $role !== 'forge') {
+            $otherForgeCount = (int) DB::value(
+                "SELECT COUNT(*) FROM `{$tu}` WHERE role = 'forge' AND active = 1 AND id != ?",
+                [Auth::id()]
+            );
+            if ($otherForgeCount < 1) {
+                $errors[] = 'Du bist der einzige aktive Forge-Account — eine Herabstufung ist nicht möglich.';
+            } elseif (($_POST['forge_demote_confirmed'] ?? '') !== '1') {
+                $errors[] = '__forge_demote_confirm__';
             }
         }
 
@@ -213,8 +228,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$showForgeWarning = in_array('__forge_confirm__', $errors);
-$errors = array_filter($errors, fn($e) => $e !== '__forge_confirm__');
+$showForgeWarning       = in_array('__forge_confirm__', $errors);
+$showForgeDemoteWarning = in_array('__forge_demote_confirm__', $errors);
+$errors = array_filter($errors, fn($e) => $e !== '__forge_confirm__' && $e !== '__forge_demote_confirm__');
 
 $customFields = UserFields::all();
 $customValues = $isEdit ? UserFields::valuesForUser($userId) : [];
@@ -259,6 +275,30 @@ ob_start();
             <button class="btn btn-warning btn-sm">Ja, Forge-Rechte vergeben</button>
             <a href="/admin/users<?= $isEdit ? '/edit/'.$userId : '/create' ?>"
                class="btn btn-outline-secondary btn-sm">Abbrechen</a>
+        </div>
+    </form>
+</div>
+<?php endif ?>
+
+<?php if ($showForgeDemoteWarning): ?>
+<div class="alert alert-warning border border-warning">
+    <h6 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Achtung: eigene Forge-Rechte abgeben</h6>
+    <p class="mb-2">
+        Du entfernst gerade deine eigene <strong>Forge</strong>-Rolle. Danach kannst du dich selbst nicht mehr
+        zurück zu Forge befördern — das muss ein anderer Forge-Account für dich erledigen.
+    </p>
+    <form method="post">
+        <input type="hidden" name="_csrf"            value="<?= Auth::csrfToken() ?>">
+        <input type="hidden" name="_action"          value="save">
+        <input type="hidden" name="display_name"     value="<?= htmlspecialchars($_POST['display_name'] ?? '') ?>">
+        <input type="hidden" name="email"            value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+        <input type="hidden" name="role"             value="<?= htmlspecialchars($_POST['role'] ?? '') ?>">
+        <input type="hidden" name="password"         value="<?= htmlspecialchars($_POST['password'] ?? '') ?>">
+        <input type="hidden" name="password_confirm" value="<?= htmlspecialchars($_POST['password_confirm'] ?? '') ?>">
+        <input type="hidden" name="forge_demote_confirmed" value="1">
+        <div class="d-flex gap-2">
+            <button class="btn btn-warning btn-sm">Ja, eigene Forge-Rechte abgeben</button>
+            <a href="/admin/users/edit/<?= $userId ?>" class="btn btn-outline-secondary btn-sm">Abbrechen</a>
         </div>
     </form>
 </div>

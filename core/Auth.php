@@ -223,6 +223,14 @@ class Auth
                 DB::query("ALTER TABLE `{$tu}` MODIFY COLUMN `role` VARCHAR(50) NOT NULL DEFAULT 'member'");
             }
 
+            // plugin_repos-Tabelle nachziehen (individuelle GitHub-Repo-Kanäle für Plugins).
+            $p = defined('ESSE_DB_PREFIX') ? \ESSE_DB_PREFIX : 'esse_';
+            foreach (Schema::tables($p) as $sql) {
+                if (str_contains($sql, '`' . $p . 'plugin_repos`')) {
+                    DB::query($sql);
+                }
+            }
+
             foreach (self::PERMISSIONS as $slug => [$label, $description]) {
                 DB::query(
                     "INSERT INTO `{$tp}` (slug, label, description) VALUES (?, ?, ?)
