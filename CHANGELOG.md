@@ -4,6 +4,10 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`admin/.htaccess` sperrte den gesamten Adminbereich statt nur Direktzugriffe**: Die in 0.8.0-alpha eingeführte `admin/.htaccess` (`Require all denied`) wirkt auf Apache-Ebene pfadbasiert auf das ganze `admin/`-Verzeichnis — *bevor* die Rewrite-Regel der Root-`.htaccess` auf `index.php` greift. Da der komplette Adminbereich über erweiterungslose, geroutete URLs wie `/admin/login` läuft (nicht über die literalen `.php`-Dateien), sperrte das den gesamten Adminbereich aus (403 „Access Denied"), nicht nur Direktaufrufe wie `/admin/login.php`. Ersetzt durch ein auf `.php`/`.phtml`/etc. beschränktes `<FilesMatch>` (gleiches, bereits bewährtes Muster wie `public/uploads/.htaccess` und `themes/.htaccess`) — lässt geroutete URLs durch, blockt aber weiterhin literale Direktaufrufe.
+
 ## [0.8.0-alpha] - 2026-06-22
 
 ### Added
