@@ -19,6 +19,12 @@ class CoreShortcodes
             'attributes'  => [
                 ['name' => 'images',   'label' => 'Bilder',                   'type' => 'images', 'default' => ''],
                 ['name' => 'interval', 'label' => 'Intervall (Sek., 0 = aus)', 'type' => 'number', 'default' => 5],
+                ['name' => 'height',   'label' => 'Höhe',                     'type' => 'select',  'default' => 'md', 'options' => [
+                    ['value' => 'sm',   'label' => 'Klein (220px)'],
+                    ['value' => 'md',   'label' => 'Mittel (400px)'],
+                    ['value' => 'lg',   'label' => 'Groß (560px)'],
+                    ['value' => 'full', 'label' => 'Volle Breite (16:9)'],
+                ]],
             ],
         ]);
     }
@@ -36,8 +42,13 @@ class CoreShortcodes
         }
         if (!$slides) return '';
 
-        $intervalSec = max(0, (int) ($attrs['interval'] ?? 5));
+        $intervalSec     = max(0, (int) ($attrs['interval'] ?? 5));
+        $requestedHeight = $attrs['height'] ?? 'md';
+        $height          = in_array($requestedHeight, ['sm', 'md', 'lg', 'full'], true) ? $requestedHeight : 'md';
 
-        return Ui::carousel($slides, ['interval' => $intervalSec > 0 ? $intervalSec * 1000 : 0]);
+        return Ui::carousel($slides, [
+            'interval' => $intervalSec > 0 ? $intervalSec * 1000 : 0,
+            'height'   => $height,
+        ]);
     }
 }

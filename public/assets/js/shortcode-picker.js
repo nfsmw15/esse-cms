@@ -72,6 +72,19 @@
                         + '</div>';
                 }
 
+                if (attr.type === 'select') {
+                    const options = Array.isArray(attr.options) ? attr.options : [];
+                    const optionsHtml = options.map(opt =>
+                        '<option value="' + escapeAttr(opt.value) + '"' + (opt.value === attr.default ? ' selected' : '') + '>'
+                        + escapeHtml(opt.label || opt.value) + '</option>'
+                    ).join('');
+                    return '<div class="col-auto">'
+                        + '<label for="' + id + '" class="form-label small mb-1">' + escapeHtml(attr.label || attr.name) + '</label>'
+                        + '<select class="form-select form-select-sm" id="' + id + '" data-attr="' + escapeAttr(attr.name) + '">'
+                        + optionsHtml + '</select>'
+                        + '</div>';
+                }
+
                 const type = attr.type === 'number' ? 'number' : 'text';
                 return '<div class="col-auto">'
                     + '<label for="' + id + '" class="form-label small mb-1">' + escapeHtml(attr.label || attr.name) + '</label>'

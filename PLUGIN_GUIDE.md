@@ -310,7 +310,7 @@ public function boot(): void
   - `description` (string, optional) — Kurzbeschreibung
   - `icon` (string, optional) — derzeit nur informativ, nicht im Picker dargestellt
   - `attributes` (array, optional) — Liste der einstellbaren Parameter, je mit
-    `name`, `label`, `type` (`'text'`, `'number'` oder `'images'`) und `default`
+    `name`, `label`, `type` (`'text'`, `'number'`, `'images'` oder `'select'`) und `default`
 
 Beim Typ `'images'` zeigt der „Widget einfügen"-Dialog statt eines Texteingabefelds eine
 Mediathek-Auswahl mit Vorschau-Chips (Button „Bild hinzufügen" öffnet wiederholt den
@@ -327,9 +327,20 @@ foreach ($ids as $id) {
 }
 ```
 
+Beim Typ `'select'` zeigt der Dialog ein Dropdown statt eines Texteingabefelds. Zusätzlich zu
+`name`, `label`, `default` wird `options` erwartet — ein Array aus `['value' => ..., 'label' => ...]`:
+
+```php
+['name' => 'height', 'label' => 'Höhe', 'type' => 'select', 'default' => 'md', 'options' => [
+    ['value' => 'sm', 'label' => 'Klein'],
+    ['value' => 'md', 'label' => 'Mittel'],
+]]
+```
+
 Das Core-CMS registriert selbst ein `[carousel]`-Widget (`core/CoreShortcodes.php`) nach
-diesem Muster — als Referenzimplementierung für den `'images'`-Attributtyp und für
-`\Esse\Ui::carousel()`, eine theme-unabhängige Bildergalerie-Komponente ohne Bootstrap-JS-Abhängigkeit.
+diesem Muster — als Referenzimplementierung für die Attributtypen `'images'` und `'select'`
+und für `\Esse\Ui::carousel()`, eine theme-unabhängige Bildergalerie-Komponente ohne
+Bootstrap-JS-Abhängigkeit.
 
 **Hinweise:**
 

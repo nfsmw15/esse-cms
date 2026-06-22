@@ -6,7 +6,8 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ### Added
 
-- **Eingebautes `[carousel]`-Widget**: Neue theme-unabhängige Komponente `\Esse\Ui::carousel()` (`core/Ui.php`, CSS in `public/vendor/esse-ui/esse-ui.css`, Navigation/Autoplay in `public/assets/js/esse-ui.js`) zeigt ausgewählte Mediathek-Bilder als Slideshow — funktioniert in allen Themes ohne Bootstrap-JS-Abhängigkeit (reines CSS-Cross-Fade + Vanilla-JS). Registriert als Core-Shortcode `[carousel images="3,17,42" interval="5"]` (`core/CoreShortcodes.php`). Im „Widget einfügen"-Dialog gibt es dafür den neuen Attribut-Typ `'images'` (`public/assets/js/shortcode-picker.js`): ein Button öffnet wiederholt die Mediathek-Auswahl und sammelt Vorschau-Chips, ohne den bestehenden Mediathek-Picker zu verändern.
+- **Eingebautes `[carousel]`-Widget**: Neue theme-unabhängige Komponente `\Esse\Ui::carousel()` (`core/Ui.php`, CSS in `public/vendor/esse-ui/esse-ui.css`, Navigation/Autoplay in `public/assets/js/esse-ui.js`) zeigt ausgewählte Mediathek-Bilder als Slideshow — funktioniert in allen Themes ohne Bootstrap-JS-Abhängigkeit (reines CSS-Cross-Fade + Vanilla-JS). Registriert als Core-Shortcode `[carousel images="3,17,42" interval="5" height="md"]` (`core/CoreShortcodes.php`) mit wählbarer Höhe (Klein/Mittel/Groß/Volle Breite). Im „Widget einfügen"-Dialog gibt es dafür die neuen Attribut-Typen `'images'` und `'select'` (`public/assets/js/shortcode-picker.js`): ein Button öffnet wiederholt die Mediathek-Auswahl und sammelt Vorschau-Chips, ohne den bestehenden Mediathek-Picker zu verändern.
+- **Gestapelte Bootstrap-Modals**: `public/assets/js/admin-common.js` hebt jetzt den z-index von Modal und Backdrop an, wenn ein Modal über einem bereits offenen weiteren geöffnet wird (z.B. Mediathek-Auswahl innerhalb des „Widget einfügen"-Dialogs) — vorher landete das innere Modal optisch dahinter.
 
 ### Security
 
