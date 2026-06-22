@@ -1,6 +1,6 @@
 /*
  * esse-ui.css — Theme-agnostic UI component base styles
- * Components: panel, btn, alert, badge, grid, empty-state, section, table, tabs, breadcrumb
+ * Components: panel, btn, alert, badge, grid, empty-state, section, table, tabs, carousel, breadcrumb
  * Every theme MUST load this file (or provide equivalent styles for all esse-* classes).
  * Themes override/extend these styles to match their visual identity.
  */
@@ -20,6 +20,11 @@
   --esse-warning:     #ffc107;
   --esse-danger:      #dc3545;
   --esse-info:        #0dcaf0;
+
+  --esse-carousel-height-sm:  220px;
+  --esse-carousel-height-md:  400px;
+  --esse-carousel-height-lg:  560px;
+  --esse-carousel-transition: 500ms;
 }
 
 /* ── esse-panel ───────────────────────────────────────────────────────────── */
@@ -197,6 +202,99 @@
 }
 .esse-tabs-panel { display: none; }
 .esse-tabs-panel--active { display: block; }
+
+/* ── esse-carousel ────────────────────────────────────────────────────────── */
+.esse-carousel {
+  position: relative;
+  border-radius: var(--esse-radius);
+  overflow: hidden;
+  background: var(--esse-surface);
+  margin-bottom: 1.25rem;
+}
+.esse-carousel--sm   .esse-carousel-track { height: var(--esse-carousel-height-sm); }
+.esse-carousel--md   .esse-carousel-track { height: var(--esse-carousel-height-md); }
+.esse-carousel--lg   .esse-carousel-track { height: var(--esse-carousel-height-lg); }
+.esse-carousel--full .esse-carousel-track { aspect-ratio: 16 / 9; height: auto; }
+
+.esse-carousel-track {
+  position: relative;
+  width: 100%;
+}
+
+.esse-carousel-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--esse-carousel-transition) ease;
+}
+.esse-carousel-slide--active {
+  opacity: 1;
+  visibility: visible;
+  z-index: 1;
+}
+
+.esse-carousel-img, .esse-carousel-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.esse-carousel-img {
+  object-fit: cover;
+}
+
+.esse-carousel-caption {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: .75rem 1rem;
+  background: linear-gradient(to top, rgba(0,0,0,.6), transparent);
+  color: #fff;
+  font-size: .9rem;
+}
+
+.esse-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,.4);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.esse-carousel-arrow:hover { background: rgba(0,0,0,.6); }
+.esse-carousel-arrow--prev { left: .75rem; }
+.esse-carousel-arrow--next { right: .75rem; }
+.esse-carousel-arrow--prev::before { content: '\2039'; font-size: 1.5rem; line-height: 1; }
+.esse-carousel-arrow--next::before { content: '\203A'; font-size: 1.5rem; line-height: 1; }
+
+.esse-carousel-dots {
+  position: absolute;
+  left: 0; right: 0; bottom: .6rem;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: .4rem;
+}
+.esse-carousel-dot {
+  width: .5rem; height: .5rem;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,.5);
+  cursor: pointer;
+  padding: 0;
+}
+.esse-carousel-dot--active { background: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .esse-carousel-slide { transition: none; }
+}
 
 /* ── esse-divider ─────────────────────────────────────────────────────────── */
 .esse-divider {

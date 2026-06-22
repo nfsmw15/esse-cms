@@ -310,7 +310,26 @@ public function boot(): void
   - `description` (string, optional) — Kurzbeschreibung
   - `icon` (string, optional) — derzeit nur informativ, nicht im Picker dargestellt
   - `attributes` (array, optional) — Liste der einstellbaren Parameter, je mit
-    `name`, `label`, `type` (`'text'` oder `'number'`) und `default`
+    `name`, `label`, `type` (`'text'`, `'number'` oder `'images'`) und `default`
+
+Beim Typ `'images'` zeigt der „Widget einfügen"-Dialog statt eines Texteingabefelds eine
+Mediathek-Auswahl mit Vorschau-Chips (Button „Bild hinzufügen" öffnet wiederholt den
+Mediathek-Picker). `default` sollte hier ein leerer String sein; der Wert, den der Handler in
+`$attrs[name]` erhält, ist eine kommagetrennte Liste von Mediathek-IDs (z.B. `"3,17,42"`), die
+der Handler selbst auflösen muss:
+
+```php
+$ids = array_filter(array_map('intval', explode(',', $attrs['images'] ?? '')));
+foreach ($ids as $id) {
+    $media = \Esse\Media::find($id);
+    if (!$media) continue; // gelöschte/ungültige IDs ignorieren
+    // $media['path'], $media['alt_text'] ...
+}
+```
+
+Das Core-CMS registriert selbst ein `[carousel]`-Widget (`core/CoreShortcodes.php`) nach
+diesem Muster — als Referenzimplementierung für den `'images'`-Attributtyp und für
+`\Esse\Ui::carousel()`, eine theme-unabhängige Bildergalerie-Komponente ohne Bootstrap-JS-Abhängigkeit.
 
 **Hinweise:**
 

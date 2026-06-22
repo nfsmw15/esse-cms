@@ -4,6 +4,10 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Eingebautes `[carousel]`-Widget**: Neue theme-unabhängige Komponente `\Esse\Ui::carousel()` (`core/Ui.php`, CSS in `public/vendor/esse-ui/esse-ui.css`, Navigation/Autoplay in `public/assets/js/esse-ui.js`) zeigt ausgewählte Mediathek-Bilder als Slideshow — funktioniert in allen Themes ohne Bootstrap-JS-Abhängigkeit (reines CSS-Cross-Fade + Vanilla-JS). Registriert als Core-Shortcode `[carousel images="3,17,42" interval="5"]` (`core/CoreShortcodes.php`). Im „Widget einfügen"-Dialog gibt es dafür den neuen Attribut-Typ `'images'` (`public/assets/js/shortcode-picker.js`): ein Button öffnet wiederholt die Mediathek-Auswahl und sammelt Vorschau-Chips, ohne den bestehenden Mediathek-Picker zu verändern.
+
 ### Security
 
 - **IP-basierte Sperre statt Session-Zähler**: Die Brute-Force-Bremse für `/login`, `/admin/verify-2fa` und `/admin/forgot-password` beruhte bisher auf `$_SESSION`-Zählern und war durch einfaches Verwerfen des Session-Cookies umgehbar. Neue Klasse `core/RateLimit.php` zählt Fehlversuche stattdessen IP-basiert (bei 2FA pro Benutzer) in einer DB-Tabelle (`rate_limits`) und übersteht damit auch eine neue Session. Schwellen unverändert: 5 Versuche/60s für Login und 2FA, 3 Anfragen/15min für Passwort-Reset.

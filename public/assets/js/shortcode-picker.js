@@ -61,6 +61,17 @@
 
             const inputs = attributes.map(attr => {
                 const id = 'esseShortcodeAttr_' + tag + '_' + attr.name;
+
+                if (attr.type === 'images') {
+                    return '<div class="col-12">'
+                        + '<label class="form-label small mb-1">' + escapeHtml(attr.label || attr.name) + '</label>'
+                        + '<div class="esse-shortcode-image-chips" id="' + id + '_chips"></div>'
+                        + '<button type="button" class="btn btn-secondary btn-sm esse-shortcode-image-add" data-target="' + id + '">'
+                        + '<i class="bi bi-plus-lg"></i> Bild hinzufügen</button>'
+                        + '<input type="hidden" id="' + id + '" data-attr="' + escapeAttr(attr.name) + '" value="' + escapeAttr(attr.default ?? '') + '">'
+                        + '</div>';
+                }
+
                 const type = attr.type === 'number' ? 'number' : 'text';
                 return '<div class="col-auto">'
                     + '<label for="' + id + '" class="form-label small mb-1">' + escapeHtml(attr.label || attr.name) + '</label>'
@@ -89,6 +100,46 @@
     function escapeAttr(s) {
         return escapeHtml(s);
     }
+
+    function renderImageChip(file) {
+        return '<span class="esse-shortcode-image-chip" data-id="' + escapeAttr(file.id) + '">'
+            + '<img src="' + escapeAttr(file.url) + '" alt="">'
+            + '<button type="button" class="esse-shortcode-image-chip-remove" aria-label="Entfernen">&times;</button>'
+            + '</span>';
+    }
+
+    document.getElementById('esseShortcodeList')?.addEventListener('click', function (event) {
+        const addBtn = event.target.closest('.esse-shortcode-image-add');
+        if (addBtn) {
+            const hiddenInput = document.getElementById(addBtn.dataset.target);
+            const chips = document.getElementById(addBtn.dataset.target + '_chips');
+            if (!hiddenInput || !chips || !window.EsseMedia) return;
+
+            window.EsseMedia.open(function (file) {
+                const ids = hiddenInput.value ? hiddenInput.value.split(',').filter(Boolean) : [];
+                if (file.id && !ids.includes(String(file.id))) {
+                    ids.push(String(file.id));
+                    hiddenInput.value = ids.join(',');
+                    chips.insertAdjacentHTML('beforeend', renderImageChip(file));
+                }
+            }, { type: 'image', warnPrivate: true });
+            return;
+        }
+
+        const removeBtn = event.target.closest('.esse-shortcode-image-chip-remove');
+        if (removeBtn) {
+            const chip = removeBtn.closest('.esse-shortcode-image-chip');
+            const wrapper = chip?.closest('.col-12');
+            const hiddenInput = wrapper?.querySelector('input[type="hidden"][data-attr]');
+            if (chip && hiddenInput) {
+                const removedId = chip.dataset.id;
+                const ids = hiddenInput.value.split(',').filter(id => id && id !== removedId);
+                hiddenInput.value = ids.join(',');
+                chip.remove();
+            }
+            return;
+        }
+    });
 
     document.getElementById('esseShortcodeList')?.addEventListener('click', function (event) {
         const btn = event.target.closest('.esse-shortcode-insert');

@@ -359,6 +359,84 @@ class Ui
         return self::hook('tabs', $html, compact('tabs', 'opts'));
     }
 
+    // ── Carousel ──────────────────────────────────────────────────────────────
+
+    /**
+     * An image slideshow with optional autoplay, prev/next and dot navigation.
+     * Theme-agnostic, zero JS-framework dependency (no Bootstrap JS required) —
+     * navigation/autoplay are handled by /public/assets/js/esse-ui.js.
+     *
+     * $slides: [['image' => '/public/uploads/x.jpg', 'alt' => '...', 'caption' => '...', 'href' => '...'], ...]
+     *   image   string  required. URL of the slide image.
+     *   alt     string  optional.
+     *   caption string  optional. Raw HTML caption overlay at the bottom of the slide.
+     *   href    string  optional. Wraps the slide image in a link.
+     *
+     * Options:
+     *   interval int     Autoplay interval in ms. 0 = autoplay disabled (default: 0).
+     *   height   string  'sm' | 'md' (default) | 'lg' | 'full'
+     *   id       string  Base id for the root element (auto-generated if omitted).
+     *   class    string  Additional CSS classes on the root element.
+     *   arrows   bool    Show prev/next buttons (default: true).
+     *   dots     bool    Show dot indicators (default: true).
+     */
+    public static function carousel(array $slides, array $opts = []): string
+    {
+        $slides = array_values(array_filter($slides, fn($s) => !empty($s['image'])));
+        if (!$slides) {
+            return self::hook('carousel', '', compact('slides', 'opts'));
+        }
+
+        $id       = $opts['id'] ?? 'esse-carousel-' . substr(md5(serialize($slides) . microtime()), 0, 8);
+        $height   = $opts['height'] ?? 'md';
+        $interval = max(0, (int) ($opts['interval'] ?? 0));
+        $arrows   = $opts['arrows'] ?? true;
+        $dots     = $opts['dots']   ?? true;
+        $class    = trim('esse-carousel esse-carousel--' . self::e($height) . ' ' . ($opts['class'] ?? ''));
+
+        $slidesHtml = '';
+        $dotsHtml   = '';
+        foreach ($slides as $i => $slide) {
+            $isActive = $i === 0;
+            $img = '<img src="' . self::e($slide['image']) . '" alt="' . self::e($slide['alt'] ?? '') . '" '
+                 . 'class="esse-carousel-img" loading="' . ($isActive ? 'eager' : 'lazy') . '">';
+            if (!empty($slide['href'])) {
+                $img = '<a href="' . self::e($slide['href']) . '" class="esse-carousel-link">' . $img . '</a>';
+            }
+            $caption = isset($slide['caption']) && $slide['caption'] !== ''
+                ? '<div class="esse-carousel-caption">' . $slide['caption'] . '</div>'
+                : '';
+
+            $slidesHtml .= '<div class="esse-carousel-slide' . ($isActive ? ' esse-carousel-slide--active' : '') . '" '
+                         . 'data-esse-carousel-slide="' . $i . '">' . $img . $caption . '</div>';
+
+            if ($dots) {
+                $dotsHtml .= '<button type="button" class="esse-carousel-dot' . ($isActive ? ' esse-carousel-dot--active' : '') . '" '
+                           . 'data-esse-carousel-goto="' . $i . '" aria-label="Bild ' . ($i + 1) . '"></button>';
+            }
+        }
+
+        $arrowsHtml = $arrows && count($slides) > 1
+            ? '<button type="button" class="esse-carousel-arrow esse-carousel-arrow--prev" data-esse-carousel-prev aria-label="Vorheriges Bild"></button>'
+            . '<button type="button" class="esse-carousel-arrow esse-carousel-arrow--next" data-esse-carousel-next aria-label="Nächstes Bild"></button>'
+            : '';
+
+        $dotsWrap = $dots && count($slides) > 1
+            ? '<div class="esse-carousel-dots" role="tablist">' . $dotsHtml . '</div>'
+            : '';
+
+        $intervalAttr = $interval > 0 ? ' data-esse-carousel-interval="' . $interval . '"' : '';
+
+        $html = '<div class="' . $class . '" id="' . self::e($id) . '" role="region" aria-roledescription="carousel"' . $intervalAttr . '>'
+              . '<div class="esse-carousel-track">' . $slidesHtml . '</div>'
+              . $arrowsHtml
+              . $dotsWrap
+              . '</div>'
+              . '<script src="/public/assets/js/esse-ui.js"></script>';
+
+        return self::hook('carousel', $html, compact('slides', 'opts'));
+    }
+
     // ── Divider ───────────────────────────────────────────────────────────────
 
     /**

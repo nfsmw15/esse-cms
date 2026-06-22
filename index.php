@@ -78,6 +78,12 @@ if (file_exists($configFile)) {
     }
 }
 
+// Core (theme-/plugin-unabhängige) eingebaute Shortcodes/Widgets — vor den Plugins
+// registriert, damit ein Plugin einen gleichnamigen Tag bei Bedarf überschreiben kann.
+if (file_exists($configFile)) {
+    \Esse\CoreShortcodes::boot();
+}
+
 // Load enabled plugins
 if (file_exists($configFile)) {
     $ts      = \Esse\DB::table('settings');
