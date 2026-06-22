@@ -4,6 +4,13 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.2-alpha] - 2026-06-22
+
+### Security
+
+- **`install/installed.lock` öffentlich lesbar**: Da `install/` kein eigenes `.htaccess` hatte, lieferte die Root-`.htaccess` die Lock-Datei als „existierende Datei" direkt aus (HTTP 200, Installations-Zeitstempel im Klartext) — kein kritisches Secret, aber unnötige Info-Leakage. Neue `install/.htaccess` blockt `installed.lock` sowie literale `.php`-Direktaufrufe (`<FilesMatch>`/`<Files>`, gleiches Muster wie `admin/.htaccess`) — die geroutete `/install`-URL (Erstinstallation bzw. „Already installed"-Seite) bleibt davon unberührt.
+- **`local.php` direkt erreichbar**: Lieferte HTTP 200 mit leerem Body (PHP wurde ausgeführt, nur ohne Output) — bei späterem Fehlverhalten oder fehlerhafter PHP-Konfiguration ein Risiko, da die Datei nie über eine Route aufgerufen wird, sondern nur intern von `index.php` per `require` eingebunden wird. Neue `<Files "local.php">`-Direktive in der Root-`.htaccess` blockt Direktzugriff.
+
 ## [0.8.1-alpha] - 2026-06-22
 
 ### Fixed

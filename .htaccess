@@ -1,6 +1,11 @@
 Options -Indexes
 DirectorySlash Off
 
+# local.php is require'd internally by index.php — never meant to be requested directly.
+<Files "local.php">
+    Require all denied
+</Files>
+
 RewriteEngine On
 
 # Static files (public assets) are served directly
