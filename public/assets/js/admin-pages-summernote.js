@@ -78,15 +78,18 @@
             onInit: function () {
                 window.EsseShortcode && window.EsseShortcode.hydrate();
             },
-            onClick: function (e) {
-                const token = e.target.closest && e.target.closest('.esse-shortcode-token');
-                if (!token || !window.EsseShortcode) return;
-
-                window.EsseShortcode.open(function (code, tokenHtml) {
-                    token.outerHTML = tokenHtml;
-                }, token.getAttribute('data-shortcode') || '');
-            },
         },
+    });
+
+    // Summernote (diese bs5-Variante) kennt keinen "onClick"-Callback — Klicks auf Bausteine
+    // im Editor daher per nativem Listener auf dem erzeugten .note-editable-Element abfangen.
+    document.querySelector('.note-editable')?.addEventListener('click', function (e) {
+        const token = e.target.closest('.esse-shortcode-token');
+        if (!token || !window.EsseShortcode) return;
+
+        window.EsseShortcode.open(function (code, tokenHtml) {
+            token.outerHTML = tokenHtml;
+        }, token.getAttribute('data-shortcode') || '');
     });
 
     // Vorschau-Bausteine vor dem Absenden zurück in reinen "[tag ...]"-Text wandeln,
