@@ -234,13 +234,16 @@
   z-index: 1;
 }
 
-.esse-carousel-img, .esse-carousel-link {
+/* Zwei Klassen im Selektor statt einer — gewinnt zuverlässig gegen generische
+   Theme-Regeln wie ".esse-content img { height: auto }", unabhängig vom Host-Kontext. */
+.esse-carousel .esse-carousel-img, .esse-carousel .esse-carousel-link {
   display: block;
   width: 100%;
   height: 100%;
 }
-.esse-carousel-img {
+.esse-carousel .esse-carousel-img {
   object-fit: cover;
+  border-radius: 0;
 }
 
 .esse-carousel-caption {
