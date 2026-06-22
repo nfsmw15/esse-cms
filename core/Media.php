@@ -105,6 +105,12 @@ class Media
             $like = '%' . $filters['q'] . '%';
             array_push($params, $like, $like, $like);
         }
+        if (!empty($filters['ids'])) {
+            $ids = array_filter(array_map('intval', (array) $filters['ids']));
+            if (!$ids) return [];
+            $where[] = '`id` IN (' . implode(',', array_fill(0, count($ids), '?')) . ')';
+            array_push($params, ...$ids);
+        }
         // array_key_exists statt empty(), da NULL (Root-Ebene) ein gueltiger expliziter Filterwert ist
         if (array_key_exists('folder_id', $filters)) {
             if ($filters['folder_id'] === null) {

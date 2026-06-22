@@ -337,6 +337,16 @@ Beim Typ `'select'` zeigt der Dialog ein Dropdown statt eines Texteingabefelds. 
 ]]
 ```
 
+**Widgets im Editor bearbeiten:** Eingefügte Widgets erscheinen im Summernote-Editor nicht als
+roher `[tag ...]`-Text, sondern als klickbarer Vorschau-Baustein (Bild-Chips + Label, z.B.
+„6 Bilder · Groß · 7"). Das übernimmt `public/assets/js/shortcode-picker.js` automatisch für
+jedes registrierte Widget — Plugins müssen dafür nichts Zusätzliches tun:
+
+- Beim Einfügen wird statt Rohtext ein nicht editierbarer Baustein (`<span class="esse-shortcode-token" data-shortcode="...">`) eingefügt.
+- Klick auf den Baustein öffnet den Dialog erneut, vorausgefüllt mit den aktuellen Werten — Bestätigen ersetzt den Baustein durch die aktualisierte Version.
+- Beim Laden einer Seite mit vorhandenem `[tag ...]`-Text wird dieser automatisch in den Baustein umgewandelt (`EsseShortcode.hydrate()`).
+- Vor dem Speichern wird der Baustein wieder in reinen `[tag ...]`-Text zurückverwandelt (`EsseShortcode.serialize()`) — gespeichert wird weiterhin nur der Shortcode-Text, nie HTML der Vorschau.
+
 Das Core-CMS registriert selbst ein `[carousel]`-Widget (`core/CoreShortcodes.php`) nach
 diesem Muster — als Referenzimplementierung für die Attributtypen `'images'` und `'select'`
 und für `\Esse\Ui::carousel()`, eine theme-unabhängige Bildergalerie-Komponente ohne

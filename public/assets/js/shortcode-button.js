@@ -8,8 +8,8 @@
             tooltip: 'Widget einfügen',
             click: function () {
                 if (!window.EsseShortcode) return;
-                window.EsseShortcode.open(function (code) {
-                    context.invoke('editor.insertText', code);
+                window.EsseShortcode.open(function (code, tokenHtml) {
+                    context.invoke('editor.pasteHTML', tokenHtml + '&nbsp;');
                 });
             },
         });

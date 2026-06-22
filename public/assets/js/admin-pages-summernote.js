@@ -75,7 +75,26 @@
                     })
                     .catch(() => alert('Upload fehlgeschlagen.'));
             },
+            onInit: function () {
+                window.EsseShortcode && window.EsseShortcode.hydrate();
+            },
+            onClick: function (e) {
+                const token = e.target.closest && e.target.closest('.esse-shortcode-token');
+                if (!token || !window.EsseShortcode) return;
+
+                window.EsseShortcode.open(function (code, tokenHtml) {
+                    token.outerHTML = tokenHtml;
+                }, token.getAttribute('data-shortcode') || '');
+            },
         },
+    });
+
+    // Vorschau-Bausteine vor dem Absenden zurück in reinen "[tag ...]"-Text wandeln,
+    // damit gespeicherter Seiteninhalt unverändert bleibt (kein HTML der Vorschau).
+    document.getElementById('content')?.closest('form')?.addEventListener('submit', function () {
+        const contentField = document.getElementById('content');
+        if (!contentField || !window.EsseShortcode) return;
+        contentField.value = window.EsseShortcode.serialize($('#content').summernote('code'));
     });
 
     const toolbar = document.querySelector('.note-toolbar');

@@ -17,6 +17,7 @@ $filters = array_filter([
     'type'       => $_GET['type'] ?? '',
     'visibility' => $_GET['visibility'] ?? '',
     'q'          => trim($_GET['q'] ?? ''),
+    'ids'        => array_filter(array_map('intval', explode(',', $_GET['ids'] ?? ''))),
 ]);
 
 $items = array_map(static function (array $item): array {
