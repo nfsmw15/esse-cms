@@ -274,8 +274,18 @@
 .esse-carousel-arrow:hover { background: rgba(0,0,0,.6); }
 .esse-carousel-arrow--prev { left: .75rem; }
 .esse-carousel-arrow--next { right: .75rem; }
-.esse-carousel-arrow--prev::before { content: '\2039'; font-size: 1.5rem; line-height: 1; }
-.esse-carousel-arrow--next::before { content: '\203A'; font-size: 1.5rem; line-height: 1; }
+/* Geometrisches Chevron statt Textzeichen — Font-Glyphen wie ‹/› sitzen je nach
+   Schrift nicht exakt mittig im Zeilenkasten und wirken dadurch nach unten verschoben. */
+.esse-carousel-arrow--prev::before, .esse-carousel-arrow--next::before {
+  content: '';
+  display: block;
+  width: .55rem;
+  height: .55rem;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+}
+.esse-carousel-arrow--prev::before { transform: rotate(-135deg); }
+.esse-carousel-arrow--next::before { transform: rotate(45deg); }
 
 .esse-carousel-dots {
   position: absolute;

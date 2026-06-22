@@ -12,6 +12,7 @@ All notable changes to ESSE CMS will be documented in this file.
 ### Fixed
 
 - **Carousel-Bilder ohne feste Höhe**: Die generische Theme-Regel `.esse-content img { height: auto }` (`esse-base.css`) war spezifischer als `.esse-carousel-img { height: 100% }` und gewann daher im CSS-Cascade — die Bilder im `[carousel]`-Widget wurden dadurch in ihrem natürlichen Seitenverhältnis statt mit fester Höhe/`object-fit: cover` gerendert (ungleich hohe, am oberen Rand „klebende" Bilder statt einheitlich gefüllter Slides). Der Selektor in `esse-ui.css` ist jetzt zweifach geklasst (`.esse-carousel .esse-carousel-img`) und gewinnt zuverlässig, unabhängig vom Host-Theme — analog zum bereits bestehenden, korrekt funktionierenden Bootstrap-Carousel auf der Startseite (`.esse-content .carousel-item img`).
+- **Carousel-Pfeile optisch nicht mittig**: Die Pfeil-Buttons nutzten Textzeichen (`‹`/`›`) als Inhalt, deren Glyphen je nach Schrift nicht exakt im Zeilenkasten zentriert sind und dadurch nach unten verschoben wirkten. Ersetzt durch ein geometrisches Chevron (zwei rotierte Rahmenkanten statt Schriftzeichen), das unabhängig von Font-Metriken exakt mittig sitzt.
 
 ### Security
 
