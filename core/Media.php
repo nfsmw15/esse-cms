@@ -159,8 +159,9 @@ class Media
         // Versteckte Dateien (z.B. .htaccess, .gitkeep) nie vom Server loeschen,
         // nur den fehlerhaften Mediathek-Eintrag entfernen.
         if (!str_starts_with(basename($media['path']), '.')) {
-            $file = ESSE_ROOT . '/public' . $media['path'];
-            if (is_file($file)) {
+            $base = realpath(ESSE_ROOT . '/public/uploads');
+            $file = realpath(ESSE_ROOT . $media['path']);
+            if ($base && $file && str_starts_with($file, $base . DIRECTORY_SEPARATOR) && is_file($file)) {
                 @unlink($file);
             }
         }

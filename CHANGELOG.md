@@ -4,6 +4,18 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.3-alpha] - 2026-06-22
+
+### Fixed
+
+- **Mediathek-Löschen entfernte DB-Eintrag, aber nicht die Datei**: `Media::delete()` baute den Dateipfad als `ESSE_ROOT . '/public' . $media['path']`, obwohl `$media['path']` bereits mit `/public/uploads/...` beginnt (`Media::register()`, `scanUploads()`) — Ergebnis war ein nicht-existierender `.../public/public/uploads/...`-Pfad, `unlink()` lief also nie. Gelöschte Dateien blieben dadurch dauerhaft öffentlich erreichbar. Pfad jetzt korrekt über `ESSE_ROOT . $media['path']` gebildet und per `realpath()` gegen `public/uploads/` abgesichert (gleiches Muster wie `PageRenderer::renderPhp()`). Neuer Integrationstest (`tests/integration/MediaTest.php`) deckt das ab.
+
+### Security
+
+- **Update-Flow umging die Backup-Berechtigungssperre**: `/admin/update` und `/admin/update/run` prüften nur `manage_settings` (Standardrecht der `admin`-Rolle) — ein Admin ohne `manage_backups` konnte darüber trotzdem ein automatisches Backup auslösen lassen (`Updater::createBackup()`, fester Schritt 1 des Update-Flows) und Code/Dateien verändern (`Updater::apply()`). Neue Permission `manage_updates`, Update-Routen erfordern jetzt `forge` oder **beide** Rechte (`manage_updates` UND `manage_backups`). Nav-Links in `admin/layout.php` waren zudem noch auf das alte `manage_settings` für Backups/Updates gegated — korrigiert.
+- **Admin konnte sich selbst Forge-nahe Rechte geben**: `php_upload`, `manage_backups` (und jetzt `manage_updates`) waren über `/admin/users/edit/{id}` und `/admin/roles` für jeden Nutzer mit `manage_admins` vergebbar — auch für den eigenen Account. Diese drei Permissions sind jetzt als `Auth::FORGE_ONLY_PERMISSIONS` markiert: nur Forge sieht die Checkboxen/Toggles dafür in der UI, und der Server lehnt entsprechende Vergabe-/Entzugs-Versuche von Nicht-Forge-Admins ab (inkl. Schutz gegen versehentlichen Entzug bestehender Forge-Grants beim Speichern eines Nutzers durch einen Nicht-Forge-Admin).
+- **Fehlendes `X-Content-Type-Options: nosniff` bei statischen Dateien**: Uploads und andere von Apache direkt ausgelieferte Dateien (bypassen `index.php`/`SecurityHeaders::send()`) hatten keinen `nosniff`-Header. Neue `Header always set`-Direktive (mod_headers, mit `<IfModule>`-Guard) in der Root-`.htaccess`.
+
 ## [0.8.2-alpha] - 2026-06-22
 
 ### Security

@@ -22,10 +22,16 @@ class Auth
         'manage_repos'    => ['Repos verwalten',         'Plugin- und Theme-Repos hinzufügen und entfernen'],
         'manage_settings' => ['Einstellungen verwalten', 'Systemeinstellungen ändern'],
         'manage_backups'  => ['Backups verwalten',       'Backups erstellen, herunterladen und löschen — enthält vollständigen DB-Dump inkl. Zugangsdaten'],
+        'manage_updates'  => ['Updates verwalten',        'CMS-Updates prüfen und einspielen — erstellt automatisch ein Backup und verändert Code/Dateien'],
         'manage_content'  => ['Inhalte verwalten',       'Seiten, Menüs und Inhalte verwalten'],
         'manage_files'    => ['Dateien verwalten',       'Dateien hochladen und verwalten'],
         'view_logs'       => ['Logs einsehen',           'System- und Zugriffslogs anzeigen'],
     ];
+
+    // Diese Permissions dürfen nur von Forge selbst vergeben/entzogen werden (an Rollen oder
+    // einzelne Nutzer) — manage_admins reicht dafür nicht, sonst kann sich ein Admin nahe an
+    // Forge heranziehen (Code-Ausführung, Backup-Zugriff, Update-Auslösung).
+    public const FORGE_ONLY_PERMISSIONS = ['php_upload', 'manage_backups', 'manage_updates'];
 
     public const DEFAULT_ROLE_PERMISSIONS = [
         'member' => [],

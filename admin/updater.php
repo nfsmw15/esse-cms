@@ -7,7 +7,8 @@ use Esse\AuditLog;
 use Esse\Flash;
 use Esse\Updater;
 
-if (!Auth::meetsRole('forge') && !Auth::can('manage_settings')) {
+// Updates legen automatisch ein Backup an und verändern Code/Dateien — beide Rechte nötig.
+if (!Auth::meetsRole('forge') && !(Auth::can('manage_updates') && Auth::can('manage_backups'))) {
     http_response_code(403); echo '403 Forbidden'; exit;
 }
 

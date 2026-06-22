@@ -36,6 +36,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['error' => 'invalid']); exit;
         }
 
+        // Forge-exklusive Permissions duerfen nicht ueber manage_admins an Rollen vergeben werden.
+        if (in_array($permSlug, Auth::FORGE_ONLY_PERMISSIONS, true) && !Auth::meetsRole('forge')) {
+            http_response_code(403);
+            echo json_encode(['error' => 'forbidden']); exit;
+        }
+
         $exists = DB::fetch(
             "SELECT 1 FROM `{$trp}` rp
                JOIN `{$tp}` p ON p.id = rp.permission_id
@@ -171,6 +177,8 @@ ob_start();
                 <div class="d-flex flex-wrap gap-2">
                     <?php foreach ($permissions as $perm):
                         $active = in_array($perm['slug'], $assigned, true);
+                        $forgeOnly = in_array($perm['slug'], Auth::FORGE_ONLY_PERMISSIONS, true);
+                        if ($forgeOnly && !Auth::meetsRole('forge')) continue;
                     ?>
 	                    <button type="button"
 	                            class="perm-toggle badge border-0 admin-role-toggle <?= $active ? 'bg-success' : 'bg-dark border' ?>"
@@ -178,8 +186,8 @@ ob_start();
                             data-perm="<?= htmlspecialchars($perm['slug']) ?>"
                             title="<?= htmlspecialchars($perm['slug'] . ': ' . ($perm['description'] ?? '')) ?>">
                         <?= htmlspecialchars($perm['label'] ?? $perm['slug']) ?>
-                        <?php if ($perm['slug'] === 'php_upload'): ?>
-                        <i class="bi bi-exclamation-triangle-fill ms-1" title="Gefährlich"></i>
+                        <?php if ($forgeOnly): ?>
+                        <i class="bi bi-exclamation-triangle-fill ms-1" title="Gefährlich — nur durch Forge vergebbar"></i>
                         <?php endif ?>
                     </button>
                     <?php endforeach ?>

@@ -54,4 +54,38 @@ return [
         $uploaded = dirname(__DIR__, 2) . $data['url'];
         @unlink($uploaded);
     },
+
+    'POST /admin/media (_action=delete) entfernt auch die Datei vom Server' => function (Http $http) {
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $csrf = extractCsrf($http->get('/admin/media')['body']);
+
+        $png = tempnam(sys_get_temp_dir(), 'esse-test-img-') . '.png';
+        $img = imagecreatetruecolor(2, 2);
+        imagepng($img, $png);
+        imagedestroy($img);
+
+        $upload = $http->postMultipart('/admin/files/upload', ['_csrf' => $csrf], [
+            'file' => ['path' => $png, 'name' => 'mediadeletetest.png', 'type' => 'image/png'],
+        ]);
+        @unlink($png);
+        $uploadData = json_decode($upload['body'], true);
+        $diskPath   = dirname(__DIR__, 2) . $uploadData['url'];
+        Assert::true(is_file($diskPath), 'Hochgeladene Datei sollte auf dem Server liegen');
+
+        $list = json_decode($http->get('/admin/media/list')['body'], true);
+        $mediaId = null;
+        foreach ($list['items'] as $item) {
+            if ($item['url'] === $uploadData['url']) { $mediaId = $item['id']; break; }
+        }
+        Assert::true($mediaId !== null, 'Hochgeladene Datei sollte in der Mediathek-Liste auftauchen');
+
+        $http->post('/admin/media', ['_csrf' => $csrf, '_action' => 'delete', 'id' => (string) $mediaId]);
+
+        // Die Datei wird vom php -S-Serverprozess geloescht, nicht vom Testrunner-Prozess —
+        // ohne clearstatcache() wuerde is_file() hier den gecachten Stat von oben zurueckgeben.
+        clearstatcache(true, $diskPath);
+        Assert::true(!is_file($diskPath), 'Datei sollte nach Mediathek-Löschen nicht mehr auf dem Server liegen');
+
+        @unlink($diskPath); // Sicherheitsnetz, falls der Test fehlschlägt
+    },
 ];

@@ -6,6 +6,12 @@ DirectorySlash Off
     Require all denied
 </Files>
 
+# Static files (images, CSS, JS, uploads) bypass index.php and therefore never pass through
+# SecurityHeaders::send() — set nosniff here too, so it applies regardless of route.
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+</IfModule>
+
 RewriteEngine On
 
 # Static files (public assets) are served directly

@@ -129,14 +129,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $oldPerms = array_column($oldPerms, 'permission_slug');
                     sort($oldPerms);
 
-                    DB::query("DELETE FROM `{$tup}` WHERE user_id = ?", [$userId]);
-                    $newPerms = [];
+                    $submittedPerms = [];
                     foreach ($_POST['user_permissions'] ?? [] as $slug) {
                         $slug = preg_replace('/[^a-z_]/', '', $slug);
-                        if ($slug) {
-                            DB::insert($tup, ['user_id' => $userId, 'permission_slug' => $slug, 'granted' => 1]);
-                            $newPerms[] = $slug;
+                        if ($slug && array_key_exists($slug, Auth::PERMISSIONS)) {
+                            $submittedPerms[] = $slug;
                         }
+                    }
+
+                    // Forge-exklusive Rechte koennen nur von Forge selbst vergeben ODER entzogen
+                    // werden — ein Nicht-Forge-Admin darf bestehende Forge-Grants beim Speichern
+                    // weder hinzufuegen noch versehentlich (weil das Checkbox-Feld fehlt) entfernen.
+                    if (!Auth::meetsRole('forge')) {
+                        $submittedPerms = array_diff($submittedPerms, Auth::FORGE_ONLY_PERMISSIONS);
+                        $submittedPerms = array_merge($submittedPerms, array_intersect($oldPerms, Auth::FORGE_ONLY_PERMISSIONS));
+                    }
+                    $newPerms = array_values(array_unique($submittedPerms));
+
+                    DB::query("DELETE FROM `{$tup}` WHERE user_id = ?", [$userId]);
+                    foreach ($newPerms as $slug) {
+                        DB::insert($tup, ['user_id' => $userId, 'permission_slug' => $slug, 'granted' => 1]);
                     }
                     sort($newPerms);
 
@@ -163,10 +175,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($canManageAdmins) {
                     // Save per-user permissions for new user
+                    $isForge = Auth::meetsRole('forge');
                     $tup = DB::table('user_permissions');
                     foreach ($_POST['user_permissions'] ?? [] as $slug) {
                         $slug = preg_replace('/[^a-z_]/', '', $slug);
-                        if ($slug) DB::insert($tup, ['user_id' => $newId, 'permission_slug' => $slug, 'granted' => 1]);
+                        if (!$slug || !array_key_exists($slug, Auth::PERMISSIONS)) continue;
+                        if (!$isForge && in_array($slug, Auth::FORGE_ONLY_PERMISSIONS, true)) continue;
+                        DB::insert($tup, ['user_id' => $newId, 'permission_slug' => $slug, 'granted' => 1]);
                     }
                 }
 
@@ -300,7 +315,10 @@ ob_start();
                             <small class="text-secondary">(zusätzlich zur Rolle)</small>
                         </label>
                         <div class="card p-2 admin-panel-dark">
-                            <?php foreach (Auth::PERMISSIONS as $slug => [$permLabel, $permDesc]): ?>
+                            <?php foreach (Auth::PERMISSIONS as $slug => [$permLabel, $permDesc]):
+                                $forgeOnly = in_array($slug, Auth::FORGE_ONLY_PERMISSIONS, true);
+                                if ($forgeOnly && !Auth::meetsRole('forge')) continue;
+                            ?>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox"
                                        name="user_permissions[]"
@@ -310,8 +328,8 @@ ob_start();
                                 <label class="form-check-label small" for="up_<?= $slug ?>"
                                        title="<?= htmlspecialchars($permDesc) ?>">
                                     <?= htmlspecialchars($permLabel) ?>
-                                    <?php if ($slug === 'php_upload'): ?>
-                                    <span class="badge bg-danger ms-1 badge-xxs">Gefährlich</span>
+                                    <?php if ($forgeOnly): ?>
+                                    <span class="badge bg-danger ms-1 badge-xxs">Gefährlich — nur Forge</span>
                                     <?php endif ?>
                                 </label>
                             </div>

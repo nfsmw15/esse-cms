@@ -117,10 +117,12 @@ if (defined('ESSE_DB_NAME')) {
             <i class="bi bi-terminal"></i> Logs
         </a>
         <?php endif ?>
-        <?php if (\Esse\Auth::can('manage_settings')): ?>
+        <?php if (\Esse\Auth::can('manage_backups')): ?>
         <a href="/admin/backup" class="<?= ($activeNav ?? '') === 'backup' ? 'active' : '' ?>">
             <i class="bi bi-shield-check"></i> Backups
         </a>
+        <?php endif ?>
+        <?php if (\Esse\Auth::can('manage_updates') && \Esse\Auth::can('manage_backups')): ?>
         <a href="/admin/update" class="<?= ($activeNav ?? '') === 'update' ? 'active' : '' ?>">
             <i class="bi bi-cloud-arrow-up"></i> System-Update
         </a>
