@@ -77,6 +77,16 @@ class Auth
             return;
         }
 
+        // Passwort wurde nach dem Login dieser Session geändert (z.B. in einer anderen Session
+        // oder per Admin/Reset) — diese Session ist damit veraltet und wird beendet.
+        if (!empty($user['password_changed_at'])) {
+            $loginAt = (int) ($_SESSION['esse_login_at'] ?? 0);
+            if ($loginAt < strtotime($user['password_changed_at'])) {
+                self::logout();
+                return;
+            }
+        }
+
         self::$currentUser = $user;
         self::syncDefaultPermissions();
     }
@@ -117,14 +127,15 @@ class Auth
     public static function login(array $user): void
     {
         session_regenerate_id(true);
-        $_SESSION['esse_uid'] = $user['id'];
-        self::$currentUser    = $user;
+        $_SESSION['esse_uid']      = $user['id'];
+        $_SESSION['esse_login_at'] = time();
+        self::$currentUser         = $user;
     }
 
     public static function logout(): void
     {
         self::$currentUser = null;
-        unset($_SESSION['esse_uid']);
+        unset($_SESSION['esse_uid'], $_SESSION['esse_login_at']);
         session_regenerate_id(true);
     }
 
@@ -265,6 +276,13 @@ class Auth
         try {
             TwoFactor::migrateDb();
             RateLimit::migrateDb();
+
+            $tu   = DB::table('users');
+            $cols = array_column(DB::fetchAll("SHOW COLUMNS FROM `{$tu}`"), 'Field');
+            if (!in_array('password_changed_at', $cols, true)) {
+                DB::query("ALTER TABLE `{$tu}` ADD COLUMN `password_changed_at` DATETIME NULL");
+            }
+
             self::$securityMigrationsSynced = true;
         } catch (\Throwable) {
             // Installer or partially configured databases may not have users/settings yet.

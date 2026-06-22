@@ -45,10 +45,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // -- TOTP (Authenticator-App) — Setup, Bestätigung, Deaktivierung, Backup-Codes --
 
         case 'totp_setup_start':
-            $secret = Totp::generateSecret();
-            $_SESSION['totp_setup'] = ['secret' => $secret, 'at' => time()];
-            $totpSetup = $_SESSION['totp_setup'];
-            AuditLog::record('totp_setup_started', Auth::id(), Auth::user()['email'] ?? null);
+            if (!Auth::verifyCurrentPassword((string) ($_POST['confirm_password'] ?? ''))) {
+                $errors[] = 'Passwort falsch.';
+            } else {
+                $secret = Totp::generateSecret();
+                $_SESSION['totp_setup'] = ['secret' => $secret, 'at' => time()];
+                $totpSetup = $_SESSION['totp_setup'];
+                AuditLog::record('totp_setup_started', Auth::id(), Auth::user()['email'] ?? null);
+            }
             break;
 
         case 'totp_setup_cancel':
@@ -168,7 +172,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $oldEmail = Auth::user()['email'] ?? null;
                 $data = ['display_name' => $displayName, 'email' => $email];
                 if ($password) {
-                    $data['password'] = password_hash($password, PASSWORD_BCRYPT);
+                    $data['password']             = password_hash($password, PASSWORD_BCRYPT);
+                    $data['password_changed_at']  = date('Y-m-d H:i:s');
                 }
                 DB::update($tu, $data, ['id' => Auth::id()]);
                 UserFields::save((int) Auth::id(), $customFields, $customValues);
@@ -316,14 +321,37 @@ $csrf         = Auth::csrfToken();
                         <button class="btn btn-link btn-sm text-secondary px-0">Abbrechen</button>
                     </form>
                 <?php else: ?>
-                    <form method="post" action="/profil" class="mt-3">
-                        <input type="hidden" name="_csrf" value="<?= $csrf ?>">
-                        <input type="hidden" name="_action" value="totp_setup_start">
-                        <button class="btn btn-primary btn-sm">Einrichten</button>
-                    </form>
+                    <button type="button" class="btn btn-primary btn-sm mt-3" data-bs-toggle="modal" data-bs-target="#totpSetupStartModal">
+                        Einrichten
+                    </button>
                 <?php endif ?>
             </div>
         </div>
+
+        <?php if (!$totpEnabled && !$totpSetup): ?>
+        <div class="modal fade" id="totpSetupStartModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content bg-dark border-secondary">
+                    <form method="post" action="/profil">
+                        <input type="hidden" name="_csrf" value="<?= $csrf ?>">
+                        <input type="hidden" name="_action" value="totp_setup_start">
+                        <div class="modal-header border-secondary">
+                            <h5 class="modal-title">Zwei-Faktor-Authentifizierung einrichten</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-secondary small">Bitte bestätige dein Passwort, um ein neues TOTP-Secret zu erzeugen.</p>
+                            <input type="password" name="confirm_password" class="form-control" autocomplete="current-password" required>
+                        </div>
+                        <div class="modal-footer border-secondary">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                            <button class="btn btn-primary">Weiter</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <?php endif ?>
 
         <?php if ($totpEnabled): ?>
         <div class="modal fade" id="totpDisableModal" tabindex="-1">

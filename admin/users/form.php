@@ -107,7 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'role'         => $role,
             ];
             if ($password) {
-                $data['password'] = password_hash($password, PASSWORD_BCRYPT);
+                $data['password']            = password_hash($password, PASSWORD_BCRYPT);
+                $data['password_changed_at'] = date('Y-m-d H:i:s');
             }
 
             if ($isEdit) {
@@ -121,6 +122,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 DB::update($tu, $data, ['id' => $userId]);
                 UserFields::save($userId, $customFields, $customValues);
+
+                // Eigenes Passwort über die Admin-Maske geändert — eigene Session sonst sofort
+                // ungültig (siehe Auth::init()-Check gegen password_changed_at).
+                if ($password && $userId === Auth::id()) {
+                    Auth::login(DB::fetch("SELECT * FROM `{$tu}` WHERE id = ?", [$userId]));
+                }
 
                 if ($canManageAdmins) {
                     // Save per-user permission overrides

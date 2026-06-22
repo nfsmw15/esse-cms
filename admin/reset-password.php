@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
     } else {
         $tu   = DB::table('users');
         $hash = password_hash($password, PASSWORD_BCRYPT);
-        DB::update($tu, ['password' => $hash], ['email' => $reset['email']]);
+        DB::update($tu, ['password' => $hash, 'password_changed_at' => date('Y-m-d H:i:s')], ['email' => $reset['email']]);
         DB::delete($tr, ['token' => $token]);
         $resetUser = DB::fetch("SELECT id FROM `{$tu}` WHERE email = ?", [$reset['email']]);
         AuditLog::record('password_reset_completed', $resetUser ? (int) $resetUser['id'] : null, $reset['email']);

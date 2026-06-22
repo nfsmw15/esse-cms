@@ -21,6 +21,7 @@ class Schema
                 `totp_secret`  VARCHAR(255) NULL,
                 `totp_enabled` TINYINT(1)   NOT NULL DEFAULT 0,
                 `totp_backup_codes` TEXT NULL,
+                `password_changed_at` DATETIME NULL,
                 `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `updated_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 UNIQUE KEY `uq_email` (`email`)

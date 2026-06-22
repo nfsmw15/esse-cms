@@ -4,6 +4,13 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.5-alpha] - 2026-06-22
+
+### Security
+
+- **Passwortänderung invalidierte andere Sessions desselben Nutzers nicht**: Test mit zwei parallelen Sessions zeigte, dass nach Passwortänderung in Session A die Session B weiterhin gültig blieb (`/admin` lieferte 200). Neue Spalte `users.password_changed_at`; `Auth::login()` merkt sich den Login-Zeitpunkt der Session (`$_SESSION['esse_login_at']`), `Auth::init()` beendet die Session, wenn ihr Login-Zeitpunkt vor der letzten Passwortänderung liegt — wie beim bereits bestehenden Deaktiviert-Check. Greift bei Profil-Selbständerung (`pages/profil.php`), Admin-Passwortänderung für andere Nutzer (`admin/users/form.php`, mit Session-Refresh bei Selbstbearbeitung, um keinen Selbst-Lockout zu erzeugen) und Passwort-Reset (`admin/reset-password.php`). Die Session, die die Änderung selbst durchführt, bleibt gültig.
+- **TOTP-Einrichtung ohne Passwortbestätigung**: `totp_setup_start` zeigte Secret/QR-Code ohne erneute Passwortabfrage, anders als Passkey-Hinzufügen und TOTP-Deaktivierung. Jetzt durch ein Bestätigungs-Modal abgesichert (gleiches Muster wie die bestehenden TOTP-/Passkey-Re-Auth-Dialoge).
+
 ## [0.8.4-alpha] - 2026-06-22
 
 ### Security
