@@ -428,7 +428,7 @@ class Ui
         $intervalAttr = $interval > 0 ? ' data-esse-carousel-interval="' . $interval . '"' : '';
 
         $html = '<div class="' . $class . '" id="' . self::e($id) . '" role="region" aria-roledescription="carousel"' . $intervalAttr . '>'
-              . '<div class="esse-carousel-track">' . $slidesHtml . '</div>'
+              . '<div class="esse-carousel-track"><div class="esse-carousel-slides">' . $slidesHtml . '</div></div>'
               . $arrowsHtml
               . $dotsWrap
               . '</div>'

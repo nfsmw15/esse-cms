@@ -57,9 +57,10 @@
     }
 
     function esseCarouselGoto(root, index) {
+        const wrap   = root.querySelector('.esse-carousel-slides');
         const slides = root.querySelectorAll('.esse-carousel-slide');
         const dots   = root.querySelectorAll('.esse-carousel-dot');
-        if (!slides.length) return;
+        if (!wrap || !slides.length) return;
 
         const next = ((index % slides.length) + slides.length) % slides.length;
 
@@ -68,6 +69,8 @@
 
         slides[next]?.classList.add('esse-carousel-slide--active');
         dots[next]?.classList.add('esse-carousel-dot--active');
+
+        wrap.style.transform = 'translateX(-' + (next * 100) + '%)';
     }
 
     function esseCarouselInit() {

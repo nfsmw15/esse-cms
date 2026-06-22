@@ -219,19 +219,20 @@
 .esse-carousel-track {
   position: relative;
   width: 100%;
+  overflow: hidden;
+}
+
+.esse-carousel-slides {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform var(--esse-carousel-transition) ease;
 }
 
 .esse-carousel-slide {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity var(--esse-carousel-transition) ease;
-}
-.esse-carousel-slide--active {
-  opacity: 1;
-  visibility: visible;
-  z-index: 1;
+  flex: 0 0 100%;
+  width: 100%;
+  position: relative;
 }
 
 /* Zwei Klassen im Selektor statt einer — gewinnt zuverlässig gegen generische
@@ -306,7 +307,7 @@
 .esse-carousel-dot--active { background: #fff; }
 
 @media (prefers-reduced-motion: reduce) {
-  .esse-carousel-slide { transition: none; }
+  .esse-carousel-slides { transition: none; }
 }
 
 /* ── esse-divider ─────────────────────────────────────────────────────────── */
