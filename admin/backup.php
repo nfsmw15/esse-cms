@@ -52,8 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Restore
     if ($action === 'restore') {
-        $file = basename($_POST['file'] ?? '');
-        $path = $backupDir . '/' . $file;
+        $file      = basename($_POST['file'] ?? '');
+        $path      = $backupDir . '/' . $file;
+        $fullClean = ($_POST['full_clean'] ?? '1') === '1';
         if (!$file || !file_exists($path)) {
             Flash::set('danger', 'Backup nicht gefunden.');
             header('Location: /admin/backup');
@@ -67,8 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Standard-Request-Limit dauern — Restore ist eine bewusste, seltene Forge-Aktion.
         set_time_limit(0);
         try {
-            Updater::restore($path, fn() => null);
-            AuditLog::record('backup_restored', Auth::id(), Auth::user()['email'] ?? null, ['file' => $file]);
+            Updater::restore($path, fn() => null, $fullClean);
+            AuditLog::record('backup_restored', Auth::id(), Auth::user()['email'] ?? null, ['file' => $file, 'full_clean' => $fullClean]);
             Flash::set('success', "Wiederherstellung aus '{$file}' abgeschlossen.");
         } catch (\Throwable $e) {
             AuditLog::record('backup_restore_failed', Auth::id(), Auth::user()['email'] ?? null, ['file' => $file, 'error' => $e->getMessage()]);
@@ -139,14 +140,27 @@ ob_start();
                     <!-- Restore (Forge only) -->
                     <?php if (Auth::meetsRole('forge')): ?>
                     <form method="post" action="/admin/backup" class="d-inline"
-                          data-confirm="Backup '<?= htmlspecialchars($name) ?>' wiederherstellen?
+                          data-confirm="Backup '<?= htmlspecialchars($name) ?>' VOLLSTÄNDIG wiederherstellen?
 
-Achtung: Alle aktuellen Dateien und Datenbankeinträge werden überschrieben!">
-                        <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
-                        <input type="hidden" name="_action" value="restore">
-                        <input type="hidden" name="file"    value="<?= htmlspecialchars($name) ?>">
-                        <button class="btn btn-sm btn-outline-warning" title="Wiederherstellen">
+Datenbank UND Dateien werden exakt auf den Backup-Zeitpunkt zurückgesetzt. Dateien, die seither neu hinzugekommen sind (z.B. Uploads), werden dabei entfernt — empfohlen für Produktivbetrieb, sonst können verwaiste Dateien öffentlich erreichbar bleiben.">
+                        <input type="hidden" name="_csrf"       value="<?= Auth::csrfToken() ?>">
+                        <input type="hidden" name="_action"     value="restore">
+                        <input type="hidden" name="file"        value="<?= htmlspecialchars($name) ?>">
+                        <input type="hidden" name="full_clean"  value="1">
+                        <button class="btn btn-sm btn-outline-warning" title="Vollständig wiederherstellen (empfohlen) — entfernt auch Dateien, die nach dem Backup neu hinzugekommen sind">
                             <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                    </form>
+                    <form method="post" action="/admin/backup" class="d-inline"
+                          data-confirm="Backup '<?= htmlspecialchars($name) ?>' zusammenführen (Merge)?
+
+Die Datenbank wird auf den Backup-Zeitpunkt zurückgesetzt. Dateien, die seither neu hinzugekommen sind (z.B. Uploads), bleiben bestehen und können verwaist (ohne zugehörigen DB-Eintrag) im Webroot zurückbleiben.">
+                        <input type="hidden" name="_csrf"       value="<?= Auth::csrfToken() ?>">
+                        <input type="hidden" name="_action"     value="restore">
+                        <input type="hidden" name="file"        value="<?= htmlspecialchars($name) ?>">
+                        <input type="hidden" name="full_clean"  value="0">
+                        <button class="btn btn-sm btn-outline-secondary" title="Nur zusammenführen (Merge) — neue Dateien seit dem Backup bleiben bestehen">
+                            <i class="bi bi-arrow-counterclockwise"></i><i class="bi bi-union ms-1"></i>
                         </button>
                     </form>
                     <?php endif ?>
@@ -177,6 +191,17 @@ Achtung: Alle aktuellen Dateien und Datenbankeinträge werden überschrieben!">
 <?php endif ?>
 
 <div class="alert alert-secondary mt-4 small">
+    <i class="bi bi-arrow-counterclockwise me-2"></i>
+    <strong>Wiederherstellung — zwei Modi:</strong>
+    <strong><i class="bi bi-arrow-counterclockwise"></i> Vollständig</strong> (empfohlen) setzt Datenbank
+    und Dateien exakt auf den Backup-Zeitpunkt zurück — Dateien, die seither neu hinzugekommen sind
+    (z.B. Uploads), werden entfernt.
+    <strong><i class="bi bi-arrow-counterclockwise"></i><i class="bi bi-union"></i> Merge</strong> setzt
+    nur die Datenbank zurück; neue Dateien seit dem Backup bleiben bestehen und können danach verwaist
+    (ohne zugehörigen DB-Eintrag, aber weiterhin öffentlich erreichbar) im Webroot zurückbleiben.
+</div>
+
+<div class="alert alert-secondary mt-3 small">
     <i class="bi bi-shield-lock me-2"></i>
     <strong>Sicherheitshinweis:</strong>
     Backups enthalten den vollständigen Datenbankinhalt inkl. verschlüsselter Passwörter und SMTP-Zugangsdaten.

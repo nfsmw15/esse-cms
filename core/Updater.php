@@ -20,6 +20,15 @@ class Updater
         'THEME_GUIDE.md',
     ];
 
+    // Pfade, die ein Backup grundsätzlich nie erfasst (zu groß / nicht sinnvoll snapshotbar,
+    // z.B. Vendor-Assets). Beim "vollständigen" Restore (Aufräumen verwaister Dateien, die nach
+    // dem Backup neu hinzugekommen sind) dürfen genau diese Pfade nicht angetastet werden — sonst
+    // würden z.B. alle Icon-Packs/Vendor-Assets gelöscht, nur weil sie nie im Backup enthalten waren.
+    private const BACKUP_EXCLUDED = [
+        'storage/',
+        'public/vendor/',
+    ];
+
     // -- Update check --
 
     public static function checkForUpdate(bool $includePrerelease = false): ?array
@@ -80,7 +89,6 @@ class Updater
         // Files (skip storage and vendor to keep backup small)
         $log('Dateien sichern...');
         $root = \ESSE_ROOT;
-        $skip = ['storage/', 'public/vendor/'];
         $iter = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
         );
@@ -92,9 +100,7 @@ class Updater
                 continue; // open_basedir may block parent dir access
             }
             $rel = ltrim(str_replace($root, '', $file->getPathname()), '/');
-            foreach ($skip as $s) {
-                if (str_starts_with($rel, $s)) continue 2;
-            }
+            if (self::isBackupExcluded($rel)) continue;
             $zip->addFile($file->getPathname(), 'files/' . $rel);
         }
 
@@ -199,7 +205,11 @@ class Updater
 
     // -- Restore --
 
-    public static function restore(string $zipPath, callable $log): void
+    // $fullClean: nach dem Zurückschreiben der Backup-Dateien zusätzlich Dateien entfernen, die
+    // seit dem Backup neu im Webroot entstanden sind (z.B. Uploads) — sonst bleibt der DB-Eintrag
+    // zwar weg, die Datei selbst aber weiterhin direkt per HTTP erreichbar. Pfade, die ein Backup
+    // grundsätzlich nie erfasst (BACKUP_EXCLUDED, z.B. public/vendor/), werden davon nie berührt.
+    public static function restore(string $zipPath, callable $log, bool $fullClean = true): void
     {
         $zip = new \ZipArchive();
         if ($zip->open($zipPath) !== true) {
@@ -218,8 +228,9 @@ class Updater
 
         // 2. Restore files (skip protected paths)
         $log('Dateien wiederherstellen...');
-        $root  = \ESSE_ROOT;
-        $count = 0;
+        $root          = \ESSE_ROOT;
+        $count         = 0;
+        $backedUpPaths = [];
 
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $name = $zip->getNameIndex($i);
@@ -229,6 +240,8 @@ class Updater
             if ($rel === '' || str_ends_with($rel, '/') || str_contains($rel, '..')) continue;
             if (self::isProtected($rel)) continue;
 
+            $backedUpPaths[$rel] = true;
+
             $dest = $root . '/' . $rel;
             if (!is_dir(dirname($dest))) mkdir(dirname($dest), 0755, true);
             file_put_contents($dest, $zip->getFromIndex($i));
@@ -237,6 +250,60 @@ class Updater
 
         $zip->close();
         $log("{$count} Dateien wiederhergestellt.");
+
+        // 3. Vollständiger Restore: Dateien entfernen, die nicht (mehr) im Backup stehen.
+        if ($fullClean) {
+            $removed = self::removeOrphanedFiles($root, $backedUpPaths);
+            if ($removed > 0) {
+                $log("{$removed} Datei(en) entfernt, die seit dem Backup neu hinzugekommen sind.");
+            }
+        }
+    }
+
+    private static function removeOrphanedFiles(string $root, array $backedUpPaths): int
+    {
+        $removed = 0;
+        $iter = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iter as $file) {
+            try {
+                if (!$file->isFile()) continue;
+            } catch (\Throwable) {
+                continue; // open_basedir may block parent dir access
+            }
+            $rel = ltrim(str_replace($root, '', $file->getPathname()), '/');
+            if (self::isProtected($rel) || self::isBackupExcluded($rel)) continue;
+            if (isset($backedUpPaths[$rel])) continue;
+
+            @unlink($file->getPathname());
+            $removed++;
+        }
+
+        self::removeEmptyDirs($root);
+
+        return $removed;
+    }
+
+    // Räumt Verzeichnisse auf, die durchs Entfernen verwaister Dateien leer geblieben sind.
+    private static function removeEmptyDirs(string $root): void
+    {
+        $iter = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($iter as $file) {
+            try {
+                if (!$file->isDir()) continue;
+            } catch (\Throwable) {
+                continue;
+            }
+            $rel = ltrim(str_replace($root, '', $file->getPathname()), '/');
+            if (self::isProtected($rel) || self::isBackupExcluded($rel)) continue;
+            @rmdir($file->getPathname()); // schlägt für nicht-leere Verzeichnisse einfach fehl
+        }
     }
 
     private static function dbImport(string $sql): void
@@ -287,6 +354,16 @@ class Updater
     {
         foreach (self::PROTECTED as $protected) {
             if (str_starts_with($rel, $protected) || $rel === rtrim($protected, '/')) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static function isBackupExcluded(string $rel): bool
+    {
+        foreach (self::BACKUP_EXCLUDED as $excluded) {
+            if (str_starts_with($rel, $excluded) || $rel === rtrim($excluded, '/')) {
                 return true;
             }
         }
