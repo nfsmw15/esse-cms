@@ -266,26 +266,6 @@ class Auth
                 }
             }
 
-            // Einmalige Bereinigung: manage_repos wurde früher per DEFAULT_ROLE_PERMISSIONS an
-            // admin vergeben, ist seit der FORGE_ONLY_PERMISSIONS-Härtung davon aber bewusst
-            // ausgenommen. Bestehende Zuweisungen einmalig entfernen, statt sie unbegrenzt
-            // wiederherzustellen — danach kann Forge die Permission über /admin/roles jederzeit
-            // erneut bewusst vergeben, ohne dass diese Migration sie wieder entzieht.
-            $ts = DB::table('settings');
-            $cleanupDone = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'migrated_manage_repos_admin_cleanup'");
-            if (!$cleanupDone) {
-                DB::query(
-                    "DELETE rp FROM `{$trp}` rp
-                       JOIN `{$tr}` r ON r.id = rp.role_id
-                       JOIN `{$tp}` p ON p.id = rp.permission_id
-                      WHERE r.slug = 'admin' AND p.slug = 'manage_repos'"
-                );
-                DB::query(
-                    "INSERT INTO `{$ts}` (`key`, `value`) VALUES ('migrated_manage_repos_admin_cleanup', '1')
-                     ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)"
-                );
-            }
-
             PageVisibility::migrateDb();
             TwoFactor::migrateDb();
             AuditLog::migrateDb();
@@ -310,6 +290,32 @@ class Auth
             $cols = array_column(DB::fetchAll("SHOW COLUMNS FROM `{$tu}`"), 'Field');
             if (!in_array('password_changed_at', $cols, true)) {
                 DB::query("ALTER TABLE `{$tu}` ADD COLUMN `password_changed_at` DATETIME NULL");
+            }
+
+            // Einmalige Bereinigung: manage_repos wurde früher per DEFAULT_ROLE_PERMISSIONS an
+            // admin vergeben, ist seit der FORGE_ONLY_PERMISSIONS-Härtung davon aber bewusst
+            // ausgenommen. Bestehende Zuweisungen einmalig entfernen, statt sie unbegrenzt
+            // wiederherzustellen — danach kann Forge die Permission über /admin/roles jederzeit
+            // erneut bewusst vergeben, ohne dass diese Migration sie wieder entzieht. Lebt
+            // bewusst hier (statt in syncDefaultPermissions()), da diese Methode auch ohne
+            // eingeloggten Nutzer bei jedem Request läuft — der Sicherheitsfix soll nicht erst
+            // beim nächsten Admin-Login greifen.
+            $ts          = DB::table('settings');
+            $tp          = DB::table('permissions');
+            $tr          = DB::table('roles');
+            $trp         = DB::table('role_permissions');
+            $cleanupDone = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'migrated_manage_repos_admin_cleanup'");
+            if (!$cleanupDone) {
+                DB::query(
+                    "DELETE rp FROM `{$trp}` rp
+                       JOIN `{$tr}` r ON r.id = rp.role_id
+                       JOIN `{$tp}` p ON p.id = rp.permission_id
+                      WHERE r.slug = 'admin' AND p.slug = 'manage_repos'"
+                );
+                DB::query(
+                    "INSERT INTO `{$ts}` (`key`, `value`) VALUES ('migrated_manage_repos_admin_cleanup', '1')
+                     ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)"
+                );
             }
 
             self::$securityMigrationsSynced = true;
