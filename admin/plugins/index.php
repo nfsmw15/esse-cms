@@ -111,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Repo-Kanäle definieren eine Vertrauensgrenze (woher Plugin-Installs kommen dürfen) —
     // dafür reicht manage_plugins nicht, das ist eine eigene, engere Berechtigung.
     if (in_array($action, ['add_repo', 'remove_repo'], true) && !Auth::meetsRole('forge') && !Auth::can('manage_repos')) {
+        AuditLog::record('repo_action_forbidden', Auth::id(), Auth::user()['email'] ?? null, ['action' => $action]);
         http_response_code(403); echo '403 Forbidden'; exit;
     }
 
@@ -466,7 +467,7 @@ foreach ($plugins as $p) {
                 <?php endif ?>
             </td>
             <td class="text-end pe-3">
-                <?php if (!$repo['trusted']): ?>
+                <?php if (!$repo['trusted'] && (Auth::meetsRole('forge') || Auth::can('manage_repos'))): ?>
                 <form method="post" action="/admin/plugins" class="d-inline"
                       data-confirm="Kanal entfernen?">
                     <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
@@ -480,6 +481,7 @@ foreach ($plugins as $p) {
         <?php endforeach ?>
         </table>
     </div>
+    <?php if (Auth::meetsRole('forge') || Auth::can('manage_repos')): ?>
     <div class="card-footer">
         <form method="post" action="/admin/plugins" class="d-flex gap-2 align-items-end">
             <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
@@ -503,30 +505,11 @@ foreach ($plugins as $p) {
             Nur vertrauenswürdige Quellen hinzufügen. Plugins können PHP-Code auf dem Server ausführen.
         </div>
     </div>
+    <?php endif ?>
 </div>
 
 <?php else: ?>
 <!-- ── INSTALLED TAB ── -->
-
-<!-- ZIP Upload — nur Forge, Installation aus Repo-Kanälen bleibt für manage_plugins-Admins -->
-<?php if (Auth::meetsRole('forge')): ?>
-<div class="card mb-4">
-    <div class="card-header py-2"><small class="text-secondary">Plugin installieren</small></div>
-    <div class="card-body">
-        <form method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-end">
-            <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
-            <input type="hidden" name="_action" value="upload">
-            <div class="flex-grow-1">
-                <input type="file" name="plugin_zip" class="form-control" accept=".zip" required>
-                <div class="form-text">ZIP-Datei mit <code>plugin.json</code> und <code>Plugin.php</code></div>
-            </div>
-            <button class="btn btn-primary">
-                <i class="bi bi-upload"></i> Installieren
-            </button>
-        </form>
-    </div>
-</div>
-<?php endif ?>
 
 <!-- Plugin list -->
 <?php if ($plugins): ?>
@@ -597,6 +580,27 @@ foreach ($plugins as $p) {
     <div class="card-body text-center text-secondary py-5">
         Noch keine Plugins installiert. Lade eine ZIP-Datei hoch oder wechsle zu
         <a href="/admin/plugins?tab=available">Verfügbar</a>.
+    </div>
+</div>
+<?php endif ?>
+
+<!-- ZIP Upload — nur Forge, Installation aus Repo-Kanälen bleibt für manage_plugins-Admins.
+     Bewusst nur für den Notfall/Offline-Fall gedacht, daher unten angeordnet (wie bei Themes). -->
+<?php if (Auth::meetsRole('forge')): ?>
+<div class="card mt-4">
+    <div class="card-header py-2"><small class="text-secondary">Plugin installieren</small></div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-end">
+            <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+            <input type="hidden" name="_action" value="upload">
+            <div class="flex-grow-1">
+                <input type="file" name="plugin_zip" class="form-control" accept=".zip" required>
+                <div class="form-text">ZIP-Datei mit <code>plugin.json</code> und <code>Plugin.php</code></div>
+            </div>
+            <button class="btn btn-primary">
+                <i class="bi bi-upload"></i> Installieren
+            </button>
+        </form>
     </div>
 </div>
 <?php endif ?>

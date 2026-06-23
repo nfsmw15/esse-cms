@@ -48,7 +48,9 @@ return [
     },
 
     'POST /admin/plugins (_action=add_repo): Admin ohne manage_repos erhaelt 403' => function (Http $http) {
-        $tu   = DB::table('users');
+        $tu = DB::table('users');
+        $tl = DB::table('audit_log');
+        DB::query("DELETE FROM `{$tl}` WHERE event = 'repo_action_forbidden'");
         $user = makeTempAdmin('repo-admin');
 
         try {
@@ -64,9 +66,30 @@ return [
 
             $tr = DB::table('plugin_repos');
             Assert::true(DB::fetch("SELECT id FROM `{$tr}` WHERE owner = ?", ['some-dummy-owner']) === null, 'Kanal darf trotz 403 nicht angelegt worden sein');
+
+            $row = DB::fetch("SELECT * FROM `{$tl}` WHERE event = 'repo_action_forbidden' ORDER BY id DESC LIMIT 1");
+            Assert::true($row !== null, 'Es sollte ein repo_action_forbidden-Eintrag existieren');
+            Assert::same($user['email'], $row['email'] ?? null);
         } finally {
             DB::delete($tu, ['id' => $user['id']]);
         }
+    },
+
+    'GET /admin/plugins?tab=available: "Kanal hinzufuegen"-Formular nur fuer Forge/manage_repos sichtbar' => function (Http $http) {
+        $tu   = DB::table('users');
+        $user = makeTempAdmin('repo-ui-admin');
+
+        try {
+            loginAs($http, $user['email'], $user['password']);
+            $body = $http->get('/admin/plugins?tab=available')['body'];
+            Assert::true(!str_contains($body, 'name="repo_owner"'), 'Formular sollte fuer Admin ohne manage_repos nicht sichtbar sein');
+        } finally {
+            DB::delete($tu, ['id' => $user['id']]);
+        }
+
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $body = $http->get('/admin/plugins?tab=available')['body'];
+        Assert::true(str_contains($body, 'name="repo_owner"'), 'Formular sollte fuer Forge sichtbar sein');
     },
 
     'POST /admin/plugins (_action=add_repo): Forge darf weiterhin Kanaele verwalten' => function (Http $http) {

@@ -80,6 +80,7 @@ class AuditLog
         'repo_removed'                      => 'Repo-Kanal entfernt',
         'repo_trust_changed'               => 'Repo-Kanal-Vertrauensstufe geändert',
         'repo_cache_refreshed'            => 'Repo-Cache aktualisiert',
+        'repo_action_forbidden'           => 'Repo-Kanal-Aktion ohne Berechtigung versucht',
     ];
 
     public static function migrateDb(): void

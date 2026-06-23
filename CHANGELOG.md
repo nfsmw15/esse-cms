@@ -4,6 +4,17 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.9-alpha] - 2026-06-23
+
+### Fixed
+
+- **"Kanal hinzufügen"-UI auf `/admin/plugins` für Admins ohne `manage_repos` sichtbar**: Der POST war bereits korrekt 403, das Formular (und der „Entfernen"-Button je Kanal) wurden aber trotzdem angezeigt. Beides jetzt hinter `Auth::meetsRole('forge') || Auth::can('manage_repos')` versteckt.
+- **"Plugin installieren"-Card lag vor der Plugin-Liste**: Bei Themes liegt die Upload-Card (bewusst nur für den Notfall gedacht) unten, bei Plugins lag sie oben. Jetzt einheitlich unten angeordnet.
+
+### Security
+
+- **Blockierte Repo-Kanal-Aktionen jetzt geloggt**: Neues Audit-Event `repo_action_forbidden`, wenn `add_repo`/`remove_repo` ohne `manage_repos`/Forge versucht wird.
+
 ## [0.8.8-alpha] - 2026-06-23
 
 ### Changed
