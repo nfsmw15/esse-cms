@@ -6,11 +6,16 @@ namespace Esse;
 
 class Updater
 {
-    // Paths that must never be overwritten during an update
+    // Paths that must never be overwritten during an update. storage/uploads/ bewusst NICHT
+    // hier (anders als frueher als ganzes "storage/" geblockt) — dort liegen jetzt private
+    // Mediendateien (siehe Esse\Media), die wie public/uploads/ ganz normal Teil von Backup/
+    // Restore sein muessen, sonst wuerden sie nie gesichert oder wiederhergestellt.
     private const PROTECTED = [
         'config/',
         'local.php',
-        'storage/',
+        'storage/backups/',
+        'storage/cache/',
+        'storage/update_tmp/',
         'install/installed.lock',
         // Doku-Dateien: bleiben für Neuinstallationen im Release-ZIP, werden aber auf
         // bestehenden Instanzen nicht bei jedem Update neu auf den Live-Server kopiert
@@ -20,12 +25,16 @@ class Updater
         'THEME_GUIDE.md',
     ];
 
-    // Pfade, die ein Backup grundsätzlich nie erfasst (zu groß / nicht sinnvoll snapshotbar,
-    // z.B. Vendor-Assets). Beim "vollständigen" Restore (Aufräumen verwaister Dateien, die nach
-    // dem Backup neu hinzugekommen sind) dürfen genau diese Pfade nicht angetastet werden — sonst
+    // Pfade, die ein Backup grundsätzlich nie erfasst — entweder weil sie sonst eine Backup-in-
+    // Backup-Rekursion erzeugen wuerden (storage/backups/), reine Laufzeit-Artefakte sind
+    // (storage/cache/, storage/update_tmp/) oder zu groß/nicht sinnvoll snapshotbar sind
+    // (public/vendor/). Beim "vollständigen" Restore (Aufräumen verwaister Dateien, die nach dem
+    // Backup neu hinzugekommen sind) dürfen genau diese Pfade nicht angetastet werden — sonst
     // würden z.B. alle Icon-Packs/Vendor-Assets gelöscht, nur weil sie nie im Backup enthalten waren.
     private const BACKUP_EXCLUDED = [
-        'storage/',
+        'storage/backups/',
+        'storage/cache/',
+        'storage/update_tmp/',
         'public/vendor/',
     ];
 
@@ -36,19 +45,35 @@ class Updater
     public const MAX_FILE_BYTES  = 20 * 1024 * 1024;  // 20 MB pro Einzeldatei (entpackt)
     public const MAX_TOTAL_BYTES = 80 * 1024 * 1024;  // 80 MB gesamt (entpackt)
 
+    // Eigene, grosszuegigere Grenzwerte fuer Backup-ZIPs: die enthalten einen vollen DB-Dump
+    // (in der Praxis schon 80.000+ INSERT-Zeilen in einer einzigen Tabelle) plus alle Uploads —
+    // die PKG-Limits oben waeren dafuer zu eng und wuerden echte Backups beim Restore ablehnen.
+    public const BACKUP_MAX_ZIP_BYTES   = 500 * 1024 * 1024;        // 500 MB komprimiertes ZIP
+    public const BACKUP_MAX_FILES       = 50000;                    // Anzahl Eintraege im ZIP
+    public const BACKUP_MAX_FILE_BYTES  = 200 * 1024 * 1024;        // 200 MB pro Einzeldatei (entpackt)
+    public const BACKUP_MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024;   // 2 GB gesamt (entpackt)
+
     // Prueft Groesse, Dateianzahl, Symlinks/Spezialdateien und optional eine Endungs-Allowlist
     // VOR dem Dekomprimieren (anhand der Central-Directory-Metadaten) — bei einem einzigen
     // verdaechtigen Eintrag wird das GANZE ZIP abgelehnt, nicht nur dieser Eintrag. Gemeinsam
-    // genutzt von Updater::apply() (CMS-Selbst-Update) und packageInstallZip() (Plugins/Themes/
-    // Icon-Packs) — eine Stelle statt zwei, nachdem Update-ZIPs diese Pruefung lange gar nicht
-    // hatten (siehe Lehre aus der Icon-Pack-RCE 0.8.7).
-    public static function checkZipLimits(\ZipArchive $zip, string $tmpFile, ?array $allowedExtensions = null): ?string
-    {
-        if (filesize($tmpFile) > self::MAX_ZIP_BYTES) {
-            return 'ZIP-Datei zu groß (max. ' . (int) (self::MAX_ZIP_BYTES / 1024 / 1024) . ' MB).';
+    // genutzt von Updater::apply() (CMS-Selbst-Update), Updater::restore() (Backup-Wiederher-
+    // stellung, mit den groesseren BACKUP_*-Grenzwerten) und packageInstallZip() (Plugins/
+    // Themes/Icon-Packs) — eine Stelle statt mehreren, nachdem Update-ZIPs diese Pruefung lange
+    // gar nicht hatten (siehe Lehre aus der Icon-Pack-RCE 0.8.7).
+    public static function checkZipLimits(
+        \ZipArchive $zip,
+        string $tmpFile,
+        ?array $allowedExtensions = null,
+        int $maxZipBytes = self::MAX_ZIP_BYTES,
+        int $maxFiles = self::MAX_FILES,
+        int $maxFileBytes = self::MAX_FILE_BYTES,
+        int $maxTotalBytes = self::MAX_TOTAL_BYTES
+    ): ?string {
+        if (filesize($tmpFile) > $maxZipBytes) {
+            return 'ZIP-Datei zu groß (max. ' . (int) ($maxZipBytes / 1024 / 1024) . ' MB).';
         }
-        if ($zip->numFiles > self::MAX_FILES) {
-            return 'ZIP enthält zu viele Dateien (max. ' . self::MAX_FILES . ').';
+        if ($zip->numFiles > $maxFiles) {
+            return 'ZIP enthält zu viele Dateien (max. ' . $maxFiles . ').';
         }
 
         $totalBytes = 0;
@@ -75,12 +100,12 @@ class Updater
                 }
             }
 
-            if ($stat['size'] > self::MAX_FILE_BYTES) {
-                return 'Einzeldatei im ZIP zu groß (max. ' . (int) (self::MAX_FILE_BYTES / 1024 / 1024) . ' MB): ' . basename($name);
+            if ($stat['size'] > $maxFileBytes) {
+                return 'Einzeldatei im ZIP zu groß (max. ' . (int) ($maxFileBytes / 1024 / 1024) . ' MB): ' . basename($name);
             }
             $totalBytes += $stat['size'];
-            if ($totalBytes > self::MAX_TOTAL_BYTES) {
-                return 'ZIP zu groß entpackt (max. ' . (int) (self::MAX_TOTAL_BYTES / 1024 / 1024) . ' MB gesamt) — möglicher Zip-Bomb.';
+            if ($totalBytes > $maxTotalBytes) {
+                return 'ZIP zu groß entpackt (max. ' . (int) ($maxTotalBytes / 1024 / 1024) . ' MB gesamt) — möglicher Zip-Bomb.';
             }
         }
 
@@ -291,6 +316,20 @@ class Updater
             throw new \RuntimeException('Backup-ZIP konnte nicht geöffnet werden.');
         }
 
+        // Vorprüfung VOR DB-Import und VOR jedem Datei-Schreiben — Backups werden vom CMS selbst
+        // erzeugt, sind also kein Public-Upload-Vektor, trotzdem soll ein manipuliertes/korruptes
+        // Backup-ZIP (Symlink, Zip-Bomb) nicht unkontrolliert verarbeitet werden. Eigene, deutlich
+        // grosszuegigere Grenzwerte als bei Plugin-/Update-ZIPs, weil ein echter Backup-ZIP einen
+        // vollen DB-Dump (potenziell zehntausende Zeilen) plus alle Uploads enthaelt.
+        $limitError = self::checkZipLimits(
+            $zip, $zipPath, null,
+            self::BACKUP_MAX_ZIP_BYTES, self::BACKUP_MAX_FILES, self::BACKUP_MAX_FILE_BYTES, self::BACKUP_MAX_TOTAL_BYTES
+        );
+        if ($limitError !== null) {
+            $zip->close();
+            throw new \RuntimeException("Backup-ZIP abgelehnt: {$limitError}");
+        }
+
         // 1. Restore database
         $log('Datenbank wiederherstellen...');
         $sqlContent = $zip->getFromName('database.sql');
@@ -317,9 +356,14 @@ class Updater
 
             $backedUpPaths[$rel] = true;
 
+            // Defense-in-depth: tatsaechlich dekomprimierte Groesse erneut gegen das Limit
+            // pruefen, falls Central-Directory- und Local-File-Header-Metadaten abweichen.
+            $content = $zip->getFromIndex($i);
+            if ($content === false || strlen($content) > self::BACKUP_MAX_FILE_BYTES) continue;
+
             $dest = $root . '/' . $rel;
             if (!is_dir(dirname($dest))) mkdir(dirname($dest), 0755, true);
-            file_put_contents($dest, $zip->getFromIndex($i));
+            file_put_contents($dest, $content);
             $count++;
         }
 

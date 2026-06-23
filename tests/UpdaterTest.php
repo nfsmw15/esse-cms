@@ -76,6 +76,40 @@ function applyMarkerPath(): string
     return \ESSE_ROOT . '/__apply_test_marker__.txt';
 }
 
+// Backup-ZIPs haben das Format aus Updater::createBackup(): "files/<rel>" pro Datei, optional
+// "database.sql". Kein "database.sql" hier, damit ein abgelehntes ZIP nie bis zum DB-Import kommt
+// (der in der reinen Unit-Test-Umgebung ohne DB-Verbindung fehlschlagen wuerde) - genau das
+// belegt auch, dass checkZipLimits() vor jedem Import/Schreiben greift.
+function restoreMarkerPath(): string
+{
+    return \ESSE_ROOT . '/__restore_test_marker__.txt';
+}
+
+function makeBackupZipWithSymlink(): string
+{
+    $zipPath = tempnam(sys_get_temp_dir(), 'esse-test-restore-symlink-') . '.zip';
+    $zip = new \ZipArchive();
+    $zip->open($zipPath, \ZipArchive::CREATE);
+    $zip->addFromString('files/__restore_test_marker__.txt', 'should not be written');
+    $zip->addFromString('files/evil-link', '/etc/passwd');
+    $idx = $zip->locateName('files/evil-link');
+    $zip->setExternalAttributesIndex($idx, \ZipArchive::OPSYS_UNIX, 0120777 << 16); // S_IFLNK
+    $zip->close();
+    return $zipPath;
+}
+
+function makeBackupZipWithOversizedFile(int $mb): string
+{
+    $zipPath = tempnam(sys_get_temp_dir(), 'esse-test-restore-bigfile-') . '.zip';
+    $zip = new \ZipArchive();
+    $zip->open($zipPath, \ZipArchive::CREATE);
+    $zip->addFromString('files/__restore_test_marker__.txt', 'should not be written');
+    $zip->addFromString('files/big.bin', str_repeat("\0", $mb * 1024 * 1024));
+    $zip->setCompressionName('files/big.bin', \ZipArchive::CM_DEFLATE, 9);
+    $zip->close();
+    return $zipPath;
+}
+
 return [
     'isNewer: hoehere Version wird erkannt' => function () {
         Assert::true(Updater::isNewer('0.2.1-alpha', '0.2.0-alpha'));
@@ -129,16 +163,33 @@ return [
         }
     },
 
-    'removeOrphanedFiles: ruehrt geschuetzte Pfade (config/, local.php, storage/) nie an' => function () {
+    'removeOrphanedFiles: ruehrt geschuetzte Pfade (config/, local.php, storage/cache/, storage/backups/) nie an' => function () {
         $root = sys_get_temp_dir() . '/esse-restore-test-' . bin2hex(random_bytes(4));
         makeFile($root . '/config/config.php');
         makeFile($root . '/local.php');
         makeFile($root . '/storage/cache/foo.json');
+        makeFile($root . '/storage/backups/old.zip');
         try {
             callRemoveOrphanedFiles($root, []);
             Assert::true(file_exists($root . '/config/config.php'));
             Assert::true(file_exists($root . '/local.php'));
             Assert::true(file_exists($root . '/storage/cache/foo.json'));
+            Assert::true(file_exists($root . '/storage/backups/old.zip'));
+        } finally {
+            rrmdir($root);
+        }
+    },
+
+    'removeOrphanedFiles: entfernt verwaiste Dateien unter storage/uploads/ (private Medien)' => function () {
+        // storage/uploads/ ist bewusst NICHT geschuetzt/ausgeschlossen — dort liegen private
+        // Mediendateien (Esse\Media), die genauso wie public/uploads/ am Restore teilnehmen
+        // muessen sollen.
+        $root = sys_get_temp_dir() . '/esse-restore-test-' . bin2hex(random_bytes(4));
+        makeFile($root . '/storage/uploads/orphan-private.txt');
+        try {
+            $removed = callRemoveOrphanedFiles($root, []);
+            Assert::same(1, $removed);
+            Assert::true(!file_exists($root . '/storage/uploads/orphan-private.txt'), 'storage/uploads/ sollte am Aufraeumen teilnehmen, nicht geschuetzt sein');
         } finally {
             rrmdir($root);
         }
@@ -196,5 +247,65 @@ return [
         }
         Assert::true($threw, 'apply() sollte zu viele Dateien ablehnen');
         Assert::true(!file_exists(applyMarkerPath()), 'Bei abgelehntem Update darf ueberhaupt nichts geschrieben werden');
+    },
+
+    // -- restore() (Backup-Wiederherstellung): gleiche Vorpruefung wie apply(), aber mit den
+    // grosszuegigeren BACKUP_*-Grenzwerten (ein Backup enthaelt einen vollen DB-Dump + Uploads). --
+
+    'restore: lehnt Backup-ZIP mit Symlink ab, vor DB-Import und vor jedem Schreiben' => function () {
+        $zipPath = makeBackupZipWithSymlink();
+        @unlink(restoreMarkerPath());
+
+        $threw = false;
+        try {
+            Updater::restore($zipPath, fn() => null);
+        } catch (\RuntimeException $e) {
+            $threw = true;
+            Assert::true(str_contains($e->getMessage(), 'Symlink'), "Fehlermeldung sollte Symlink nennen, war: {$e->getMessage()}");
+        } finally {
+            @unlink($zipPath);
+        }
+        Assert::true($threw, 'restore() sollte bei einem Symlink im Backup-ZIP eine Exception werfen');
+        Assert::true(!file_exists(restoreMarkerPath()), 'Bei abgelehntem Backup darf ueberhaupt nichts geschrieben werden');
+    },
+
+    'restore: lehnt Backup-ZIP mit zu großer Einzeldatei ab (Backup-Limit, nicht Paket-Limit)' => function () {
+        // 210 MB liegt ueber dem Backup-Limit (200 MB), aber weit ueber dem Paket-Limit (20 MB) -
+        // belegt, dass restore() tatsaechlich die groesseren BACKUP_*-Grenzwerte nutzt.
+        $zipPath = makeBackupZipWithOversizedFile(210);
+        @unlink(restoreMarkerPath());
+
+        $threw = false;
+        try {
+            Updater::restore($zipPath, fn() => null);
+        } catch (\RuntimeException $e) {
+            $threw = true;
+            Assert::true(str_contains($e->getMessage(), 'groß'), "Fehlermeldung sollte Größenproblem nennen, war: {$e->getMessage()}");
+        } finally {
+            @unlink($zipPath);
+        }
+        Assert::true($threw, 'restore() sollte eine 210-MB-Einzeldatei ablehnen (ueber dem Backup-Limit von 200 MB)');
+        Assert::true(!file_exists(restoreMarkerPath()), 'Bei abgelehntem Backup darf ueberhaupt nichts geschrieben werden');
+    },
+
+    'restore: akzeptiert 50 MB Einzeldatei (ueber Paket-Limit von 20 MB, unter Backup-Limit von 200 MB)' => function () {
+        // Belegt per checkZipLimits() direkt (ohne echtes Schreiben in ESSE_ROOT), dass restore()
+        // mit den BACKUP_*-Grenzwerten tatsaechlich mehr erlaubt als die engen Paket-Grenzwerte.
+        $zipPath = makeBackupZipWithOversizedFile(50);
+        $zip = new \ZipArchive();
+        $zip->open($zipPath);
+        try {
+            $pkgError = Updater::checkZipLimits($zip, $zipPath);
+            Assert::true($pkgError !== null, 'Mit den Paket-Limits (20 MB) sollten 50 MB abgelehnt werden');
+
+            $backupError = Updater::checkZipLimits(
+                $zip, $zipPath, null,
+                Updater::BACKUP_MAX_ZIP_BYTES, Updater::BACKUP_MAX_FILES, Updater::BACKUP_MAX_FILE_BYTES, Updater::BACKUP_MAX_TOTAL_BYTES
+            );
+            Assert::true($backupError === null, 'Mit den Backup-Limits (200 MB) sollten 50 MB akzeptiert werden, Fehler war: ' . ($backupError ?? ''));
+        } finally {
+            $zip->close();
+            @unlink($zipPath);
+        }
     },
 ];
