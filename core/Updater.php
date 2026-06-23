@@ -29,6 +29,64 @@ class Updater
         'public/vendor/',
     ];
 
+    // Grenzwerte gegen Zip-Bomben/überdimensionierte ZIPs — gelten fuer Update-ZIPs genauso wie
+    // fuer Plugin-/Theme-/Iconpack-Pakete (siehe checkZipLimits() unten, von beiden genutzt).
+    public const MAX_ZIP_BYTES   = 20 * 1024 * 1024;  // 20 MB komprimiertes ZIP
+    public const MAX_FILES       = 1000;              // Anzahl Eintraege im ZIP
+    public const MAX_FILE_BYTES  = 20 * 1024 * 1024;  // 20 MB pro Einzeldatei (entpackt)
+    public const MAX_TOTAL_BYTES = 80 * 1024 * 1024;  // 80 MB gesamt (entpackt)
+
+    // Prueft Groesse, Dateianzahl, Symlinks/Spezialdateien und optional eine Endungs-Allowlist
+    // VOR dem Dekomprimieren (anhand der Central-Directory-Metadaten) — bei einem einzigen
+    // verdaechtigen Eintrag wird das GANZE ZIP abgelehnt, nicht nur dieser Eintrag. Gemeinsam
+    // genutzt von Updater::apply() (CMS-Selbst-Update) und packageInstallZip() (Plugins/Themes/
+    // Icon-Packs) — eine Stelle statt zwei, nachdem Update-ZIPs diese Pruefung lange gar nicht
+    // hatten (siehe Lehre aus der Icon-Pack-RCE 0.8.7).
+    public static function checkZipLimits(\ZipArchive $zip, string $tmpFile, ?array $allowedExtensions = null): ?string
+    {
+        if (filesize($tmpFile) > self::MAX_ZIP_BYTES) {
+            return 'ZIP-Datei zu groß (max. ' . (int) (self::MAX_ZIP_BYTES / 1024 / 1024) . ' MB).';
+        }
+        if ($zip->numFiles > self::MAX_FILES) {
+            return 'ZIP enthält zu viele Dateien (max. ' . self::MAX_FILES . ').';
+        }
+
+        $totalBytes = 0;
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $stat = $zip->statIndex($i);
+            if ($stat === false) continue;
+            $name  = $stat['name'];
+            $isDir = str_ends_with($name, '/');
+
+            // Symlinks/Spezialdateien (Block-/Char-Devices, FIFOs, Sockets) — erkannt anhand des
+            // Unix-Modes in den External Attributes — lehnen das GESAMTE ZIP ab, kein stilles
+            // Uebersrpingen einzelner Eintraege.
+            if (!$isDir && $zip->getExternalAttributesIndex($i, $opsys, $attr) && $opsys === \ZipArchive::OPSYS_UNIX) {
+                $unixMode = ($attr >> 16) & 0xF000;
+                if ($unixMode !== 0 && $unixMode !== 0x8000) { // 0x8000 = regulaere Datei, 0 = kein Unix-Mode gesetzt
+                    return 'ZIP enthält einen Symlink oder eine Spezialdatei (' . basename($name) . ') — Paket wird abgelehnt.';
+                }
+            }
+
+            if (!$isDir && $allowedExtensions !== null) {
+                $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                if (!in_array($ext, $allowedExtensions, true)) {
+                    return 'Dateityp nicht erlaubt im Paket: ' . basename($name) . ($ext !== '' ? " (.{$ext})" : '');
+                }
+            }
+
+            if ($stat['size'] > self::MAX_FILE_BYTES) {
+                return 'Einzeldatei im ZIP zu groß (max. ' . (int) (self::MAX_FILE_BYTES / 1024 / 1024) . ' MB): ' . basename($name);
+            }
+            $totalBytes += $stat['size'];
+            if ($totalBytes > self::MAX_TOTAL_BYTES) {
+                return 'ZIP zu groß entpackt (max. ' . (int) (self::MAX_TOTAL_BYTES / 1024 / 1024) . ' MB gesamt) — möglicher Zip-Bomb.';
+            }
+        }
+
+        return null;
+    }
+
     // -- Update check --
 
     public static function checkForUpdate(bool $includePrerelease = false): ?array
@@ -144,6 +202,18 @@ class Updater
             throw new \RuntimeException('Update-ZIP konnte nicht geöffnet werden.');
         }
 
+        // Vorprüfung VOR jedem Schreiben — ein Update-ZIP kam bisher ungeprüft direkt zur
+        // Extraktion (anders als Plugin-/Theme-/Icon-Pack-Uploads, die schon laenger durch
+        // checkZipLimits() laufen). Ohne diese Pruefung schreibt ein manipuliertes Release-ZIP
+        // (kompromittierter Update-Kanal, Symlink auf z.B. /etc/passwd, Zip-Bomb) unkontrolliert
+        // ins Webroot. Forge-only, also kein akutes Public-RCE, aber unnoetiges Schadenspotenzial
+        // bei einem kompromittierten Kanal — daher dieselbe Haertung wie bei Paket-Uploads.
+        $limitError = self::checkZipLimits($zip, $zipPath);
+        if ($limitError !== null) {
+            $zip->close();
+            throw new \RuntimeException("Update-ZIP abgelehnt: {$limitError}");
+        }
+
         $log('Entpacke Update...');
         $root  = \ESSE_ROOT;
         $count = 0;
@@ -161,11 +231,16 @@ class Updater
             // Skip protected paths
             if (self::isProtected($rel)) continue;
 
+            // Defense-in-depth: tatsaechlich dekomprimierte Groesse erneut gegen das Limit
+            // pruefen, falls Central-Directory- und Local-File-Header-Metadaten abweichen.
+            $content = $zip->getFromIndex($i);
+            if ($content === false || strlen($content) > self::MAX_FILE_BYTES) continue;
+
             $target = $root . '/' . $rel;
             $dir    = dirname($target);
             if (!is_dir($dir)) mkdir($dir, 0755, true);
 
-            file_put_contents($target, $zip->getFromIndex($i));
+            file_put_contents($target, $content);
             $count++;
         }
 

@@ -31,6 +31,51 @@ function rrmdir(string $dir): void
     rmdir($dir);
 }
 
+// GitHub-Release-ZIPs haben immer einen Root-Ordner (z.B. nfsmw15-esse-cms-abc123/), den
+// Updater::apply() abstreift — Fixtures bilden das nach.
+function makeUpdateZipWithSymlink(): string
+{
+    $zipPath = tempnam(sys_get_temp_dir(), 'esse-test-apply-symlink-') . '.zip';
+    $zip = new \ZipArchive();
+    $zip->open($zipPath, \ZipArchive::CREATE);
+    $zip->addFromString('repo-abc123/__apply_test_marker__.txt', 'should not be written');
+    $zip->addFromString('repo-abc123/evil-link', '/etc/passwd');
+    $idx = $zip->locateName('repo-abc123/evil-link');
+    $zip->setExternalAttributesIndex($idx, \ZipArchive::OPSYS_UNIX, 0120777 << 16); // S_IFLNK
+    $zip->close();
+    return $zipPath;
+}
+
+function makeUpdateZipWithOversizedFile(int $mb): string
+{
+    $zipPath = tempnam(sys_get_temp_dir(), 'esse-test-apply-bigfile-') . '.zip';
+    $zip = new \ZipArchive();
+    $zip->open($zipPath, \ZipArchive::CREATE);
+    $zip->addFromString('repo-abc123/__apply_test_marker__.txt', 'should not be written');
+    $zip->addFromString('repo-abc123/big.bin', str_repeat("\0", $mb * 1024 * 1024));
+    $zip->setCompressionName('repo-abc123/big.bin', \ZipArchive::CM_DEFLATE, 9);
+    $zip->close();
+    return $zipPath;
+}
+
+function makeUpdateZipWithManyFiles(int $fileCount): string
+{
+    $zipPath = tempnam(sys_get_temp_dir(), 'esse-test-apply-manyfiles-') . '.zip';
+    $zip = new \ZipArchive();
+    $zip->open($zipPath, \ZipArchive::CREATE);
+    $zip->addFromString('repo-abc123/__apply_test_marker__.txt', 'should not be written');
+    for ($i = 0; $i < $fileCount; $i++) {
+        $zip->addFromString("repo-abc123/file{$i}.txt", 'x');
+    }
+    $zip->close();
+    return $zipPath;
+}
+
+function applyMarkerPath(): string
+{
+    return \ESSE_ROOT . '/__apply_test_marker__.txt';
+}
+
 return [
     'isNewer: hoehere Version wird erkannt' => function () {
         Assert::true(Updater::isNewer('0.2.1-alpha', '0.2.0-alpha'));
@@ -97,5 +142,59 @@ return [
         } finally {
             rrmdir($root);
         }
+    },
+
+    // -- apply() (CMS-Selbst-Update): dieselbe Vorpruefung wie packageInstallZip(), siehe
+    // PackageInstallTest.php fuer die analogen Plugin/Theme/Iconpack-Faelle. --
+
+    'apply: lehnt Update-ZIP mit Symlink ab und schreibt nichts' => function () {
+        $zipPath = makeUpdateZipWithSymlink();
+        @unlink(applyMarkerPath());
+
+        $threw = false;
+        try {
+            Updater::apply($zipPath, fn() => null);
+        } catch (\RuntimeException $e) {
+            $threw = true;
+            Assert::true(str_contains($e->getMessage(), 'Symlink'), "Fehlermeldung sollte Symlink nennen, war: {$e->getMessage()}");
+        } finally {
+            @unlink($zipPath);
+        }
+        Assert::true($threw, 'apply() sollte bei einem Symlink im Update-ZIP eine Exception werfen');
+        Assert::true(!file_exists(applyMarkerPath()), 'Bei abgelehntem Update darf ueberhaupt nichts geschrieben werden');
+    },
+
+    'apply: lehnt Update-ZIP mit zu großer Einzeldatei ab und schreibt nichts' => function () {
+        $zipPath = makeUpdateZipWithOversizedFile(25); // 25 MB, Einzeldatei-Limit liegt bei 20 MB
+        @unlink(applyMarkerPath());
+
+        $threw = false;
+        try {
+            Updater::apply($zipPath, fn() => null);
+        } catch (\RuntimeException $e) {
+            $threw = true;
+            Assert::true(str_contains($e->getMessage(), 'groß'), "Fehlermeldung sollte Größenproblem nennen, war: {$e->getMessage()}");
+        } finally {
+            @unlink($zipPath);
+        }
+        Assert::true($threw, 'apply() sollte eine zu große Einzeldatei ablehnen');
+        Assert::true(!file_exists(applyMarkerPath()), 'Bei abgelehntem Update darf ueberhaupt nichts geschrieben werden');
+    },
+
+    'apply: lehnt Update-ZIP mit zu vielen Dateien ab und schreibt nichts' => function () {
+        $zipPath = makeUpdateZipWithManyFiles(1100); // Limit liegt bei 1000
+        @unlink(applyMarkerPath());
+
+        $threw = false;
+        try {
+            Updater::apply($zipPath, fn() => null);
+        } catch (\RuntimeException $e) {
+            $threw = true;
+            Assert::true(str_contains($e->getMessage(), 'viele Dateien'), "Fehlermeldung sollte Dateianzahl nennen, war: {$e->getMessage()}");
+        } finally {
+            @unlink($zipPath);
+        }
+        Assert::true($threw, 'apply() sollte zu viele Dateien ablehnen');
+        Assert::true(!file_exists(applyMarkerPath()), 'Bei abgelehntem Update darf ueberhaupt nichts geschrieben werden');
     },
 ];

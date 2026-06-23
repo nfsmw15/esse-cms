@@ -22,6 +22,7 @@ All notable changes to ESSE CMS will be documented in this file.
 ### Security
 
 - **Repo-Kanal-Aktionen ohne Berechtigung jetzt geloggt**: Neues Audit-Event `repo_action_forbidden` — sowohl für `add_repo`/`remove_repo` ohne `manage_repos`/Forge als auch für Versuche, die alten Aktionsnamen gegen die jetzt zentralisierten Endpunkte zu fahren.
+- **CMS-Selbst-Update (`Updater::apply()`) hatte keine ZIP-Härtung**: Plugin-/Theme-/Icon-Pack-Uploads laufen schon länger durch eine Vorprüfung gegen Zip-Bomben, Dateianzahl und Symlinks (`packageCheckZipLimits()`), das Update-ZIP selbst wurde aber direkt entpackt — ein Symlink-Eintrag wurde nicht abgelehnt, sondern als normale Datei mit dem verlinkten Inhalt geschrieben, eine 25-MB-Einzeldatei und 1100+ Dateien wurden klaglos akzeptiert. Path-Traversal und geschützte Pfade (`config/`, `local.php`, `storage/`, `install/installed.lock`) waren bereits korrekt abgesichert. `/admin/update/run` ist Forge-only und durch einen Einmal-Token geschützt, daher kein akutes Public-RCE — bei einem kompromittierten Update-Kanal oder einem manipulierten Release-ZIP wäre der Schaden aber unnötig groß gewesen. Die Vorprüfung lebt jetzt zentral in `Updater::checkZipLimits()` (gemeinsam von `apply()` und `packageInstallZip()` genutzt statt zwei getrennten Implementierungen) und lehnt bei jedem Verstoß das gesamte Update ab, bevor irgendeine Datei geschrieben wird.
 
 ## [0.8.8-alpha] - 2026-06-23
 
