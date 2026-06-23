@@ -4,31 +4,22 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
-## [0.8.11-alpha] - 2026-06-23
-
-### Fixed
-
-- **Backup-Wiederherstellung über `/admin/backup` lief praktisch immer in den Timeout**: `Updater::dbImport()` führte jedes SQL-Statement aus dem Dump einzeln per PDO mit Autocommit aus — bei Tabellen mit vielen Zeilen (z.B. Plugin-Statistikdaten, >80.000 Einzeil-INSERTs in einem Praxisfall) bedeutete das einen eigenen fsync-Commit pro Zeile und damit mehrere Minuten Laufzeit, weit über jedem Web-Request-Timeout. `PDO::beginTransaction()` löst das nicht, da `DROP`/`CREATE TABLE` im Dump (pro Tabelle) in MySQL immer implizit committen — das beendet eine über die PDO-API verwaltete Transaktion vorzeitig, ohne dass PDO das merkt. Ein erster Versuch über den `mysql`-CLI-Client funktionierte zwar lokal, scheiterte aber live: `exec()`/`proc_open()` sind im Web-PHP-FPM-Pool des Hosters deaktiviert (anders als im CLI-PHP, das die Lücke beim Testen verschleierte). Tatsächlicher Fix: `SET autocommit=0` direkt per SQL statt über `PDO::beginTransaction()` — INSERTs zwischen zwei DDL-Anweisungen sammeln sich dann automatisch zu einer Transaktion, rein über PDO ohne Shell-Aufruf. Laufzeit in der Praxis von >20 Minuten auf ~25 Sekunden für denselben Datensatz. Zusätzlich `set_time_limit(0)` für die Restore-Aktion.
-- **Veraltete Repo-Kanal-Aktionen auf `/admin/plugins`, `/admin/themes`, `/admin/iconpacks` antworteten mit stillem 200**: Seit der Zentralisierung der Repo-Kanäle unter `/admin/repos` (0.8.10) gab es für `add_repo`/`remove_repo`/`toggle_trust` auf den drei Pakettyp-Seiten keine Behandlung mehr — ein POST mit einer solchen `_action` traf keinen `if`-Zweig und fiel bis zur normalen Seitenausgabe durch (HTTP 200, nichts passiert). Sicherheitstechnisch unkritisch, aber als POST-Antwort irreführend. Jede nicht (mehr) unterstützte Aktion am Ende der jeweiligen POST-Behandlung liefert jetzt klar 403; Versuche mit den alten Aktionsnamen werden zusätzlich als `repo_action_forbidden` geloggt.
-
 ### Added
 
 - **Zentrale, paket-typ-unabhängige Repo-Kanäle**: Bisher hatte nur Plugins eine Kanalverwaltung (`plugin_repos`), Themes durchsuchten hartkodiert immer nur `nfsmw15`, Icon-Packs hatten gar keine "Verfügbar"-Suche. Ein Kanal ist jetzt einfach "ein vertrauenswürdiger GitHub-Account" — was er anbietet ergibt sich allein aus den Topic-Tags (`esse-plugin`/`esse-theme`/`esse-iconpack`) auf seinen Repos, nicht aus einem Feld am Kanal. Tabelle `plugin_repos` umbenannt in `repo_channels` (bestehende Kanäle bleiben beim Update erhalten, Migration läuft unconditional bei jedem Request — siehe Lehre aus der `manage_repos`-Migration in 0.8.7).
-- **Neue Seite `/admin/repos`**: Zentrale Verwaltung aller Kanäle (Hinzufügen/Entfernen wie bisher, jetzt aber für alle drei Pakettypen gemeinsam). Neu: Forge kann die Vertrauensstufe eines Kanals nachträglich umschalten (`repo_trust_changed`-Event, bisher ungenutzt) — bewusst Forge-only, da ein Admin mit `manage_repos` einen selbst hinzugefügten Kanal nicht auch selbst als vertrauenswürdig markieren darf.
+- **Neue Seite `/admin/repos`**: Zentrale Verwaltung aller Kanäle (Hinzufügen/Entfernen, jetzt für alle drei Pakettypen gemeinsam). Forge kann zusätzlich die Vertrauensstufe eines Kanals nachträglich umschalten (`repo_trust_changed`-Event) — bewusst Forge-only, da ein Admin mit `manage_repos` einen selbst hinzugefügten Kanal nicht auch selbst als vertrauenswürdig markieren darf. `admin/plugins`/`admin/themes`/`admin/iconpacks` verlinken jetzt hierhin statt eigener Kanal-Verwaltung; die bisherige "Kanäle"-Card auf `/admin/plugins` entfällt.
 - **Themes durchsuchen jetzt alle aktiven Kanäle** statt nur `nfsmw15` fest im Code — Community-Kanäle funktionieren für Themes jetzt genau wie für Plugins.
 - **Icon-Packs bekommen einen vollen "Verfügbar"-Tab**: Installiert/Verfügbar-Tabs analog zu Plugins/Themes, inkl. `install_from_repo` (nutzt die bestehende gehärtete `packageInstallZip()`), Cache und `GitHubApi::searchIconPacks()` (Topic `esse-iconpack`).
-- `admin/plugins`/`admin/themes`/`admin/iconpacks` verlinken jetzt auf `/admin/repos` statt eigener Kanal-Verwaltung; die bisherige "Kanäle"-Card auf `/admin/plugins` entfällt.
-
-## [0.8.9-alpha] - 2026-06-23
 
 ### Fixed
 
-- **"Kanal hinzufügen"-UI auf `/admin/plugins` für Admins ohne `manage_repos` sichtbar**: Der POST war bereits korrekt 403, das Formular (und der „Entfernen"-Button je Kanal) wurden aber trotzdem angezeigt. Beides jetzt hinter `Auth::meetsRole('forge') || Auth::can('manage_repos')` versteckt.
 - **"Plugin installieren"-Card lag vor der Plugin-Liste**: Bei Themes liegt die Upload-Card (bewusst nur für den Notfall gedacht) unten, bei Plugins lag sie oben. Jetzt einheitlich unten angeordnet.
+- **Veraltete Repo-Kanal-Aktionen auf `/admin/plugins`, `/admin/themes`, `/admin/iconpacks` antworteten mit stillem 200**: Seit der Zentralisierung der Repo-Kanäle unter `/admin/repos` gab es für `add_repo`/`remove_repo`/`toggle_trust` auf den drei Pakettyp-Seiten keine Behandlung mehr — ein POST mit einer solchen `_action` traf keinen `if`-Zweig und fiel bis zur normalen Seitenausgabe durch (HTTP 200, nichts passiert). Sicherheitstechnisch unkritisch, aber als POST-Antwort irreführend. Jede nicht (mehr) unterstützte Aktion am Ende der jeweiligen POST-Behandlung liefert jetzt klar 403.
+- **Backup-Wiederherstellung über `/admin/backup` lief praktisch immer in den Timeout**: `Updater::dbImport()` führte jedes SQL-Statement aus dem Dump einzeln per PDO mit Autocommit aus — bei Tabellen mit vielen Zeilen (z.B. Plugin-Statistikdaten, >80.000 Einzeil-INSERTs in einem Praxisfall) bedeutete das einen eigenen fsync-Commit pro Zeile und damit mehrere Minuten Laufzeit, weit über jedem Web-Request-Timeout. `PDO::beginTransaction()` löst das nicht, da `DROP`/`CREATE TABLE` im Dump (pro Tabelle) in MySQL immer implizit committen — das beendet eine über die PDO-API verwaltete Transaktion vorzeitig, ohne dass PDO das merkt. Ein erster Versuch über den `mysql`-CLI-Client funktionierte zwar lokal, scheiterte aber live: `exec()`/`proc_open()` sind im Web-PHP-FPM-Pool des Hosters deaktiviert (anders als im CLI-PHP, das die Lücke beim Testen verschleierte). Tatsächlicher Fix: `SET autocommit=0` direkt per SQL statt über `PDO::beginTransaction()` — INSERTs zwischen zwei DDL-Anweisungen sammeln sich dann automatisch zu einer Transaktion, rein über PDO ohne Shell-Aufruf. Laufzeit in der Praxis von >20 Minuten auf ~25 Sekunden für denselben Datensatz. Zusätzlich `set_time_limit(0)` für die Restore-Aktion.
 
 ### Security
 
-- **Blockierte Repo-Kanal-Aktionen jetzt geloggt**: Neues Audit-Event `repo_action_forbidden`, wenn `add_repo`/`remove_repo` ohne `manage_repos`/Forge versucht wird.
+- **Repo-Kanal-Aktionen ohne Berechtigung jetzt geloggt**: Neues Audit-Event `repo_action_forbidden` — sowohl für `add_repo`/`remove_repo` ohne `manage_repos`/Forge als auch für Versuche, die alten Aktionsnamen gegen die jetzt zentralisierten Endpunkte zu fahren.
 
 ## [0.8.8-alpha] - 2026-06-23
 
