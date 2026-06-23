@@ -51,6 +51,7 @@ class AuditLog
         'settings_changed'                => 'Sicherheitsrelevante Einstellung geändert',
         'user_activated'                  => 'Benutzer aktiviert',
         'user_deactivated'                => 'Benutzer deaktiviert',
+        'user_deleted'                     => 'Benutzer gelöscht',
         'csrf_failed'                      => 'CSRF-Prüfung fehlgeschlagen',
         'rate_limit_locked'                => 'Rate-Limit erreicht (gesperrt)',
         'password_reset_invalid_token'    => 'Passwort-Reset: ungültiger/abgelaufener Token',
@@ -71,6 +72,14 @@ class AuditLog
         'theme_install_failed'            => 'Theme-Installation fehlgeschlagen',
         'theme_deleted'                    => 'Theme gelöscht',
         'theme_delete_failed'             => 'Theme-Löschung fehlgeschlagen',
+        'iconpack_installed'              => 'Icon-Pack installiert',
+        'iconpack_install_failed'         => 'Icon-Pack-Installation fehlgeschlagen',
+        'iconpack_deleted'                 => 'Icon-Pack gelöscht',
+        'iconpack_delete_failed'          => 'Icon-Pack-Löschung fehlgeschlagen',
+        'repo_added'                        => 'Repo-Kanal hinzugefügt',
+        'repo_removed'                      => 'Repo-Kanal entfernt',
+        'repo_trust_changed'               => 'Repo-Kanal-Vertrauensstufe geändert',
+        'repo_cache_refreshed'            => 'Repo-Cache aktualisiert',
     ];
 
     public static function migrateDb(): void

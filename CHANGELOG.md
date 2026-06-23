@@ -4,6 +4,19 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.7-alpha] - 2026-06-23
+
+### Added
+
+- **Account-Löschung für deaktivierte Nutzer**: Es gab bisher nur Deaktivieren/Aktivieren, kein Löschen. Neue `delete`-Aktion in `/admin/users/edit/{id}` — nur für bereits deaktivierte Accounts, nie der eigene, nie der letzte aktive Forge-Account. FK-Prüfung vorab: `pages.author_id` ist bereits `ON DELETE SET NULL`, der Audit-Log speichert die E-Mail separat und bleibt damit auch nach der Löschung lesbar — Hard Delete ist damit unkritisch. Neues Event `user_deleted`.
+
+### Security
+
+- **KRITISCH: Icon-Pack-ZIP erlaubte PHP-Ausführung**: `installIconPack()` entpackte jede Datei aus dem ZIP ungeprüft nach `/public/vendor/<slug>/` — eine `probe.php` im Paket landete dort und war direkt per HTTP ausführbar (RCE). Jetzt mit strikter Endungs-Allowlist (`json`, `css`, `map`, Fonts, Bilder) über den gemeinsamen, gehärteten ZIP-Validator; Direct-Upload zusätzlich auf `forge` beschränkt (gleiches Muster wie Plugin-/Theme-Uploads). `installIconPack()`/`discoverIconPacks()` dafür aus `admin/iconpacks.php` in eine reine Funktionsdatei (`admin/iconpack-install.php`) extrahiert.
+- **Gemeinsamer ZIP-Validator für Plugins/Themes/Icon-Packs**: `packageCheckZipLimits()` prüft jetzt für alle drei Pakettypen einheitlich Größe, Dateianzahl, Einzeldatei-/Gesamtgröße und Symlink-/Spezialdatei-Einträge vorab anhand der Central-Directory-Metadaten — und lehnt bei einem Treffer das **gesamte Paket** ab statt nur den einzelnen Eintrag zu überspringen. Limits verschärft: 20 MB ZIP (vorher 50), 1000 Dateien (vorher 5000), 20 MB pro Einzeldatei (vorher 50), 80 MB entpackt gesamt (vorher 200) — deckt die im Pentest noch durchgekommenen Fälle ab (135 MB über 3 Dateien, 2000 kleine Dateien, Symlink-Eintrag).
+- **Plugin-Repo-Kanäle ohne eigene Berechtigung verwaltbar**: `add_repo`/`remove_repo` in `/admin/plugins` prüften nur die allgemeine `manage_plugins`-Berechtigung. Repo-Kanäle sind aber eine Vertrauensgrenze (woher Plugin-Installationen kommen dürfen) — jetzt zusätzlich `manage_repos` erforderlich, das wie `manage_backups`/`manage_updates`/`php_upload` zu `Auth::FORGE_ONLY_PERMISSIONS` gehört. Bestehende `manage_repos`-Zuweisung der `admin`-Rolle wird per Einmal-Migration entfernt (kann von Forge über `/admin/roles` jederzeit bewusst neu vergeben werden).
+- **Audit-Log für Icon-Packs und Repo-Kanäle ergänzt**: `iconpack_installed`/`iconpack_install_failed`/`iconpack_deleted`/`iconpack_delete_failed`, `repo_added`/`repo_removed`/`repo_trust_changed`/`repo_cache_refreshed`.
+
 ## [0.8.6-alpha] - 2026-06-22
 
 ### Fixed

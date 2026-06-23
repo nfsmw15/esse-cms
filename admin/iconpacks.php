@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 use Esse\Flash;
 
@@ -10,27 +11,11 @@ if (!Auth::meetsRole('forge') && !Auth::can('manage_settings')) {
     http_response_code(403); echo '403 Forbidden'; exit;
 }
 
-require_once __DIR__ . '/package-install.php';
+require_once __DIR__ . '/iconpack-install.php';
 
 $ts = DB::table('settings');
 
 $flash = Flash::consume();
-
-// Discover installed icon packs
-function discoverIconPacks(): array
-{
-    $packs = [];
-    foreach (glob(ESSE_ROOT . '/public/vendor/*/iconpack.json') ?: [] as $jsonFile) {
-        $meta = json_decode(file_get_contents($jsonFile), true);
-        if (!empty($meta['name'])) {
-            $dir = basename(dirname($jsonFile));
-            $meta['dir']     = $dir;
-            $meta['css_url'] = '/public/vendor/' . $dir . '/' . ($meta['css'] ?? '');
-            $packs[$meta['name']] = $meta;
-        }
-    }
-    return $packs;
-}
 
 // POST actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -54,12 +39,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Upload ZIP
+    // Upload ZIP — landet unter /public/vendor/ (öffentlich per HTTP erreichbar) und ist damit
+    // mindestens so riskant wie Plugin-/Theme-Uploads, daher ebenfalls auf Forge beschränkt.
     if ($action === 'upload' && !empty($_FILES['pack_zip']['tmp_name'])) {
+        if (!Auth::meetsRole('forge')) {
+            AuditLog::record('iconpack_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['reason' => 'forbidden_role']);
+            http_response_code(403); echo '403 Forbidden'; exit;
+        }
         $result = installIconPack($_FILES['pack_zip']['tmp_name']);
         if (is_string($result)) {
+            AuditLog::record('iconpack_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['reason' => $result]);
             Flash::set('danger', $result);
         } else {
+            AuditLog::record('iconpack_installed', Auth::id(), Auth::user()['email'] ?? null, ['pack' => $result['name'], 'version' => $result['version'] ?? null]);
             Flash::set('success', "Icon-Pack '{$result['name']}' v{$result['version']} installiert.");
         }
         header('Location: /admin/iconpacks');
@@ -75,64 +67,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($name === $active) {
             Flash::set('danger', 'Das aktive Icon-Pack kann nicht gelöscht werden.');
         } elseif (isset($packs[$name]) && $packs[$name]['dir'] !== 'bootstrap-icons') {
-            packageDeleteDir(ESSE_ROOT . '/public/vendor/' . $packs[$name]['dir']);
-            Flash::set('success', "Icon-Pack '{$name}' gelöscht.");
+            $dirToRemove = ESSE_ROOT . '/public/vendor/' . $packs[$name]['dir'];
+            packageDeleteDir($dirToRemove);
+            if (is_dir($dirToRemove)) {
+                AuditLog::record('iconpack_delete_failed', Auth::id(), Auth::user()['email'] ?? null, ['pack' => $name]);
+                Flash::set('danger', "Icon-Pack '{$name}' konnte nicht vollständig entfernt werden.");
+            } else {
+                AuditLog::record('iconpack_deleted', Auth::id(), Auth::user()['email'] ?? null, ['pack' => $name]);
+                Flash::set('success', "Icon-Pack '{$name}' gelöscht.");
+            }
         } else {
             Flash::set('danger', 'Dieses Pack kann nicht gelöscht werden.');
         }
         header('Location: /admin/iconpacks');
         exit;
     }
-}
-
-function installIconPack(string $tmpFile): array|string
-{
-    $zip = new \ZipArchive();
-    if ($zip->open($tmpFile) !== true) return 'ZIP konnte nicht geöffnet werden.';
-
-    // Find iconpack.json
-    $meta    = null;
-    $rootDir = null;
-    for ($i = 0; $i < $zip->numFiles; $i++) {
-        $name = $zip->getNameIndex($i);
-        if (basename($name) === 'iconpack.json') {
-            $meta    = json_decode($zip->getFromIndex($i), true);
-            $parts   = explode('/', $name);
-            $rootDir = count($parts) > 1 ? $parts[0] : '';
-            break;
-        }
-    }
-
-    if (!$meta || empty($meta['name']) || empty($meta['css'])) {
-        $zip->close();
-        return 'Keine gültige iconpack.json im ZIP gefunden.';
-    }
-
-    $slug = preg_replace('/[^a-z0-9\-]/', '', strtolower($meta['name']));
-    if (!preg_match('/^[a-z0-9][a-z0-9\-]{1,63}$/', $slug)) {
-        $zip->close();
-        return "Ungültiger Pack-Name '{$meta['name']}'.";
-    }
-
-    $target = ESSE_ROOT . '/public/vendor/' . $slug;
-    $tmp    = $target . '_tmp_' . bin2hex(random_bytes(4));
-    mkdir($tmp, 0755, true);
-
-    for ($i = 0; $i < $zip->numFiles; $i++) {
-        $name = $zip->getNameIndex($i);
-        $rel  = $rootDir ? preg_replace('#^' . preg_quote($rootDir, '#') . '/?#', '', $name) : $name;
-        if ($rel === '' || str_ends_with($rel, '/') || str_contains($rel, '..')) continue;
-
-        $dest = $tmp . '/' . $rel;
-        if (!is_dir(dirname($dest))) mkdir(dirname($dest), 0755, true);
-        file_put_contents($dest, $zip->getFromIndex($i));
-    }
-    $zip->close();
-
-    if (is_dir($target)) packageDeleteDir($target);
-    rename($tmp, $target);
-
-    return $meta;
 }
 
 $packs  = discoverIconPacks();
@@ -208,6 +157,7 @@ ob_start();
     </div>
 
     <div class="col-lg-4">
+        <?php if (Auth::meetsRole('forge')): ?>
         <div class="card mb-3">
             <div class="card-header py-2"><small class="text-secondary">Icon-Pack installieren</small></div>
             <div class="card-body">
@@ -224,6 +174,7 @@ ob_start();
                 </form>
             </div>
         </div>
+        <?php endif ?>
 
         <div class="card">
             <div class="card-header py-2"><small class="text-secondary">iconpack.json Format</small></div>

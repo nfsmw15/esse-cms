@@ -65,4 +65,58 @@ return [
             DB::delete($tu, ['id' => $secondForgeId]);
         }
     },
+
+    'POST /admin/users (_action=delete): eigener Account kann nicht geloescht werden' => function (Http $http) {
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $tu      = DB::table('users');
+        $forgeId = (int) DB::value("SELECT id FROM `{$tu}` WHERE email = ?", [TEST_FORGE_EMAIL]);
+
+        $csrf = extractCsrf($http->get("/admin/users/edit/{$forgeId}")['body']);
+        $res  = $http->post("/admin/users/edit/{$forgeId}", ['_csrf' => $csrf, '_action' => 'delete']);
+
+        Assert::same(200, $res['status']);
+        Assert::true(str_contains($res['body'], 'nicht löschen'), 'Blockierende Fehlermeldung erwartet');
+        Assert::true(DB::fetch("SELECT id FROM `{$tu}` WHERE id = ?", [$forgeId]) !== null, 'Eigener Account darf nicht geloescht worden sein');
+    },
+
+    'POST /admin/users (_action=delete): aktiver Account kann nicht geloescht werden' => function (Http $http) {
+        $tu = DB::table('users');
+        $targetId = DB::insert($tu, [
+            'display_name' => 'Active Delete Target',
+            'email'        => 'active-delete-' . bin2hex(random_bytes(4)) . '@example.test',
+            'password'     => password_hash('Active-Delete-Pass1', PASSWORD_BCRYPT),
+            'role'         => 'member',
+            'active'       => 1,
+        ]);
+
+        try {
+            loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+            $csrf = extractCsrf($http->get("/admin/users/edit/{$targetId}")['body']);
+            $res  = $http->post("/admin/users/edit/{$targetId}", ['_csrf' => $csrf, '_action' => 'delete']);
+
+            Assert::same(200, $res['status']);
+            Assert::true(str_contains($res['body'], 'bereits deaktivierte Accounts'), 'Blockierende Fehlermeldung erwartet');
+            Assert::true(DB::fetch("SELECT id FROM `{$tu}` WHERE id = ?", [$targetId]) !== null, 'Aktiver Account darf nicht geloescht worden sein');
+        } finally {
+            DB::delete($tu, ['id' => $targetId]);
+        }
+    },
+
+    'POST /admin/users (_action=delete): deaktivierter Account kann geloescht werden' => function (Http $http) {
+        $tu = DB::table('users');
+        $targetId = DB::insert($tu, [
+            'display_name' => 'Deactivated Delete Target',
+            'email'        => 'deact-delete-' . bin2hex(random_bytes(4)) . '@example.test',
+            'password'     => password_hash('Deact-Delete-Pass1', PASSWORD_BCRYPT),
+            'role'         => 'member',
+            'active'       => 0,
+        ]);
+
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $csrf = extractCsrf($http->get("/admin/users/edit/{$targetId}")['body']);
+        $res  = $http->post("/admin/users/edit/{$targetId}", ['_csrf' => $csrf, '_action' => 'delete']);
+
+        Assert::same(302, $res['status']);
+        Assert::true(DB::fetch("SELECT id FROM `{$tu}` WHERE id = ?", [$targetId]) === null, 'Deaktivierter Account sollte geloescht worden sein');
+    },
 ];

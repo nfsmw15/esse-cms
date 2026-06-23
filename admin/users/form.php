@@ -67,6 +67,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Delete — nur bereits deaktivierte Accounts, nie der eigene, nie der letzte aktive Forge.
+    if ($action === 'delete' && $isEdit) {
+        if ($user['id'] === Auth::id()) {
+            $errors[] = 'Du kannst deinen eigenen Account nicht löschen.';
+        } elseif ((int) $user['active'] !== 0) {
+            $errors[] = 'Nur bereits deaktivierte Accounts können gelöscht werden.';
+        } elseif (
+            $user['role'] === 'forge'
+            && (int) DB::value("SELECT COUNT(*) FROM `{$tu}` WHERE role = 'forge' AND active = 1") < 1
+        ) {
+            // Defensiver Backstop: Nur Forge kann überhaupt einen Forge-Account einsehen/löschen
+            // (siehe $availableRoles-Check oben), die eigene Session ist also bereits aktiver
+            // Forge — dieser Fall greift nur bei einem inkonsistenten DB-Zustand.
+            $errors[] = 'Es muss mindestens ein aktiver Forge-Account bestehen bleiben.';
+        } else {
+            DB::delete($tu, ['id' => $user['id']]);
+            AuditLog::record(
+                'user_deleted',
+                Auth::id(),
+                Auth::user()['email'] ?? null,
+                ['target_user_id' => $user['id'], 'target_email' => $user['email'], 'target_role' => $user['role']]
+            );
+            Flash::set('success', "Benutzer '{$user['display_name']}' gelöscht.");
+            header('Location: /admin/users');
+            exit;
+        }
+    }
+
     if ($action === 'save') {
         $displayName = trim($_POST['display_name'] ?? '');
         $email       = trim($_POST['email']        ?? '');
@@ -424,6 +452,17 @@ ob_start();
                         ? 'Deaktivierte Accounts können sich nicht mehr anmelden.'
                         : 'Reaktivierung ermöglicht wieder den Login.' ?>
                 </div>
+                <?php if (!$user['active']): ?>
+                <hr class="border-secondary my-3">
+                <form method="post" data-confirm="Account '<?= htmlspecialchars($user['display_name']) ?>' endgültig löschen? Das kann nicht rückgängig gemacht werden.">
+                    <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+                    <input type="hidden" name="_action" value="delete">
+                    <button class="btn btn-sm w-100 btn-danger">
+                        <i class="bi bi-trash"></i> Account endgültig löschen
+                    </button>
+                </form>
+                <div class="form-text mt-2">Nur für bereits deaktivierte Accounts möglich.</div>
+                <?php endif ?>
             </div>
         </div>
     </div>

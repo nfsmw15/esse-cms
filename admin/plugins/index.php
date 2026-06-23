@@ -108,6 +108,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Repo-Kanäle definieren eine Vertrauensgrenze (woher Plugin-Installs kommen dürfen) —
+    // dafür reicht manage_plugins nicht, das ist eine eigene, engere Berechtigung.
+    if (in_array($action, ['add_repo', 'remove_repo'], true) && !Auth::meetsRole('forge') && !Auth::can('manage_repos')) {
+        http_response_code(403); echo '403 Forbidden'; exit;
+    }
+
     // Add repo channel
     if ($action === 'add_repo') {
         $owner = trim(preg_replace('/[^a-zA-Z0-9\-]/', '', $_POST['repo_owner'] ?? ''));
@@ -117,6 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "INSERT IGNORE INTO `{$tr}` (owner, label, trusted) VALUES (?, ?, 0)",
                 [$owner, $label ?: $owner]
             );
+            AuditLog::record('repo_added', Auth::id(), Auth::user()['email'] ?? null, ['owner' => $owner, 'label' => $label ?: $owner]);
             Flash::set('warning', "Kanal '{$owner}' hinzugefügt. Nicht verifizierter Kanal — nur vertrauenswürdige Quellen installieren.");
         }
         header('Location: /admin/plugins?tab=available');
@@ -129,6 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $repo   = DB::fetch("SELECT * FROM `{$tr}` WHERE id = ?", [$repoId]);
         if ($repo && !$repo['trusted']) {
             DB::delete($tr, ['id' => $repoId]);
+            AuditLog::record('repo_removed', Auth::id(), Auth::user()['email'] ?? null, ['owner' => $repo['owner']]);
             Flash::set('success', "Kanal '{$repo['owner']}' entfernt.");
         }
         header('Location: /admin/plugins?tab=available');
@@ -257,6 +265,7 @@ function saveEnabled(string $ts, array $enabled): void
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'refresh_cache') {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
     @unlink(ESSE_PRIVATE_PATH . '/storage/cache/plugin_repos.json');
+    AuditLog::record('repo_cache_refreshed', Auth::id(), Auth::user()['email'] ?? null);
     header('Location: /admin/plugins?tab=available');
     exit;
 }

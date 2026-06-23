@@ -3,9 +3,15 @@
 declare(strict_types=1);
 
 /**
- * Shared ZIP installer for plugins and themes.
+ * Shared ZIP installer for plugins, themes and icon packs.
  * Include this file then call packageInstallZip($tmpFile, 'plugin'|'theme').
  */
+
+// Grenzwerte gegen Zip-Bomben/überdimensionierte Pakete — gelten fuer alle Paket-Typen.
+const ESSE_PKG_MAX_ZIP_BYTES   = 20 * 1024 * 1024;  // 20 MB komprimiertes ZIP
+const ESSE_PKG_MAX_FILES       = 1000;              // Anzahl Eintraege im ZIP
+const ESSE_PKG_MAX_FILE_BYTES  = 20 * 1024 * 1024;  // 20 MB pro Einzeldatei (entpackt)
+const ESSE_PKG_MAX_TOTAL_BYTES = 80 * 1024 * 1024;  // 80 MB gesamt (entpackt)
 
 function packageDeleteDir(string $dir): void
 {
@@ -19,42 +25,65 @@ function packageDeleteDir(string $dir): void
     rmdir($dir);
 }
 
-function packageInstallZip(string $tmpFile, string $type): array|string
+// Prueft Groesse, Dateianzahl, Symlinks/Spezialdateien und optional eine Endungs-Allowlist
+// VOR dem Dekomprimieren (anhand der Central-Directory-Metadaten) — wird von einem
+// einzigen verdaechtigen Eintrag das GANZE Paket abgelehnt, nicht nur dieser Eintrag.
+// $allowedExtensions === null bedeutet "keine Endungs-Einschraenkung" (Plugins/Themes
+// brauchen z.B. .php). Gibt im Fehlerfall eine Fehlermeldung zurueck, sonst null.
+function packageCheckZipLimits(\ZipArchive $zip, string $tmpFile, ?array $allowedExtensions = null): ?string
 {
-    // Limits gegen Zip-Bomben/überdimensionierte Pakete — Plugins/Themes sind normalerweise
-    // wenige MB groß, diese Werte sind bewusst großzügig, aber endlich.
-    $maxZipBytes   = 50 * 1024 * 1024;   // 50 MB komprimiertes ZIP
-    $maxFiles      = 5000;               // Anzahl Einträge im ZIP
-    $maxFileBytes  = 50 * 1024 * 1024;   // 50 MB pro Einzeldatei (entpackt)
-    $maxTotalBytes = 200 * 1024 * 1024;  // 200 MB gesamt (entpackt)
-
-    if (filesize($tmpFile) > $maxZipBytes) {
-        return 'ZIP-Datei zu groß (max. ' . (int) ($maxZipBytes / 1024 / 1024) . ' MB).';
+    if (filesize($tmpFile) > ESSE_PKG_MAX_ZIP_BYTES) {
+        return 'ZIP-Datei zu groß (max. ' . (int) (ESSE_PKG_MAX_ZIP_BYTES / 1024 / 1024) . ' MB).';
+    }
+    if ($zip->numFiles > ESSE_PKG_MAX_FILES) {
+        return 'ZIP enthält zu viele Dateien (max. ' . ESSE_PKG_MAX_FILES . ').';
     }
 
-    $zip = new \ZipArchive();
-    if ($zip->open($tmpFile) !== true) return 'ZIP-Datei konnte nicht geöffnet werden.';
-
-    if ($zip->numFiles > $maxFiles) {
-        $zip->close();
-        return "ZIP enthält zu viele Dateien (max. {$maxFiles}).";
-    }
-
-    // Entpackte Größen vorab aus dem Central Directory prüfen, ohne zu dekomprimieren —
-    // schützt vor Zip-Bomben (winzige Datei, riesiger entpackter Inhalt).
     $totalBytes = 0;
     for ($i = 0; $i < $zip->numFiles; $i++) {
         $stat = $zip->statIndex($i);
         if ($stat === false) continue;
-        if ($stat['size'] > $maxFileBytes) {
-            $zip->close();
-            return 'Einzeldatei im ZIP zu groß (max. ' . (int) ($maxFileBytes / 1024 / 1024) . ' MB): ' . basename($stat['name']);
+        $name = $stat['name'];
+        $isDir = str_ends_with($name, '/');
+
+        // Symlinks/Spezialdateien (Block-/Char-Devices, FIFOs, Sockets) — erkannt anhand des
+        // Unix-Modes in den External Attributes — lehnen das GESAMTE Paket ab, kein stilles
+        // Uebersrpingen einzelner Eintraege.
+        if (!$isDir && $zip->getExternalAttributesIndex($i, $opsys, $attr) && $opsys === \ZipArchive::OPSYS_UNIX) {
+            $unixMode = ($attr >> 16) & 0xF000;
+            if ($unixMode !== 0 && $unixMode !== 0x8000) { // 0x8000 = regulaere Datei, 0 = kein Unix-Mode gesetzt
+                return 'ZIP enthält einen Symlink oder eine Spezialdatei (' . basename($name) . ') — Paket wird abgelehnt.';
+            }
+        }
+
+        if (!$isDir && $allowedExtensions !== null) {
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            if (!in_array($ext, $allowedExtensions, true)) {
+                return 'Dateityp nicht erlaubt im Paket: ' . basename($name) . ($ext !== '' ? " (.{$ext})" : '');
+            }
+        }
+
+        if ($stat['size'] > ESSE_PKG_MAX_FILE_BYTES) {
+            return 'Einzeldatei im ZIP zu groß (max. ' . (int) (ESSE_PKG_MAX_FILE_BYTES / 1024 / 1024) . ' MB): ' . basename($name);
         }
         $totalBytes += $stat['size'];
-        if ($totalBytes > $maxTotalBytes) {
-            $zip->close();
-            return 'ZIP zu groß entpackt (max. ' . (int) ($maxTotalBytes / 1024 / 1024) . ' MB gesamt) — möglicher Zip-Bomb.';
+        if ($totalBytes > ESSE_PKG_MAX_TOTAL_BYTES) {
+            return 'ZIP zu groß entpackt (max. ' . (int) (ESSE_PKG_MAX_TOTAL_BYTES / 1024 / 1024) . ' MB gesamt) — möglicher Zip-Bomb.';
         }
+    }
+
+    return null;
+}
+
+function packageInstallZip(string $tmpFile, string $type): array|string
+{
+    $zip = new \ZipArchive();
+    if ($zip->open($tmpFile) !== true) return 'ZIP-Datei konnte nicht geöffnet werden.';
+
+    $limitError = packageCheckZipLimits($zip, $tmpFile);
+    if ($limitError !== null) {
+        $zip->close();
+        return $limitError;
     }
 
     $metaName = $type === 'plugin' ? 'plugin.json' : 'theme.json';
@@ -108,18 +137,10 @@ function packageInstallZip(string $tmpFile, string $type): array|string
         $rel  = $rootDir ? preg_replace('#^' . preg_quote($rootDir, '#') . '/?#', '', $name) : $name;
         if ($rel === '' || str_ends_with($rel, '/') || str_contains($rel, '..')) continue;
 
-        // Symlinks/Spezialdateien (Unix-Mode in den External Attributes) überspringen.
-        // file_put_contents() wuerde ohnehin nie einen echten Symlink erzeugen, sondern nur
-        // den Linktext als Dateiinhalt schreiben — trotzdem nicht aufnehmen.
-        if ($zip->getExternalAttributesIndex($i, $opsys, $attr) && $opsys === \ZipArchive::OPSYS_UNIX) {
-            $unixMode = ($attr >> 16) & 0xF000;
-            if ($unixMode === 0xA000) continue; // S_IFLNK
-        }
-
         // Defense-in-depth: tatsaechlich dekomprimierte Groesse erneut gegen das Limit
         // pruefen, falls Central-Directory- und Local-File-Header-Metadaten abweichen.
         $content = $zip->getFromIndex($i);
-        if ($content === false || strlen($content) > $maxFileBytes) continue;
+        if ($content === false || strlen($content) > ESSE_PKG_MAX_FILE_BYTES) continue;
 
         $dest = $tmp . '/' . $rel;
         if (!is_dir(dirname($dest))) mkdir(dirname($dest), 0755, true);
