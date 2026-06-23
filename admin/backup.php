@@ -63,6 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!Auth::meetsRole('forge')) {
             http_response_code(403); exit;
         }
+        // Große Backups (viele Datenzeilen) können trotz Transaktions-Batching länger als das
+        // Standard-Request-Limit dauern — Restore ist eine bewusste, seltene Forge-Aktion.
+        set_time_limit(0);
         try {
             Updater::restore($path, fn() => null);
             AuditLog::record('backup_restored', Auth::id(), Auth::user()['email'] ?? null, ['file' => $file]);

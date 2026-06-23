@@ -4,7 +4,13 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
-## [0.8.10-alpha] - 2026-06-23
+## [0.8.11-alpha] - 2026-06-23
+
+### Fixed
+
+- **Backup-Wiederherstellung über `/admin/backup` lief praktisch immer in den Timeout**: `Updater::dbImport()` führte jedes SQL-Statement aus dem Dump einzeln mit Autocommit aus — bei Tabellen mit vielen Zeilen (z.B. Plugin-Statistikdaten, >80.000 Einzeil-INSERTs in einem Praxisfall) bedeutete das einen eigenen fsync-Commit pro Zeile und damit mehrere Minuten Laufzeit, weit über jedem Web-Request-Timeout. Import läuft jetzt in einer einzigen Transaktion; zusätzlich `set_time_limit(0)` für die Restore-Aktion, da das eine bewusste, seltene Forge-Aktion ist.
+
+
 
 ### Added
 

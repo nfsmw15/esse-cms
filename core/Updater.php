@@ -250,6 +250,11 @@ class Updater
             fn($s) => $s !== '' && !str_starts_with($s, '--')
         );
 
+        // Eine Transaktion um den gesamten Import statt Autocommit pro Statement: Backups mit
+        // vielen Datenzeilen (z.B. Plugin-Statistiktabellen) hatten sonst pro INSERT einen
+        // eigenen fsync-Commit — bei mehreren zehntausend Zeilen dauerte das Minuten statt
+        // Sekunden und lief im Web-Request regelmäßig in den Timeout.
+        $pdo->beginTransaction();
         foreach ($statements as $stmt) {
             if (trim($stmt) === '') continue;
             try {
@@ -258,6 +263,7 @@ class Updater
                 // Skip errors (e.g. duplicate tables) but continue
             }
         }
+        $pdo->commit();
 
         $pdo->exec("SET FOREIGN_KEY_CHECKS=1");
     }
