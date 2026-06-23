@@ -112,6 +112,11 @@ if (defined('ESSE_DB_NAME')) {
             <i class="bi bi-emoji-smile"></i> Icon-Packs
         </a>
         <?php endif ?>
+        <?php if (\Esse\Auth::can('manage_repos')): ?>
+        <a href="/admin/repos" class="<?= ($activeNav ?? '') === 'repos' ? 'active' : '' ?>">
+            <i class="bi bi-diagram-3"></i> Repo-Kanäle
+        </a>
+        <?php endif ?>
         <?php if (\Esse\Auth::can('view_logs')): ?>
         <a href="/admin/logs" class="<?= ($activeNav ?? '') === 'logs' ? 'active' : '' ?>">
             <i class="bi bi-terminal"></i> Logs

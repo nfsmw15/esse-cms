@@ -223,14 +223,6 @@ class Auth
                 DB::query("ALTER TABLE `{$tu}` MODIFY COLUMN `role` VARCHAR(50) NOT NULL DEFAULT 'member'");
             }
 
-            // plugin_repos-Tabelle nachziehen (individuelle GitHub-Repo-Kanäle für Plugins).
-            $p = defined('ESSE_DB_PREFIX') ? \ESSE_DB_PREFIX : 'esse_';
-            foreach (Schema::tables($p) as $sql) {
-                if (str_contains($sql, '`' . $p . 'plugin_repos`')) {
-                    DB::query($sql);
-                }
-            }
-
             foreach (self::PERMISSIONS as $slug => [$label, $description]) {
                 DB::query(
                     "INSERT INTO `{$tp}` (slug, label, description) VALUES (?, ?, ?)
@@ -315,6 +307,33 @@ class Auth
                 DB::query(
                     "INSERT INTO `{$ts}` (`key`, `value`) VALUES ('migrated_manage_repos_admin_cleanup', '1')
                      ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)"
+                );
+            }
+
+            // repo_channels-Tabelle nachziehen (geteilte GitHub-Repo-Kanäle für Plugins, Themes
+            // und Icon-Packs). Bestandsinstallationen hatten dafür die plugin-spezifische
+            // plugin_repos-Tabelle — einmalig umbenennen statt eine zweite, leere Tabelle
+            // anzulegen und die bestehenden Kanäle (z.B. den offiziellen nfsmw15-Kanal) zu
+            // verlieren. Lebt hier (statt in syncDefaultPermissions()), damit der Wechsel auch
+            // ohne eingeloggten Nutzer sofort wirkt — sonst würde admin/plugins.php auf einer
+            // laufenden Instanz bis zum nächsten Admin-Login auf die alte Tabelle zugreifen.
+            $p   = defined('ESSE_DB_PREFIX') ? \ESSE_DB_PREFIX : 'esse_';
+            $trc = "{$p}repo_channels";
+            $oldExists = DB::fetchAll("SHOW TABLES LIKE '{$p}plugin_repos'");
+            $newExists = DB::fetchAll("SHOW TABLES LIKE '{$trc}'");
+            if ($oldExists && !$newExists) {
+                DB::query("RENAME TABLE `{$p}plugin_repos` TO `{$trc}`");
+            }
+            foreach (Schema::tables($p) as $sql) {
+                if (str_contains($sql, "`{$trc}`")) {
+                    DB::query($sql);
+                }
+            }
+            // Frische Installationen starten mit einer leeren Kanal-Liste — den offiziellen
+            // ESSE-Kanal automatisch eintragen, damit "Verfügbar" sofort etwas anzeigt.
+            if ((int) DB::value("SELECT COUNT(*) FROM `{$trc}`") === 0) {
+                DB::query(
+                    "INSERT INTO `{$trc}` (owner, label, trusted) VALUES ('nfsmw15', 'ESSE CMS Official', 1)"
                 );
             }
 

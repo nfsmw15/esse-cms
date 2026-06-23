@@ -17,6 +17,7 @@ require_once dirname(__DIR__) . '/package-install.php';
 
 $ts  = DB::table('settings');
 $tm  = DB::table('menus');
+$tr  = DB::table('repo_channels');
 $tab = $_GET['tab'] ?? 'installed';
 
 // Cache refresh (POST only)
@@ -188,6 +189,8 @@ ob_start();
 
 <?php if ($tab === 'available'): ?>
 <?php
+$repos = DB::fetchAll("SELECT * FROM `{$tr}` ORDER BY trusted DESC, label ASC");
+
 $cacheFile = ESSE_PRIVATE_PATH . '/storage/cache/theme_repos.json';
 $available = null;
 if (!is_dir(dirname($cacheFile))) {
@@ -197,13 +200,19 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 3600) {
     $available = json_decode(file_get_contents($cacheFile), true);
 }
 if (!$available) {
-    $available = GitHubApi::searchThemes('nfsmw15', true);
-    foreach ($available as &$r) {
-        $rel = GitHubApi::latestRelease($r['full_name']);
-        $r['latest_version'] = $rel['version'] ?? null;
-        $r['download_url']   = $rel['download_url'] ?? null;
+    $available = [];
+    foreach ($repos as $repo) {
+        if (!$repo['active']) continue;
+        $results = GitHubApi::searchThemes($repo['owner'], (bool) $repo['trusted']);
+        foreach ($results as $r) {
+            $r['channel_label']   = $repo['label'];
+            $r['channel_trusted'] = (bool) $repo['trusted'];
+            $rel = GitHubApi::latestRelease($r['full_name']);
+            $r['latest_version'] = $rel['version'] ?? null;
+            $r['download_url']   = $rel['download_url'] ?? null;
+            $available[] = $r;
+        }
     }
-    unset($r);
     @file_put_contents($cacheFile, json_encode($available));
 }
 ?>
@@ -220,7 +229,11 @@ if (!$available) {
         <div class="card-header py-2 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2">
                 <strong><?= htmlspecialchars($r['name']) ?></strong>
+                <?php if ($r['channel_trusted']): ?>
                 <span class="badge bg-success badge-xs"><i class="bi bi-shield-check"></i> Offiziell</span>
+                <?php else: ?>
+                <span class="badge bg-warning text-dark badge-xs"><i class="bi bi-exclamation-triangle"></i> <?= htmlspecialchars($r['channel_label']) ?></span>
+                <?php endif ?>
             </div>
             <?php if ($hasUpdate): ?>
             <span class="badge bg-warning text-dark"><i class="bi bi-arrow-up-circle"></i> v<?= htmlspecialchars($latestVer) ?></span>
@@ -231,7 +244,8 @@ if (!$available) {
         <div class="card-body">
             <?php if ($r['description']): ?><p class="text-secondary small mb-3"><?= htmlspecialchars($r['description']) ?></p><?php endif ?>
             <div class="d-flex gap-2">
-                <form method="post" action="/admin/themes">
+                <form method="post" action="/admin/themes"
+                      <?= !$r['channel_trusted'] ? 'data-confirm="Achtung: Nicht-offizieller Kanal. Nur installieren wenn du der Quelle vertraust!"' : '' ?>>
                     <input type="hidden" name="_csrf"           value="<?= Auth::csrfToken() ?>">
                     <input type="hidden" name="_action"         value="install_from_repo">
                     <input type="hidden" name="repo_full_name"  value="<?= htmlspecialchars($r['full_name']) ?>">
@@ -253,14 +267,24 @@ if (!$available) {
 <?php else: ?>
 <div class="alert alert-secondary">Keine Themes gefunden. Repos müssen das Topic <code>esse-theme</code> auf GitHub haben.</div>
 <?php endif ?>
-<div class="text-end mb-4">
-    <form method="post" action="/admin/themes?tab=available" class="d-inline">
-        <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
-        <input type="hidden" name="_action" value="refresh_cache">
-        <button class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-arrow-clockwise"></i> Cache leeren
-        </button>
-    </form>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <small class="text-secondary">
+        Durchsucht <?= count($repos) ?> Kanal<?= count($repos) === 1 ? '' : 'e' ?> nach dem Topic <code>esse-theme</code>.
+    </small>
+    <div class="d-flex gap-2">
+        <form method="post" action="/admin/themes?tab=available" class="d-inline">
+            <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+            <input type="hidden" name="_action" value="refresh_cache">
+            <button class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-clockwise"></i> Cache leeren
+            </button>
+        </form>
+        <?php if (Auth::meetsRole('forge') || Auth::can('manage_repos')): ?>
+        <a href="/admin/repos" class="btn btn-sm btn-outline-warning">
+            <i class="bi bi-diagram-3"></i> Kanäle verwalten
+        </a>
+        <?php endif ?>
+    </div>
 </div>
 
 <?php else: ?>

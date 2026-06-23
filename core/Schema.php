@@ -59,7 +59,11 @@ class Schema
                 FOREIGN KEY (`user_id`) REFERENCES `{$p}users`(`id`) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-            "CREATE TABLE IF NOT EXISTS `{$p}plugin_repos` (
+            // Eine geteilte Kanal-Liste fuer Plugins, Themes und Icon-Packs — ein Kanal ist
+            // einfach "ein vertrauenswuerdiger GitHub-Account", welche Pakettypen er anbietet
+            // ergibt sich rein aus den Topic-Tags (esse-plugin/esse-theme/esse-iconpack) auf
+            // seinen Repos, nicht aus einem Feld hier.
+            "CREATE TABLE IF NOT EXISTS `{$p}repo_channels` (
                 `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `owner`      VARCHAR(100) NOT NULL,
                 `label`      VARCHAR(255) NOT NULL,

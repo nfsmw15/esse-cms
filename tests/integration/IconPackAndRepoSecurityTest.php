@@ -19,6 +19,12 @@ function makeTempAdmin(string $rolePrefix = 'admin-test'): array
     return ['id' => $id, 'email' => $email, 'password' => $pass];
 }
 
+function grantPermission(int $userId, string $slug): void
+{
+    $tup = DB::table('user_permissions');
+    DB::insert($tup, ['user_id' => $userId, 'permission_slug' => $slug, 'granted' => 1]);
+}
+
 return [
     'POST /admin/iconpacks (_action=upload): Admin mit manage_settings ohne Forge erhaelt 403' => function (Http $http) {
         $tu   = DB::table('users');
@@ -47,25 +53,59 @@ return [
         }
     },
 
-    'POST /admin/plugins (_action=add_repo): Admin ohne manage_repos erhaelt 403' => function (Http $http) {
-        $tu = DB::table('users');
-        $tl = DB::table('audit_log');
-        DB::query("DELETE FROM `{$tl}` WHERE event = 'repo_action_forbidden'");
-        $user = makeTempAdmin('repo-admin');
+    'GET /admin/iconpacks?tab=available: laedt fehlerfrei (Channel-Suche ueber repo_channels)' => function (Http $http) {
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $res = $http->get('/admin/iconpacks?tab=available');
+        Assert::same(200, $res['status']);
+        Assert::true(str_contains($res['body'], 'esse-iconpack'), 'Seite sollte auf das Topic esse-iconpack verweisen');
+    },
+
+    'GET/POST /admin/repos: Admin ohne manage_repos erhaelt 403' => function (Http $http) {
+        $tu   = DB::table('users');
+        $user = makeTempAdmin('repo-noperm-admin');
 
         try {
             loginAs($http, $user['email'], $user['password']);
-            $csrf = extractCsrf($http->get('/admin/plugins?tab=available')['body']);
 
-            $res = $http->post('/admin/plugins', [
+            $getRes = $http->get('/admin/repos');
+            Assert::same(403, $getRes['status']);
+
+            $csrf = extractCsrf($http->get('/admin/plugins')['body']);
+            $postRes = $http->post('/admin/repos', [
                 '_csrf' => $csrf, '_action' => 'add_repo',
                 'repo_owner' => 'some-dummy-owner', 'repo_label' => 'Dummy',
             ]);
+            Assert::same(403, $postRes['status']);
 
+            $tr = DB::table('repo_channels');
+            Assert::true(DB::fetch("SELECT id FROM `{$tr}` WHERE owner = ?", ['some-dummy-owner']) === null, 'Kanal darf trotz 403 nicht angelegt worden sein');
+        } finally {
+            DB::delete($tu, ['id' => $user['id']]);
+        }
+    },
+
+    'POST /admin/repos (_action=toggle_trust): Admin mit manage_repos aber ohne Forge erhaelt 403 + Audit-Event' => function (Http $http) {
+        $tu   = DB::table('users');
+        $tl   = DB::table('audit_log');
+        $tr   = DB::table('repo_channels');
+        $user = makeTempAdmin('repo-manage-admin');
+        grantPermission($user['id'], 'manage_repos');
+        DB::query("DELETE FROM `{$tl}` WHERE event = 'repo_action_forbidden'");
+
+        try {
+            loginAs($http, $user['email'], $user['password']);
+            $csrf = extractCsrf($http->get('/admin/repos')['body']);
+
+            $official = DB::fetch("SELECT * FROM `{$tr}` WHERE owner = 'nfsmw15'");
+            Assert::true($official !== null, 'Offizieller Kanal sollte per Migration existieren');
+
+            $res = $http->post('/admin/repos', [
+                '_csrf' => $csrf, '_action' => 'toggle_trust', 'repo_id' => (string) $official['id'],
+            ]);
             Assert::same(403, $res['status']);
 
-            $tr = DB::table('plugin_repos');
-            Assert::true(DB::fetch("SELECT id FROM `{$tr}` WHERE owner = ?", ['some-dummy-owner']) === null, 'Kanal darf trotz 403 nicht angelegt worden sein');
+            $stillTrusted = DB::value("SELECT trusted FROM `{$tr}` WHERE id = ?", [$official['id']]);
+            Assert::same(1, (int) $stillTrusted, 'Vertrauensstufe darf sich trotz 403 nicht geaendert haben');
 
             $row = DB::fetch("SELECT * FROM `{$tl}` WHERE event = 'repo_action_forbidden' ORDER BY id DESC LIMIT 1");
             Assert::true($row !== null, 'Es sollte ein repo_action_forbidden-Eintrag existieren');
@@ -75,43 +115,71 @@ return [
         }
     },
 
-    'GET /admin/plugins?tab=available: "Kanal hinzufuegen"-Formular nur fuer Forge/manage_repos sichtbar' => function (Http $http) {
+    'POST /admin/repos (_action=add_repo/remove_repo): Admin mit manage_repos kann Kanal verwalten' => function (Http $http) {
+        $tu    = DB::table('users');
+        $tr    = DB::table('repo_channels');
+        $user  = makeTempAdmin('repo-crud-admin');
+        $owner = 'dummy-admin-owner-' . bin2hex(random_bytes(3));
+        grantPermission($user['id'], 'manage_repos');
+
+        try {
+            loginAs($http, $user['email'], $user['password']);
+            $csrf = extractCsrf($http->get('/admin/repos')['body']);
+
+            $res = $http->post('/admin/repos', [
+                '_csrf' => $csrf, '_action' => 'add_repo',
+                'repo_owner' => $owner, 'repo_label' => 'Dummy',
+            ]);
+            Assert::same(302, $res['status']);
+            $repo = DB::fetch("SELECT * FROM `{$tr}` WHERE owner = ?", [$owner]);
+            Assert::true($repo !== null, 'Kanal sollte angelegt worden sein');
+            Assert::same(0, (int) $repo['trusted'], 'Neu angelegter Kanal muss unverifiziert sein');
+
+            $csrf2 = extractCsrf($http->get('/admin/repos')['body']);
+            $http->post('/admin/repos', ['_csrf' => $csrf2, '_action' => 'remove_repo', 'repo_id' => (string) $repo['id']]);
+            Assert::true(DB::fetch("SELECT id FROM `{$tr}` WHERE owner = ?", [$owner]) === null, 'Kanal sollte wieder entfernt worden sein');
+        } finally {
+            DB::delete($tr, ['owner' => $owner]);
+            DB::delete($tu, ['id' => $user['id']]);
+        }
+    },
+
+    'POST /admin/repos (_action=toggle_trust): Forge darf Vertrauensstufe aendern' => function (Http $http) {
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $tr    = DB::table('repo_channels');
+        $owner = 'dummy-forge-owner-' . bin2hex(random_bytes(3));
+
+        try {
+            $csrf = extractCsrf($http->get('/admin/repos')['body']);
+            $http->post('/admin/repos', ['_csrf' => $csrf, '_action' => 'add_repo', 'repo_owner' => $owner, 'repo_label' => 'Dummy']);
+            $repo = DB::fetch("SELECT * FROM `{$tr}` WHERE owner = ?", [$owner]);
+            Assert::true($repo !== null);
+
+            $csrf2 = extractCsrf($http->get('/admin/repos')['body']);
+            $res = $http->post('/admin/repos', ['_csrf' => $csrf2, '_action' => 'toggle_trust', 'repo_id' => (string) $repo['id']]);
+            Assert::same(302, $res['status']);
+
+            $trusted = DB::value("SELECT trusted FROM `{$tr}` WHERE id = ?", [$repo['id']]);
+            Assert::same(1, (int) $trusted, 'Forge sollte die Vertrauensstufe auf vertrauenswuerdig setzen koennen');
+        } finally {
+            DB::delete($tr, ['owner' => $owner]);
+        }
+    },
+
+    'GET /admin/plugins?tab=available: "Kanaele verwalten"-Link nur fuer Forge/manage_repos sichtbar' => function (Http $http) {
         $tu   = DB::table('users');
         $user = makeTempAdmin('repo-ui-admin');
 
         try {
             loginAs($http, $user['email'], $user['password']);
             $body = $http->get('/admin/plugins?tab=available')['body'];
-            Assert::true(!str_contains($body, 'name="repo_owner"'), 'Formular sollte fuer Admin ohne manage_repos nicht sichtbar sein');
+            Assert::true(!str_contains($body, 'href="/admin/repos"'), 'Link sollte fuer Admin ohne manage_repos nicht sichtbar sein');
         } finally {
             DB::delete($tu, ['id' => $user['id']]);
         }
 
         loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
         $body = $http->get('/admin/plugins?tab=available')['body'];
-        Assert::true(str_contains($body, 'name="repo_owner"'), 'Formular sollte fuer Forge sichtbar sein');
-    },
-
-    'POST /admin/plugins (_action=add_repo): Forge darf weiterhin Kanaele verwalten' => function (Http $http) {
-        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
-        $csrf = extractCsrf($http->get('/admin/plugins?tab=available')['body']);
-
-        $owner = 'dummy-forge-owner-' . bin2hex(random_bytes(3));
-        $tr = DB::table('plugin_repos');
-        try {
-            $res = $http->post('/admin/plugins', [
-                '_csrf' => $csrf, '_action' => 'add_repo',
-                'repo_owner' => $owner, 'repo_label' => 'Dummy',
-            ]);
-            Assert::same(302, $res['status']);
-            $repo = DB::fetch("SELECT * FROM `{$tr}` WHERE owner = ?", [$owner]);
-            Assert::true($repo !== null, 'Kanal sollte fuer Forge angelegt worden sein');
-
-            $csrf2 = extractCsrf($http->get('/admin/plugins?tab=available')['body']);
-            $http->post('/admin/plugins', ['_csrf' => $csrf2, '_action' => 'remove_repo', 'repo_id' => (string) $repo['id']]);
-            Assert::true(DB::fetch("SELECT id FROM `{$tr}` WHERE owner = ?", [$owner]) === null, 'Kanal sollte wieder entfernt worden sein');
-        } finally {
-            DB::delete($tr, ['owner' => $owner]);
-        }
+        Assert::true(str_contains($body, 'href="/admin/repos"'), 'Link sollte fuer Forge sichtbar sein');
     },
 ];

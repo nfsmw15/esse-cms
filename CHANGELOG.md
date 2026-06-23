@@ -4,6 +4,16 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.10-alpha] - 2026-06-23
+
+### Added
+
+- **Zentrale, paket-typ-unabhängige Repo-Kanäle**: Bisher hatte nur Plugins eine Kanalverwaltung (`plugin_repos`), Themes durchsuchten hartkodiert immer nur `nfsmw15`, Icon-Packs hatten gar keine "Verfügbar"-Suche. Ein Kanal ist jetzt einfach "ein vertrauenswürdiger GitHub-Account" — was er anbietet ergibt sich allein aus den Topic-Tags (`esse-plugin`/`esse-theme`/`esse-iconpack`) auf seinen Repos, nicht aus einem Feld am Kanal. Tabelle `plugin_repos` umbenannt in `repo_channels` (bestehende Kanäle bleiben beim Update erhalten, Migration läuft unconditional bei jedem Request — siehe Lehre aus der `manage_repos`-Migration in 0.8.7).
+- **Neue Seite `/admin/repos`**: Zentrale Verwaltung aller Kanäle (Hinzufügen/Entfernen wie bisher, jetzt aber für alle drei Pakettypen gemeinsam). Neu: Forge kann die Vertrauensstufe eines Kanals nachträglich umschalten (`repo_trust_changed`-Event, bisher ungenutzt) — bewusst Forge-only, da ein Admin mit `manage_repos` einen selbst hinzugefügten Kanal nicht auch selbst als vertrauenswürdig markieren darf.
+- **Themes durchsuchen jetzt alle aktiven Kanäle** statt nur `nfsmw15` fest im Code — Community-Kanäle funktionieren für Themes jetzt genau wie für Plugins.
+- **Icon-Packs bekommen einen vollen "Verfügbar"-Tab**: Installiert/Verfügbar-Tabs analog zu Plugins/Themes, inkl. `install_from_repo` (nutzt die bestehende gehärtete `packageInstallZip()`), Cache und `GitHubApi::searchIconPacks()` (Topic `esse-iconpack`).
+- `admin/plugins`/`admin/themes`/`admin/iconpacks` verlinken jetzt auf `/admin/repos` statt eigener Kanal-Verwaltung; die bisherige "Kanäle"-Card auf `/admin/plugins` entfällt.
+
 ## [0.8.9-alpha] - 2026-06-23
 
 ### Fixed

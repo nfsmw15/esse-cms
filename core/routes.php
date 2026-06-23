@@ -400,6 +400,16 @@ Router::post('/admin/themes', fn() => require ESSE_ROOT . '/admin/themes/index.p
     'auth' => 'manage_themes',
 ]);
 
+Router::get('/admin/repos', fn() => require ESSE_ROOT . '/admin/repos.php', [
+    'name' => 'admin.repos',
+    'auth' => 'manage_repos',
+]);
+
+Router::post('/admin/repos', fn() => require ESSE_ROOT . '/admin/repos.php', [
+    'name' => 'admin.repos.post',
+    'auth' => 'manage_repos',
+]);
+
 Router::get('/admin/settings', fn() => require ESSE_ROOT . '/admin/settings.php', [
     'name' => 'admin.settings',
     'auth' => 'manage_settings',

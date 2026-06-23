@@ -16,7 +16,7 @@ if (!Auth::meetsRole('forge') && !Auth::can('manage_plugins')) {
 require_once dirname(__DIR__) . '/package-install.php';
 
 $ts  = DB::table('settings');
-$tr  = DB::table('plugin_repos');
+$tr  = DB::table('repo_channels');
 $tab = $_GET['tab'] ?? 'installed';
 
 // Load enabled plugins list
@@ -105,42 +105,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Flash::set('success', "Plugin '{$slug}' deinstalliert.");
         }
         header('Location: /admin/plugins');
-        exit;
-    }
-
-    // Repo-Kanäle definieren eine Vertrauensgrenze (woher Plugin-Installs kommen dürfen) —
-    // dafür reicht manage_plugins nicht, das ist eine eigene, engere Berechtigung.
-    if (in_array($action, ['add_repo', 'remove_repo'], true) && !Auth::meetsRole('forge') && !Auth::can('manage_repos')) {
-        AuditLog::record('repo_action_forbidden', Auth::id(), Auth::user()['email'] ?? null, ['action' => $action]);
-        http_response_code(403); echo '403 Forbidden'; exit;
-    }
-
-    // Add repo channel
-    if ($action === 'add_repo') {
-        $owner = trim(preg_replace('/[^a-zA-Z0-9\-]/', '', $_POST['repo_owner'] ?? ''));
-        $label = trim($_POST['repo_label'] ?? $owner);
-        if ($owner) {
-            DB::query(
-                "INSERT IGNORE INTO `{$tr}` (owner, label, trusted) VALUES (?, ?, 0)",
-                [$owner, $label ?: $owner]
-            );
-            AuditLog::record('repo_added', Auth::id(), Auth::user()['email'] ?? null, ['owner' => $owner, 'label' => $label ?: $owner]);
-            Flash::set('warning', "Kanal '{$owner}' hinzugefügt. Nicht verifizierter Kanal — nur vertrauenswürdige Quellen installieren.");
-        }
-        header('Location: /admin/plugins?tab=available');
-        exit;
-    }
-
-    // Remove repo channel (not official)
-    if ($action === 'remove_repo') {
-        $repoId = (int) ($_POST['repo_id'] ?? 0);
-        $repo   = DB::fetch("SELECT * FROM `{$tr}` WHERE id = ?", [$repoId]);
-        if ($repo && !$repo['trusted']) {
-            DB::delete($tr, ['id' => $repoId]);
-            AuditLog::record('repo_removed', Auth::id(), Auth::user()['email'] ?? null, ['owner' => $repo['owner']]);
-            Flash::set('success', "Kanal '{$repo['owner']}' entfernt.");
-        }
-        header('Location: /admin/plugins?tab=available');
         exit;
     }
 
@@ -440,72 +404,27 @@ foreach ($plugins as $p) {
 </div>
 <?php endif ?>
 
-<!-- Repo-Kanal-Verwaltung -->
+<!-- Kanäle werden zentral unter /admin/repos verwaltet (gilt für Plugins, Themes, Icon-Packs) -->
 <div class="card mt-4">
-    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-        <small class="text-secondary">Kanäle</small>
-        <form method="post" action="/admin/plugins?tab=available" class="d-inline">
-        <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
-        <input type="hidden" name="_action" value="refresh_cache">
-        <button class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-arrow-clockwise"></i> Cache leeren
-        </button></form>
-    </div>
-    <div class="card-body p-0">
-        <table class="table table-sm mb-0">
-        <?php foreach ($repos as $repo): ?>
-        <tr class="align-middle">
-            <td class="ps-3">
-                <strong><?= htmlspecialchars($repo['owner']) ?></strong>
-                <small class="text-secondary ms-1"><?= htmlspecialchars($repo['label']) ?></small>
-            </td>
-            <td>
-                <?php if ($repo['trusted']): ?>
-                <span class="badge bg-success"><i class="bi bi-shield-check"></i> Offiziell</span>
-                <?php else: ?>
-                <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Nicht verifiziert</span>
-                <?php endif ?>
-            </td>
-            <td class="text-end pe-3">
-                <?php if (!$repo['trusted'] && (Auth::meetsRole('forge') || Auth::can('manage_repos'))): ?>
-                <form method="post" action="/admin/plugins" class="d-inline"
-                      data-confirm="Kanal entfernen?">
-                    <input type="hidden" name="_csrf"    value="<?= Auth::csrfToken() ?>">
-                    <input type="hidden" name="_action"  value="remove_repo">
-                    <input type="hidden" name="repo_id"  value="<?= $repo['id'] ?>">
-                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                </form>
-                <?php endif ?>
-            </td>
-        </tr>
-        <?php endforeach ?>
-        </table>
-    </div>
-    <?php if (Auth::meetsRole('forge') || Auth::can('manage_repos')): ?>
-    <div class="card-footer">
-        <form method="post" action="/admin/plugins" class="d-flex gap-2 align-items-end">
-            <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
-            <input type="hidden" name="_action" value="add_repo">
-            <div>
-                <label class="form-label small">GitHub-Benutzername</label>
-                <input type="text" name="repo_owner" class="form-control form-control-sm font-monospace"
-                       placeholder="username" required>
-            </div>
-            <div>
-                <label class="form-label small">Label (optional)</label>
-                <input type="text" name="repo_label" class="form-control form-control-sm"
-                       placeholder="Community">
-            </div>
-            <button class="btn btn-sm btn-outline-warning">
-                <i class="bi bi-plus-lg"></i> Kanal hinzufügen
-            </button>
-        </form>
-        <div class="form-text mt-1">
-            <i class="bi bi-exclamation-triangle text-warning"></i>
-            Nur vertrauenswürdige Quellen hinzufügen. Plugins können PHP-Code auf dem Server ausführen.
+    <div class="card-body d-flex justify-content-between align-items-center">
+        <small class="text-secondary">
+            Durchsucht <?= count($repos) ?> Kanal<?= count($repos) === 1 ? '' : 'e' ?> nach dem Topic <code>esse-plugin</code>.
+        </small>
+        <div class="d-flex gap-2">
+            <form method="post" action="/admin/plugins?tab=available" class="d-inline">
+                <input type="hidden" name="_csrf"   value="<?= Auth::csrfToken() ?>">
+                <input type="hidden" name="_action" value="refresh_cache">
+                <button class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise"></i> Cache leeren
+                </button>
+            </form>
+            <?php if (Auth::meetsRole('forge') || Auth::can('manage_repos')): ?>
+            <a href="/admin/repos" class="btn btn-sm btn-outline-warning">
+                <i class="bi bi-diagram-3"></i> Kanäle verwalten
+            </a>
+            <?php endif ?>
         </div>
     </div>
-    <?php endif ?>
 </div>
 
 <?php else: ?>

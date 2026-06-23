@@ -54,6 +54,12 @@ class GitHubApi
         return self::searchByTopic('esse-theme', $owner, $trustedOnly);
     }
 
+    // Search icon packs by esse-iconpack topic
+    public static function searchIconPacks(string $owner, bool $trustedOnly = false): array
+    {
+        return self::searchByTopic('esse-iconpack', $owner, $trustedOnly);
+    }
+
     // Generic topic search
     private static function searchByTopic(string $topic, string $owner, bool $trustedOnly = false): array
     {
