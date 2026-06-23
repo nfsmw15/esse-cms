@@ -8,9 +8,7 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ### Fixed
 
-- **Backup-Wiederherstellung über `/admin/backup` lief praktisch immer in den Timeout**: `Updater::dbImport()` führte jedes SQL-Statement aus dem Dump einzeln mit Autocommit aus — bei Tabellen mit vielen Zeilen (z.B. Plugin-Statistikdaten, >80.000 Einzeil-INSERTs in einem Praxisfall) bedeutete das einen eigenen fsync-Commit pro Zeile und damit mehrere Minuten Laufzeit, weit über jedem Web-Request-Timeout. Import läuft jetzt in einer einzigen Transaktion; zusätzlich `set_time_limit(0)` für die Restore-Aktion, da das eine bewusste, seltene Forge-Aktion ist.
-
-
+- **Backup-Wiederherstellung über `/admin/backup` lief praktisch immer in den Timeout**: `Updater::dbImport()` führte jedes SQL-Statement aus dem Dump einzeln per PDO mit Autocommit aus — bei Tabellen mit vielen Zeilen (z.B. Plugin-Statistikdaten, >80.000 Einzeil-INSERTs in einem Praxisfall) bedeutete das einen eigenen fsync-Commit pro Zeile und damit mehrere Minuten Laufzeit, weit über jedem Web-Request-Timeout. Eine reine PHP-Transaktion löst das nicht, da `DROP`/`CREATE TABLE` im Dump (pro Tabelle) in MySQL immer implizit committen und damit jede umschließende Transaktion vorzeitig beenden. Import läuft jetzt über den `mysql`/`mariadb`-CLI-Client mit `autocommit=0` (Zugangsdaten über eine temporäre, nur für den Prozess lesbare Optionsdatei statt als Kommandozeilenargument); Laufzeit in der Praxis von >20 Minuten auf ~30 Sekunden für denselben Datensatz. Zusätzlich `set_time_limit(0)` für die Restore-Aktion.
 
 ### Added
 

@@ -241,31 +241,69 @@ class Updater
 
     private static function dbImport(string $sql): void
     {
-        $pdo = DB::connection();
-        $pdo->exec("SET FOREIGN_KEY_CHECKS=0");
+        // Statement-für-Statement per PDO (mit oder ohne umschließende Transaktion) war für
+        // Dumps mit vielen Datenzeilen (z.B. Plugin-Statistiken, >80.000 Einzeil-INSERTs in der
+        // Praxis) unbrauchbar langsam — mehrere Minuten statt Sekunden, weit über jedem
+        // Web-Request-Timeout. Eine Transaktion allein half nicht: das Dump-Format enthält pro
+        // Tabelle DROP/CREATE TABLE, und DDL committed in MySQL immer implizit, bricht also jede
+        // PHP-seitige Transaktion mitten im Import. Statt SQL-Statements in PHP nachzubauen, der
+        // Import läuft über den mysql-CLI-Client — exakt dafür gebaut, behandelt Transaktions-
+        // grenzen/Multi-Statements/Packet-Größen korrekt und ist um Größenordnungen schneller.
+        if (!function_exists('proc_open')) {
+            throw new \RuntimeException('Datenbank-Restore benötigt proc_open() (vom Hoster deaktiviert).');
+        }
 
-        // Split into individual statements
-        $statements = array_filter(
-            array_map('trim', explode(";\n", $sql)),
-            fn($s) => $s !== '' && !str_starts_with($s, '--')
+        $tmpSql = ESSE_PRIVATE_PATH . '/storage/update_tmp/restore_' . uniqid() . '.sql';
+        $tmpCnf = ESSE_PRIVATE_PATH . '/storage/update_tmp/restore_' . uniqid() . '.cnf';
+        $dir    = dirname($tmpSql);
+        if (!is_dir($dir)) mkdir($dir, 0750, true);
+
+        // Zugangsdaten über eine Optionsdatei statt als CLI-Argument — sonst stünde das
+        // DB-Passwort im Klartext in der Prozessliste (`ps aux`), sichtbar für andere Nutzer auf
+        // dem Server.
+        // Werte in Anführungszeichen: ein Passwort mit "#" würde sonst als Kommentar geparst und
+        // an dieser Stelle abgeschnitten werden (MySQL-Optionsdateien kennen "#" als Kommentarzeichen).
+        file_put_contents($tmpCnf, sprintf(
+            "[client]\nhost=\"%s\"\nport=%d\nuser=\"%s\"\npassword=\"%s\"\n",
+            defined('ESSE_DB_HOST') ? \ESSE_DB_HOST : 'localhost',
+            defined('ESSE_DB_PORT') ? \ESSE_DB_PORT : 3306,
+            str_replace('"', '\"', \ESSE_DB_USER),
+            str_replace('"', '\"', \ESSE_DB_PASS)
+        ));
+        chmod($tmpCnf, 0600);
+        // autocommit=0: INSERTs zwischen zwei DDL-Anweisungen (DROP/CREATE TABLE) sammeln sich
+        // dann zu einer Transaktion statt pro Zeile zu committen (fsync) — DDL committed in
+        // MySQL ohnehin immer implizit, das ist also automatisch "eine Transaktion pro Tabelle"
+        // ohne dass die Statement-Grenzen dafür im Dump erkannt werden müssten.
+        file_put_contents(
+            $tmpSql,
+            "SET FOREIGN_KEY_CHECKS=0;\nSET autocommit=0;\n" . $sql . "\nCOMMIT;\nSET FOREIGN_KEY_CHECKS=1;\n"
         );
 
-        // Eine Transaktion um den gesamten Import statt Autocommit pro Statement: Backups mit
-        // vielen Datenzeilen (z.B. Plugin-Statistiktabellen) hatten sonst pro INSERT einen
-        // eigenen fsync-Commit — bei mehreren zehntausend Zeilen dauerte das Minuten statt
-        // Sekunden und lief im Web-Request regelmäßig in den Timeout.
-        $pdo->beginTransaction();
-        foreach ($statements as $stmt) {
-            if (trim($stmt) === '') continue;
-            try {
-                $pdo->exec($stmt);
-            } catch (\PDOException $e) {
-                // Skip errors (e.g. duplicate tables) but continue
-            }
-        }
-        $pdo->commit();
+        $cmd = sprintf(
+            '%s --defaults-extra-file=%s %s < %s 2>&1',
+            escapeshellarg(self::mysqlBinary()),
+            escapeshellarg($tmpCnf),
+            escapeshellarg(\ESSE_DB_NAME),
+            escapeshellarg($tmpSql)
+        );
+        exec($cmd, $output, $exitCode);
 
-        $pdo->exec("SET FOREIGN_KEY_CHECKS=1");
+        @unlink($tmpCnf);
+        @unlink($tmpSql);
+
+        if ($exitCode !== 0) {
+            throw new \RuntimeException('Datenbank-Import fehlgeschlagen: ' . implode("\n", $output));
+        }
+    }
+
+    private static function mysqlBinary(): string
+    {
+        foreach (['mariadb', 'mysql'] as $bin) {
+            exec('command -v ' . escapeshellarg($bin) . ' 2>/dev/null', $out, $code);
+            if ($code === 0 && !empty($out[0])) return $out[0];
+        }
+        throw new \RuntimeException('Kein mysql/mariadb-CLI-Client auf dem Server gefunden.');
     }
 
     private static function isProtected(string $rel): bool
