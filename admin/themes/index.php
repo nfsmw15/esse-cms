@@ -162,6 +162,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: /admin/themes');
         exit;
     }
+
+    // Unbekannte/nicht mehr unterstützte Aktion (z.B. das frühere add_repo/remove_repo, das
+    // jetzt zentral unter /admin/repos läuft) — klar als 403 ablehnen statt mit 200 auf die
+    // normale Seite zu antworten, das wäre für einen POST-Endpoint ein irreführendes Signal.
+    if (in_array($action, ['add_repo', 'remove_repo', 'toggle_trust'], true)) {
+        AuditLog::record('repo_action_forbidden', Auth::id(), Auth::user()['email'] ?? null, ['action' => $action, 'context' => 'legacy_endpoint']);
+    }
+    http_response_code(403); echo '403 Forbidden'; exit;
 }
 
 // Build installed name→version map for update comparison

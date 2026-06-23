@@ -182,4 +182,38 @@ return [
         $body = $http->get('/admin/plugins?tab=available')['body'];
         Assert::true(str_contains($body, 'href="/admin/repos"'), 'Link sollte fuer Forge sichtbar sein');
     },
+
+    'POST /admin/plugins (_action=add_repo): veraltete Aktion gibt 403 statt stillem 200' => function (Http $http) {
+        $tu   = DB::table('users');
+        $tl   = DB::table('audit_log');
+        $tr   = DB::table('repo_channels');
+        DB::query("DELETE FROM `{$tl}` WHERE event = 'repo_action_forbidden'");
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $csrf = extractCsrf($http->get('/admin/plugins')['body']);
+
+        $res = $http->post('/admin/plugins', [
+            '_csrf' => $csrf, '_action' => 'add_repo',
+            'repo_owner' => 'should-not-be-added', 'repo_label' => 'Dummy',
+        ]);
+
+        Assert::same(403, $res['status'], 'Nicht mehr unterstuetzte Aktion muss klar 403 liefern, nicht still 200');
+        Assert::true(DB::fetch("SELECT id FROM `{$tr}` WHERE owner = ?", ['should-not-be-added']) === null, 'Kanal darf nicht angelegt worden sein');
+
+        $row = DB::fetch("SELECT * FROM `{$tl}` WHERE event = 'repo_action_forbidden' ORDER BY id DESC LIMIT 1");
+        Assert::true($row !== null, 'Der veraltete add_repo-Versuch sollte trotzdem als repo_action_forbidden geloggt werden');
+    },
+
+    'POST /admin/themes (_action=remove_repo): veraltete Aktion gibt 403 statt stillem 200' => function (Http $http) {
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $csrf = extractCsrf($http->get('/admin/themes')['body']);
+        $res  = $http->post('/admin/themes', ['_csrf' => $csrf, '_action' => 'remove_repo', 'repo_id' => '1']);
+        Assert::same(403, $res['status']);
+    },
+
+    'POST /admin/iconpacks: voellig unbekannte Aktion gibt 403 statt stillem 200' => function (Http $http) {
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $csrf = extractCsrf($http->get('/admin/iconpacks')['body']);
+        $res  = $http->post('/admin/iconpacks', ['_csrf' => $csrf, '_action' => 'totally_made_up_action']);
+        Assert::same(403, $res['status']);
+    },
 ];

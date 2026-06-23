@@ -80,6 +80,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: /admin/repos');
         exit;
     }
+
+    // Unbekannte Aktion klar als 403 ablehnen statt mit 200 auf die normale Seite zu antworten,
+    // das wäre für einen POST-Endpoint ein irreführendes Signal.
+    http_response_code(403); echo '403 Forbidden'; exit;
 }
 
 $repos = DB::fetchAll("SELECT * FROM `{$tr}` ORDER BY trusted DESC, label ASC");
