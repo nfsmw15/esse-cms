@@ -435,6 +435,11 @@ Router::get('/admin/media/list', fn() => require ESSE_ROOT . '/admin/media-list.
     'auth' => ['manage_files', 'manage_content'],
 ]);
 
+Router::get('/admin/media/file/{id}', function (string $id) {
+    $idParam = $id;
+    require ESSE_ROOT . '/admin/media-file.php';
+}, ['name' => 'admin.media.file', 'auth' => ['manage_files', 'manage_content']]);
+
 Router::get('/admin/shortcodes/list', fn() => require ESSE_ROOT . '/admin/shortcodes-list.php', [
     'name' => 'admin.shortcodes.list',
     'auth' => 'manage_content',

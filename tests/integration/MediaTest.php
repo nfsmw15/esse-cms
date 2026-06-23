@@ -55,6 +55,128 @@ return [
         @unlink($uploaded);
     },
 
+    'POST /admin/media (_action=upload, visibility=private): Datei liegt ausserhalb des Webroots, nicht per direkter URL erreichbar' => function (Http $http) {
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $csrf = extractCsrf($http->get('/admin/media')['body']);
+
+        $txt = tempnam(sys_get_temp_dir(), 'esse-test-private-') . '.txt';
+        file_put_contents($txt, 'geheimer inhalt');
+
+        $upload = $http->postMultipart('/admin/media', ['_csrf' => $csrf, '_action' => 'upload', 'visibility' => 'private'], [
+            'file' => ['path' => $txt, 'name' => 'private-test.txt', 'type' => 'text/plain'],
+        ]);
+        @unlink($txt);
+        Assert::same(302, $upload['status']);
+
+        $list = json_decode($http->get('/admin/media/list?visibility=private')['body'], true);
+        $item = null;
+        foreach ($list['items'] as $i) {
+            if ($i['filename'] === 'private-test.txt') { $item = $i; break; }
+        }
+        Assert::true($item !== null, 'Private Datei sollte in der Mediathek-Liste auftauchen');
+
+        try {
+            // Die alte oeffentliche Konvention (/public/uploads/<name>) darf es fuer diese Datei
+            // gar nicht geben - sie liegt jetzt ausserhalb des per HTTP erreichbaren Docroots.
+            Assert::true(!str_starts_with($item['url'], '/public/'), "Private Datei sollte keine /public/-URL haben, war: {$item['url']}");
+            Assert::true(!is_file(dirname(__DIR__, 2) . '/public/uploads/private-test.txt'), 'Datei darf physisch nicht unter public/uploads liegen');
+
+            $viaEndpoint = $http->get($item['url']); // /admin/media/file/{id}, eingeloggt als Forge
+            Assert::same(200, $viaEndpoint['status'], 'Forge sollte die Datei ueber den kontrollierten Endpoint sehen');
+            Assert::same('geheimer inhalt', $viaEndpoint['body']);
+        } finally {
+            $http->post('/admin/media', ['_csrf' => $csrf, '_action' => 'delete', 'id' => (string) $item['id']]);
+        }
+    },
+
+    'GET /admin/media/file/{id}: Gast wird zu /login umgeleitet, sieht den Inhalt nicht' => function (Http $http) {
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $csrf = extractCsrf($http->get('/admin/media')['body']);
+
+        $txt = tempnam(sys_get_temp_dir(), 'esse-test-private-') . '.txt';
+        file_put_contents($txt, 'nur fuer angemeldete');
+        $upload = $http->postMultipart('/admin/media', ['_csrf' => $csrf, '_action' => 'upload', 'visibility' => 'private'], [
+            'file' => ['path' => $txt, 'name' => 'private-guest-test.txt', 'type' => 'text/plain'],
+        ]);
+        @unlink($txt);
+
+        $list = json_decode($http->get('/admin/media/list?visibility=private')['body'], true);
+        $item = null;
+        foreach ($list['items'] as $i) {
+            if ($i['filename'] === 'private-guest-test.txt') { $item = $i; break; }
+        }
+        Assert::true($item !== null);
+
+        try {
+            $guest = new Http(TEST_BASE_URL); // frischer Client ohne Session-Cookie
+            $res = $guest->get($item['url']);
+            Assert::same(302, $res['status']);
+            $location = $res['headers']['location'][0] ?? '';
+            Assert::true(str_starts_with($location, '/login'), "Redirect zu /login erwartet, war: {$location}");
+        } finally {
+            $http->post('/admin/media', ['_csrf' => $csrf, '_action' => 'delete', 'id' => (string) $item['id']]);
+        }
+    },
+
+    'POST /admin/media (_action=update, visibility wechselt): Datei wird physisch verschoben' => function (Http $http) {
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $csrf = extractCsrf($http->get('/admin/media')['body']);
+
+        // Oeffentlich hochladen, dann auf privat umstellen
+        $png = tempnam(sys_get_temp_dir(), 'esse-test-img-') . '.png';
+        $img = imagecreatetruecolor(2, 2);
+        imagepng($img, $png);
+        imagedestroy($img);
+        $upload = $http->postMultipart('/admin/files/upload', ['_csrf' => $csrf], [
+            'file' => ['path' => $png, 'name' => 'visibility-switch.png', 'type' => 'image/png'],
+        ]);
+        @unlink($png);
+        $uploadData = json_decode($upload['body'], true);
+        $publicDisk = dirname(__DIR__, 2) . $uploadData['url'];
+        Assert::true(is_file($publicDisk), 'Oeffentlich hochgeladene Datei sollte zunaechst im Webroot liegen');
+
+        $list = json_decode($http->get('/admin/media/list')['body'], true);
+        $mediaId = null;
+        foreach ($list['items'] as $i) {
+            if ($i['url'] === $uploadData['url']) { $mediaId = $i['id']; break; }
+        }
+        Assert::true($mediaId !== null);
+
+        try {
+            // public -> private: Datei muss aus dem Webroot verschwinden
+            $http->post('/admin/media', [
+                '_csrf' => $csrf, '_action' => 'update', 'id' => (string) $mediaId, 'visibility' => 'private',
+            ]);
+            clearstatcache(true, $publicDisk);
+            Assert::true(!is_file($publicDisk), 'Nach dem Wechsel auf "privat" darf die Datei nicht mehr im Webroot liegen');
+
+            $afterPrivate = json_decode($http->get('/admin/media/list')['body'], true);
+            $privateUrl = null;
+            foreach ($afterPrivate['items'] as $i) {
+                if ($i['id'] === $mediaId) { $privateUrl = $i['url']; break; }
+            }
+            Assert::true(str_starts_with($privateUrl, '/admin/media/file/'), "Private URL sollte ueber den kontrollierten Endpoint laufen, war: {$privateUrl}");
+            Assert::same(200, $http->get($privateUrl)['status']);
+
+            // private -> public: Datei muss wieder im Webroot landen
+            $http->post('/admin/media', [
+                '_csrf' => $csrf, '_action' => 'update', 'id' => (string) $mediaId, 'visibility' => 'public',
+            ]);
+            $afterPublic = json_decode($http->get('/admin/media/list')['body'], true);
+            $publicUrl = null;
+            foreach ($afterPublic['items'] as $i) {
+                if ($i['id'] === $mediaId) { $publicUrl = $i['url']; break; }
+            }
+            Assert::true(str_starts_with($publicUrl, '/public/'), "Oeffentliche URL erwartet, war: {$publicUrl}");
+            $newPublicDisk = dirname(__DIR__, 2) . $publicUrl;
+            Assert::true(is_file($newPublicDisk), 'Nach dem Wechsel auf "oeffentlich" sollte die Datei wieder im Webroot liegen');
+            @unlink($newPublicDisk);
+        } finally {
+            $http->post('/admin/media', ['_csrf' => $csrf, '_action' => 'delete', 'id' => (string) $mediaId]);
+            @unlink($publicDisk);
+        }
+    },
+
     'POST /admin/media (_action=delete) entfernt auch die Datei vom Server' => function (Http $http) {
         loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
         $csrf = extractCsrf($http->get('/admin/media')['body']);

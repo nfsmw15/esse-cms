@@ -14,6 +14,12 @@ class Media
 
     public const VISIBILITY = ['public', 'private'];
 
+    // "private" war bisher nur ein Label/Filter in der Mediathek — die Datei lag trotzdem unter
+    // /public/uploads/ und war für jeden direkt per URL erreichbar. Private Dateien liegen jetzt
+    // physisch außerhalb des Webroots; PRIVATE_PATH_PREFIX ist kein echter Web-Pfad, sondern nur
+    // ein Marker in der DB-Spalte `path`, aufgelöst über absolutePath().
+    private const PRIVATE_PATH_PREFIX = '/private-media';
+
     public static function migrateDb(): void
     {
         $p = defined('ESSE_DB_PREFIX') ? \ESSE_DB_PREFIX : 'esse_';
@@ -33,6 +39,83 @@ class Media
             DB::query("ALTER TABLE `{$t}` ADD CONSTRAINT `fk_media_folder`
                         FOREIGN KEY (`folder_id`) REFERENCES `{$tf}`(`id`) ON DELETE SET NULL");
         }
+    }
+
+    // Verschiebt Bestands-Dateien, die als "private" markiert sind, aber noch unter
+    // /public/uploads/ liegen, in den geschützten Speicherort. Läuft unconditional bei jedem
+    // Request (Auth::syncSecurityMigrations()), nicht erst nach dem nächsten Admin-Login — sonst
+    // bliebe die Sicherheitslücke bis zum nächsten Login offen (siehe Lehre aus der
+    // manage_repos-Migration). Naturlich idempotent über die WHERE-Klausel, kein Flag nötig:
+    // einmal verschobene Zeilen matchen das Muster danach nicht mehr.
+    public static function migratePrivateFiles(): void
+    {
+        $t = DB::table('media');
+        $rows = DB::fetchAll(
+            "SELECT * FROM `{$t}` WHERE `visibility` = 'private' AND `path` LIKE '/public/uploads/%'"
+        );
+        foreach ($rows as $row) {
+            self::setVisibility((int) $row['id'], 'private');
+        }
+    }
+
+    // Löst den in `path` gespeicherten Wert in einen absoluten Dateisystempfad auf — je nach
+    // Konvention im öffentlichen Webroot (/public/...) oder im geschützten Speicherort
+    // (PRIVATE_PATH_PREFIX). Gibt null zurück, wenn der Pfad keiner bekannten Konvention
+    // entspricht (z.B. manipulierter/fremder Wert).
+    public static function absolutePath(string $path): ?string
+    {
+        if (str_starts_with($path, self::PRIVATE_PATH_PREFIX . '/')) {
+            return self::privateDir() . substr($path, strlen(self::PRIVATE_PATH_PREFIX));
+        }
+        if (str_starts_with($path, '/public/')) {
+            return \ESSE_ROOT . $path;
+        }
+        return null;
+    }
+
+    private static function privateDir(): string
+    {
+        // storage/uploads existiert bereits als ungenutztes Scaffolding (nur .gitkeep) — hier
+        // wiederverwendet statt ein weiteres, redundantes Verzeichnis anzulegen. storage/ ist
+        // bereits per .htaccess ("Require all denied") geschützt bzw. liegt produktiv ganz
+        // außerhalb des Webroots (ESSE_PRIVATE_PATH).
+        return \ESSE_PRIVATE_PATH . '/storage/uploads';
+    }
+
+    // Ändert die Sichtbarkeit EINER Mediendatei und verschiebt die physische Datei zwischen
+    // öffentlichem Webroot und geschütztem Speicherort — die bloße DB-Spalte zu ändern würde die
+    // Datei an ihrem bisherigen (öffentlichen oder geschützten) Ort liegen lassen.
+    public static function setVisibility(int $id, string $newVisibility): bool
+    {
+        if (!in_array($newVisibility, self::VISIBILITY, true)) return false;
+
+        $media = self::find($id);
+        if (!$media) return false;
+
+        $oldAbs = self::absolutePath($media['path']);
+        if (!$oldAbs || !is_file($oldAbs)) return false;
+
+        // Bereits am richtigen Ort (z.B. wiederholter Migrationslauf) — nur DB-Feld sicherstellen.
+        $alreadyThere = ($newVisibility === 'private') === str_starts_with($media['path'], self::PRIVATE_PATH_PREFIX . '/');
+        if ($alreadyThere && $media['visibility'] === $newVisibility) return true;
+
+        $filename = basename($media['path']);
+        if ($newVisibility === 'private') {
+            $dir = self::privateDir();
+            if (!is_dir($dir)) mkdir($dir, 0750, true);
+            $newPath = self::PRIVATE_PATH_PREFIX . '/' . $filename;
+        } else {
+            $dir = \ESSE_ROOT . '/public/uploads';
+            if (!is_dir($dir)) mkdir($dir, 0755, true);
+            $newPath = '/public/uploads/' . $filename;
+        }
+        $newAbs = self::absolutePath($newPath);
+
+        if ($oldAbs !== $newAbs && !@rename($oldAbs, $newAbs)) return false;
+
+        $t = DB::table('media');
+        DB::update($t, ['path' => $newPath, 'visibility' => $newVisibility], ['id' => $id]);
+        return true;
     }
 
     // Human-readable label for the "source" column — identifies which plugin/feature registered the file
@@ -140,10 +223,13 @@ class Media
         return DB::fetch("SELECT * FROM `{$t}` WHERE `path` = ?", [$path]);
     }
 
+    // `visibility` ist hier bewusst NICHT erlaubt — eine Sichtbarkeitsänderung muss die Datei
+    // physisch verschieben (öffentlicher Webroot <-> geschützter Speicherort), das übernimmt
+    // ausschließlich setVisibility().
     public static function update(int $id, array $data): void
     {
         $t = DB::table('media');
-        $allowed = array_intersect_key($data, array_flip(['alt_text', 'description', 'visibility', 'folder_id']));
+        $allowed = array_intersect_key($data, array_flip(['alt_text', 'description', 'folder_id']));
         if (!$allowed) return;
         DB::update($t, $allowed, ['id' => $id]);
     }
@@ -160,9 +246,15 @@ class Media
         // nur den fehlerhaften Mediathek-Eintrag entfernen.
         $fileRemains = false;
         if (!str_starts_with(basename($media['path']), '.')) {
-            $base = realpath(ESSE_ROOT . '/public/uploads');
-            $file = realpath(ESSE_ROOT . $media['path']);
-            if ($base && $file && str_starts_with($file, $base . DIRECTORY_SEPARATOR) && is_file($file)) {
+            $abs  = self::absolutePath($media['path']);
+            // Containment-Pruefung gegen das zur Pfad-Konvention passende Basisverzeichnis —
+            // verhindert, dass ein manipulierter `path`-Wert per realpath()-Aufloesung ausserhalb
+            // von public/uploads bzw. dem geschuetzten Speicherort landet.
+            $expectedBase = str_starts_with($media['path'], self::PRIVATE_PATH_PREFIX . '/')
+                ? realpath(self::privateDir())
+                : realpath(\ESSE_ROOT . '/public/uploads');
+            $file = $abs ? realpath($abs) : false;
+            if ($expectedBase && $file && str_starts_with($file, $expectedBase . DIRECTORY_SEPARATOR) && is_file($file)) {
                 @unlink($file);
                 clearstatcache(true, $file);
                 $fileRemains = is_file($file);

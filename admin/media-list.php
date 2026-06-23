@@ -23,7 +23,9 @@ $filters = array_filter([
 $items = array_map(static function (array $item): array {
     return [
         'id'         => (int) $item['id'],
-        'url'        => $item['path'],
+        // Private Dateien liegen ausserhalb des Webroots — ueber den kontrollierten Endpoint
+        // statt des (fuer private Dateien nicht mehr aufloesbaren) direkten Pfads.
+        'url'        => $item['visibility'] === 'private' ? '/admin/media/file/' . $item['id'] : $item['path'],
         'filename'   => $item['filename'],
         'type'       => $item['type'],
         'alt'        => $item['alt_text'],

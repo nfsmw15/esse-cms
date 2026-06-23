@@ -66,8 +66,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 AuditLog::record('file_upload_rejected', Auth::id(), Auth::user()['email'] ?? null, ['reason' => 'image_invalid', 'filename' => $file['name'], 'mime_type' => $mime]);
                 Flash::set('danger', 'Ungültige Bilddatei.');
             } else {
-                $uploadDir = ESSE_ROOT . '/public/uploads/';
-                if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+                $visibility = ($_POST['visibility'] ?? 'public') === 'private' ? 'private' : 'public';
+
+                // Private Dateien landen direkt im geschützten Speicherort außerhalb des
+                // Webroots, nicht unter /public/uploads — sonst wären sie trotz "Privat"-Markierung
+                // sofort per direkter URL erreichbar.
+                if ($visibility === 'private') {
+                    $uploadDir    = ESSE_PRIVATE_PATH . '/storage/uploads/';
+                    $registerPath = '/private-media/';
+                } else {
+                    $uploadDir    = ESSE_ROOT . '/public/uploads/';
+                    $registerPath = '/public/uploads/';
+                }
+                if (!is_dir($uploadDir)) mkdir($uploadDir, $visibility === 'private' ? 0750 : 0755, true);
 
                 $baseName = pathinfo($file['name'], PATHINFO_FILENAME);
                 $baseName = preg_replace('/[^a-zA-Z0-9_\-]/', '-', $baseName);
@@ -76,9 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $dest     = $uploadDir . $fileName;
 
                 if (move_uploaded_file($file['tmp_name'], $dest)) {
-                    $visibility = ($_POST['visibility'] ?? 'public') === 'private' ? 'private' : 'public';
                     $uploadFolderId = ($_POST['folder_id'] ?? '') !== '' ? (int) $_POST['folder_id'] : null;
-                    $mediaId = Media::register('/public/uploads/' . $fileName, [
+                    $mediaId = Media::register($registerPath . $fileName, [
                         'filename'    => $file['name'],
                         'mime_type'   => $mime,
                         'type'        => $allowedExt[$ext],
@@ -90,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                     AuditLog::record('media_uploaded', Auth::id(), Auth::user()['email'] ?? null, [
                         'media_id'   => $mediaId,
-                        'path'       => '/public/uploads/' . $fileName,
+                        'path'       => $registerPath . $fileName,
                         'filename'   => $file['name'],
                         'mime_type'  => $mime,
                         'size'       => $file['size'],
@@ -113,14 +123,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $before = Media::find($id);
 
-        Media::update($id, [
-            'alt_text'    => trim($_POST['alt_text'] ?? ''),
-            'description' => trim($_POST['description'] ?? ''),
-            'visibility'  => $newVisibility,
-            'folder_id'   => $folderId,
-        ]);
-
+        // Sichtbarkeitswechsel verschiebt die physische Datei (öffentlicher Webroot <-> geschützter
+        // Speicherort) — eine reine DB-Spaltenänderung würde die Datei am alten, falschen Ort lassen.
         if ($before && $before['visibility'] !== $newVisibility) {
+            if (!Media::setVisibility($id, $newVisibility)) {
+                Flash::set('danger', 'Sichtbarkeit konnte nicht geändert werden — Datei nicht gefunden.');
+                header('Location: /admin/media' . $returnQuery);
+                exit;
+            }
             AuditLog::record('media_visibility_changed', Auth::id(), Auth::user()['email'] ?? null, [
                 'media_id' => $id,
                 'path'     => $before['path'],
@@ -129,6 +139,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'new'      => $newVisibility,
             ]);
         }
+
+        Media::update($id, [
+            'alt_text'    => trim($_POST['alt_text'] ?? ''),
+            'description' => trim($_POST['description'] ?? ''),
+            'folder_id'   => $folderId,
+        ]);
 
         Flash::set('success', 'Datei aktualisiert.');
         header('Location: /admin/media' . $returnQuery);
@@ -206,7 +222,10 @@ $flash = Flash::consume();
 
 function mediaThumb(array $item): string
 {
-    $path = htmlspecialchars($item['path']);
+    // Private Dateien liegen ausserhalb des Webroots — ueber den kontrollierten,
+    // berechtigungsgeprueften Endpoint statt des (fuer private Dateien nicht mehr aufloesbaren) Pfads.
+    $src  = $item['visibility'] === 'private' ? '/admin/media/file/' . $item['id'] : $item['path'];
+    $path = htmlspecialchars($src);
     if ($item['type'] === 'image') {
         return "<img src=\"{$path}\" class=\"media-thumb\" loading=\"lazy\" alt=\"\">";
     }

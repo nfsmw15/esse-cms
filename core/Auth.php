@@ -337,6 +337,12 @@ class Auth
                 );
             }
 
+            // Als "privat" markierte Mediendateien, die noch unter /public/uploads liegen
+            // (Altlast vor dieser Härtung), in den geschützten Speicherort verschieben. Lebt hier
+            // statt in syncDefaultPermissions(), damit die bisher öffentlich erreichbaren Dateien
+            // nicht erst beim nächsten Admin-Login geschützt werden.
+            Media::migratePrivateFiles();
+
             self::$securityMigrationsSynced = true;
         } catch (\Throwable) {
             // Installer or partially configured databases may not have users/settings yet.
