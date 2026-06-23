@@ -11,11 +11,27 @@ if (!Auth::meetsRole('forge') && !Auth::can('manage_settings')) {
     http_response_code(403); echo '403 Forbidden'; exit;
 }
 
-require_once __DIR__ . '/iconpack-install.php';
+require_once __DIR__ . '/package-install.php';
 
 $ts = DB::table('settings');
 
 $flash = Flash::consume();
+
+// Discover installed icon packs
+function discoverIconPacks(): array
+{
+    $packs = [];
+    foreach (glob(ESSE_ROOT . '/public/vendor/*/iconpack.json') ?: [] as $jsonFile) {
+        $meta = json_decode(file_get_contents($jsonFile), true);
+        if (!empty($meta['name'])) {
+            $dir = basename(dirname($jsonFile));
+            $meta['dir']     = $dir;
+            $meta['css_url'] = '/public/vendor/' . $dir . '/' . ($meta['css'] ?? '');
+            $packs[$meta['name']] = $meta;
+        }
+    }
+    return $packs;
+}
 
 // POST actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -46,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             AuditLog::record('iconpack_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['reason' => 'forbidden_role']);
             http_response_code(403); echo '403 Forbidden'; exit;
         }
-        $result = installIconPack($_FILES['pack_zip']['tmp_name']);
+        $result = packageInstallZip($_FILES['pack_zip']['tmp_name'], 'iconpack');
         if (is_string($result)) {
             AuditLog::record('iconpack_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['reason' => $result]);
             Flash::set('danger', $result);

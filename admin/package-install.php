@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Shared ZIP installer for plugins, themes and icon packs.
- * Include this file then call packageInstallZip($tmpFile, 'plugin'|'theme').
+ * Include this file then call packageInstallZip($tmpFile, 'plugin'|'theme'|'iconpack').
  */
 
 // Grenzwerte gegen Zip-Bomben/überdimensionierte Pakete — gelten fuer alle Paket-Typen.
@@ -12,6 +12,32 @@ const ESSE_PKG_MAX_ZIP_BYTES   = 20 * 1024 * 1024;  // 20 MB komprimiertes ZIP
 const ESSE_PKG_MAX_FILES       = 1000;              // Anzahl Eintraege im ZIP
 const ESSE_PKG_MAX_FILE_BYTES  = 20 * 1024 * 1024;  // 20 MB pro Einzeldatei (entpackt)
 const ESSE_PKG_MAX_TOTAL_BYTES = 80 * 1024 * 1024;  // 80 MB gesamt (entpackt)
+
+// Pro Pakettyp: Name der Metadaten-Datei im ZIP, Zielverzeichnis relativ zu ESSE_ROOT,
+// Pflichtfelder in der Metadaten-Datei und optionale Endungs-Allowlist (null = keine
+// Einschraenkung, z.B. Plugins/Themes brauchen .php).
+const ESSE_PKG_TYPES = [
+    'plugin' => [
+        'meta_name'  => 'plugin.json',
+        'target_dir' => 'plugins',
+        'required'   => ['name'],
+        'extensions' => null,
+    ],
+    'theme' => [
+        'meta_name'  => 'theme.json',
+        'target_dir' => 'themes',
+        'required'   => ['name'],
+        'extensions' => null,
+    ],
+    'iconpack' => [
+        'meta_name'  => 'iconpack.json',
+        'target_dir' => 'public/vendor',
+        'required'   => ['name', 'css'],
+        // Icon-Packs brauchen nie mehr als Metadaten, Stylesheets, Fonts und Bilder — alles
+        // andere (insbesondere .php) wird komplett abgelehnt, nicht nur einzeln ausgefiltert.
+        'extensions' => ['json', 'css', 'map', 'woff', 'woff2', 'ttf', 'otf', 'eot', 'svg', 'png', 'gif', 'jpg', 'jpeg', 'webp'],
+    ],
+];
 
 function packageDeleteDir(string $dir): void
 {
@@ -28,8 +54,6 @@ function packageDeleteDir(string $dir): void
 // Prueft Groesse, Dateianzahl, Symlinks/Spezialdateien und optional eine Endungs-Allowlist
 // VOR dem Dekomprimieren (anhand der Central-Directory-Metadaten) — wird von einem
 // einzigen verdaechtigen Eintrag das GANZE Paket abgelehnt, nicht nur dieser Eintrag.
-// $allowedExtensions === null bedeutet "keine Endungs-Einschraenkung" (Plugins/Themes
-// brauchen z.B. .php). Gibt im Fehlerfall eine Fehlermeldung zurueck, sonst null.
 function packageCheckZipLimits(\ZipArchive $zip, string $tmpFile, ?array $allowedExtensions = null): ?string
 {
     if (filesize($tmpFile) > ESSE_PKG_MAX_ZIP_BYTES) {
@@ -77,22 +101,26 @@ function packageCheckZipLimits(\ZipArchive $zip, string $tmpFile, ?array $allowe
 
 function packageInstallZip(string $tmpFile, string $type): array|string
 {
+    if (!isset(ESSE_PKG_TYPES[$type])) {
+        return "Unbekannter Pakettyp '{$type}'.";
+    }
+    $config = ESSE_PKG_TYPES[$type];
+
     $zip = new \ZipArchive();
     if ($zip->open($tmpFile) !== true) return 'ZIP-Datei konnte nicht geöffnet werden.';
 
-    $limitError = packageCheckZipLimits($zip, $tmpFile);
+    $limitError = packageCheckZipLimits($zip, $tmpFile, $config['extensions']);
     if ($limitError !== null) {
         $zip->close();
         return $limitError;
     }
 
-    $metaName = $type === 'plugin' ? 'plugin.json' : 'theme.json';
     $metaJson = null;
     $rootDir  = null;
 
     for ($i = 0; $i < $zip->numFiles; $i++) {
         $name = $zip->getNameIndex($i);
-        if (basename($name) === $metaName) {
+        if (basename($name) === $config['meta_name']) {
             $metaJson = json_decode($zip->getFromIndex($i), true);
             $parts    = explode('/', $name);
             $rootDir  = count($parts) > 1 ? $parts[0] : '';
@@ -100,9 +128,13 @@ function packageInstallZip(string $tmpFile, string $type): array|string
         }
     }
 
-    if (!$metaJson || empty($metaJson['name'])) {
+    $missingMeta = !$metaJson;
+    foreach ($config['required'] as $field) {
+        if (empty($metaJson[$field] ?? null)) $missingMeta = true;
+    }
+    if ($missingMeta) {
         $zip->close();
-        return "Keine gültige {$metaName} im ZIP gefunden.";
+        return "Keine gültige {$config['meta_name']} im ZIP gefunden.";
     }
 
     // Validate slug: must be non-empty, lowercase alphanumeric + hyphens, 2-64 chars
@@ -112,7 +144,7 @@ function packageInstallZip(string $tmpFile, string $type): array|string
         return "Ungültiger Paketname '{$metaJson['name']}' — erlaubt sind Kleinbuchstaben, Ziffern und Bindestriche.";
     }
 
-    $baseDir = realpath(ESSE_ROOT . '/' . ($type === 'plugin' ? 'plugins' : 'themes'));
+    $baseDir = realpath(ESSE_ROOT . '/' . $config['target_dir']);
     if (!$baseDir) {
         $zip->close();
         return "Zielverzeichnis nicht gefunden.";

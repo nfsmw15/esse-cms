@@ -4,6 +4,12 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.8-alpha] - 2026-06-23
+
+### Changed
+
+- **Eine ZIP-Installationsroutine für Plugins, Themes und Icon-Packs statt zwei**: `installIconPack()` war eine separate, fast identische Kopie von `packageInstallZip()` (eigene Metadaten-Suche, Slug-Validierung, Extract-Logik) und hatte dabei den `realpath()`-Containment-Check gegen Path-Traversal verloren (aktuell nicht ausnutzbar, da die Slug-Regex ohnehin keine Slashes erlaubt — aber genau die Art Lücke, die durch Duplizierung entsteht). `packageInstallZip()` nimmt jetzt einen dritten Typ `'iconpack'` über eine Typ-Konfiguration (Metadaten-Dateiname, Zielverzeichnis, Pflichtfelder, Endungs-Allowlist) — Limits, Pfad-Sicherheit und Extract-Logik existieren damit nur noch an einer Stelle. `admin/iconpack-install.php` entfällt, `admin/iconpacks.php` ruft direkt `packageInstallZip($tmpFile, 'iconpack')`.
+
 ## [0.8.7-alpha] - 2026-06-23
 
 ### Added
