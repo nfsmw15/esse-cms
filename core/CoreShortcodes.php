@@ -34,17 +34,23 @@ class CoreShortcodes
         $ids = array_filter(array_map('intval', explode(',', $attrs['images'] ?? '')));
         if (!$ids) return '';
 
+        // Einmal pro Seitenaufruf prüfen statt pro Bild — dieselbe Berechtigung, die auch
+        // /admin/media/file/{id} (der Ausliefer-Endpoint für private Dateien) verlangt. So
+        // entscheidet sich schon beim Rendern, ob ein privates Bild ueberhaupt als <img>-Tag
+        // auftaucht: berechtigte Besucher sehen es normal, alle anderen bekommen kein kaputtes
+        // Bild-Icon, weil das Bild für sie komplett aus der Slide-Liste ausgelassen wird.
+        $canViewPrivate = Auth::canAny(['manage_files', 'manage_content']);
+
         $slides = [];
         foreach ($ids as $id) {
             $media = Media::find($id);
             if (!$media || ($media['type'] ?? '') !== 'image') continue;
-            // Private Dateien über den berechtigungsgeprüften Endpoint statt des internen Pfads
-            // einbinden — der Pfad selbst (z.B. /private-media/<dateiname>) wäre ein Informations-
-            // leck und für jeden Besucher ein kaputtes Bild. Der Endpoint prüft die Berechtigung
-            // pro Besucher beim tatsächlichen Bildabruf: eingeloggte Nutzer mit Mediathek-Zugriff
-            // sehen das Bild, alle anderen bekommen dort 403 (= kein Bild) — nicht beim Rendern
-            // dieser Seite hier, sondern beim Laden des <img>-Tags im jeweiligen Browser.
-            $src = $media['visibility'] === 'private' ? '/admin/media/file/' . $media['id'] : $media['path'];
+            $isPrivate = $media['visibility'] === 'private';
+            if ($isPrivate && !$canViewPrivate) continue;
+            // $media['path'] ist für private Dateien kein echter Web-Pfad (Datei liegt außerhalb
+            // des Webroots) — auch für berechtigte Besucher muss der Ausliefer-Endpoint genutzt
+            // werden, nicht der interne Pfad.
+            $src = $isPrivate ? '/admin/media/file/' . $media['id'] : $media['path'];
             $slides[] = ['image' => $src, 'alt' => $media['alt_text'] ?? ''];
         }
         if (!$slides) return '';
