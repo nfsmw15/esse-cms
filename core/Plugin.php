@@ -102,9 +102,22 @@ abstract class Plugin
         Hooks::on($event, $callback, $priority);
     }
 
-    // Convenience: register a route from within the plugin
+    // Convenience: register a route from within the plugin. Router::get()/post() fallen ohne
+    // explizites 'auth' in $options auf 'public' zurück — für CMS-Kernrouten ist das bewusst und
+    // durchgängig geprüft, für Plugin-Code (PHP eines Drittanbieters) ist "öffentlich, weil
+    // vergessen" aber genau die Art Lücke, die ein Plugin-Entwickler nicht beabsichtigt. Kein
+    // Hartfehler (würde bestehende Plugins mit bewusst öffentlichen Routen brechen), aber eine
+    // klar sichtbare Warnung im PHP-Errorlog.
     final protected function route(string $method, string $pattern, callable|string $handler, array $options = []): void
     {
+        if (!array_key_exists('auth', $options)) {
+            trigger_error(
+                "Plugin-Route '{$pattern}' registriert ohne explizites 'auth' — Standard ist 'public' " .
+                "(öffentlich, ohne Login erreichbar). Falls das nicht gewollt ist, 'auth' explizit setzen " .
+                "(z.B. 'auth' => 'manage_content', oder 'auth' => 'public' falls bewusst öffentlich).",
+                E_USER_WARNING
+            );
+        }
         Router::$method($pattern, $handler, $options);
     }
 

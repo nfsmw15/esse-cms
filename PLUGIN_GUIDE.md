@@ -138,6 +138,14 @@ Router::post('/news/create', fn() => require $this->basePath('frontend/create.ph
 **auth-Werte:** `public`, `member`, `author`, `editor`, `admin`, `forge`,
 oder ein Permission-Slug wie `php_upload`
 
+> ⚠️ **`auth` immer explizit setzen.** Ohne `auth`-Schlüssel ist eine Route **öffentlich
+> erreichbar** (Standardwert ist `public`) — das ist ein bewusst sicherer Default für
+> CMS-Kernrouten, für Plugin-Code aber eine leicht übersehbare Falle: eine Route ohne Login-Schutz
+> zu vergessen passiert schneller, als man denkt. `$this->route(...)` (siehe unten) schreibt bei
+> fehlendem `auth` eine `E_USER_WARNING` ins PHP-Errorlog, bricht die Route aber nicht ab — verlass
+> dich nicht auf die Warnung, setze `auth` immer mit an, auch wenn die Route bewusst `public`
+> sein soll.
+
 > Statt `Router::get(...)`/`Router::post(...)` kann innerhalb des Plugins auch der
 > geschützte Helper `$this->route('get', '/news', ...)` verwendet werden — beide Schreibweisen
 > sind gleichwertig, `Router::get/post` ist die gebräuchlichere.
