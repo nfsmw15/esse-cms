@@ -1,9 +1,11 @@
 <?php
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\Captcha;
 use Esse\DB;
 use Esse\Hooks;
+use Esse\RateLimit;
 use Esse\UserFields;
 
 // If already logged in → redirect
@@ -31,28 +33,42 @@ if ($enabled === '1' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $captchaA    = trim($_POST['captcha_answer'] ?? '');
     $honeypot    = trim($_POST[Captcha::HONEYPOT_FIELD] ?? '');
 
-    if (!$displayName)                               $errors[] = 'Anzeigename ist Pflichtfeld.';
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL))  $errors[] = 'Ungültige E-Mail-Adresse.';
-    if (strlen($password) < 10)                      $errors[] = 'Passwort muss mindestens 10 Zeichen haben.';
-    if ($password !== $passwordC)                    $errors[] = 'Passwörter stimmen nicht überein.';
-    if (!Captcha::verify($captchaA, $honeypot))      $errors[] = 'Sicherheitsfrage falsch beantwortet oder zu schnell abgeschickt. Bitte erneut versuchen.';
+    // Zwei Buckets: IP bremst einen einzelnen Angreifer mit vielen verschiedenen E-Mails, der
+    // E-Mail-Bucket bremst wiederholte Versuche mit derselben Adresse auch über mehrere IPs
+    // hinweg (z.B. verteilte Anfragen oder zum gezielten Enumerieren bereits registrierter Mails).
+    $ipBucket    = 'register:ip:' . RateLimit::clientIp();
+    $emailBucket = $email !== '' ? 'register:email:' . strtolower($email) : null;
 
-    $customValues = UserFields::collectFromPost($customFields, $_POST, $errors);
+    if (RateLimit::tooMany($ipBucket, 5, 600) || ($emailBucket && RateLimit::tooMany($emailBucket, 3, 3600))) {
+        AuditLog::record('rate_limit_locked', null, $email ?: null, ['bucket' => 'register']);
+        $errors[] = 'Zu viele Registrierungsversuche. Bitte versuche es später erneut.';
+    } else {
+        if (!$displayName)                               $errors[] = 'Anzeigename ist Pflichtfeld.';
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL))  $errors[] = 'Ungültige E-Mail-Adresse.';
+        if (strlen($password) < 10)                      $errors[] = 'Passwort muss mindestens 10 Zeichen haben.';
+        if ($password !== $passwordC)                    $errors[] = 'Passwörter stimmen nicht überein.';
+        if (!Captcha::verify($captchaA, $honeypot))      $errors[] = 'Sicherheitsfrage falsch beantwortet oder zu schnell abgeschickt. Bitte erneut versuchen.';
 
-    if (empty($errors)) {
-        $existing = DB::fetch("SELECT id FROM `{$tu}` WHERE email = ?", [$email]);
-        if ($existing) {
-            $errors[] = 'Diese E-Mail-Adresse ist bereits registriert.';
-        } else {
-            $newUserId = DB::insert($tu, [
-                'display_name' => $displayName,
-                'email'        => $email,
-                'password'     => password_hash($password, PASSWORD_BCRYPT),
-                'role'         => 'member',
-                'active'       => 1,
-            ]);
-            UserFields::save($newUserId, $customFields, $customValues);
-            $done = true;
+        $customValues = UserFields::collectFromPost($customFields, $_POST, $errors);
+
+        if (empty($errors)) {
+            RateLimit::hit($ipBucket);
+            if ($emailBucket) RateLimit::hit($emailBucket);
+
+            $existing = DB::fetch("SELECT id FROM `{$tu}` WHERE email = ?", [$email]);
+            if ($existing) {
+                $errors[] = 'Diese E-Mail-Adresse ist bereits registriert.';
+            } else {
+                $newUserId = DB::insert($tu, [
+                    'display_name' => $displayName,
+                    'email'        => $email,
+                    'password'     => password_hash($password, PASSWORD_BCRYPT),
+                    'role'         => 'member',
+                    'active'       => 1,
+                ]);
+                UserFields::save($newUserId, $customFields, $customValues);
+                $done = true;
+            }
         }
     }
 }
