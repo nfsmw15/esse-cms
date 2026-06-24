@@ -50,15 +50,21 @@
         if (!prev) return;
 
         const name = inputEl.value.trim();
+        // DOM-Elemente statt innerHTML bauen: className ist eine reine String-Zuweisung, kein
+        // HTML-Parsing — ein eingegebener Wert wie '" onmouseover="..."' kann damit nicht aus dem
+        // class-Attribut ausbrechen, selbst wenn der Eingabewert (noch) nicht serverseitig
+        // validiert wurde (das passiert erst beim Speichern, nicht waehrend der Live-Vorschau).
+        prev.replaceChildren();
+        const icon = document.createElement('i');
         if (!name) {
-            prev.innerHTML = '<i class="bi bi-grid-3x3-gap esse-icon-muted"></i>';
+            icon.className = 'bi bi-grid-3x3-gap esse-icon-muted';
             prev.title = 'Icon wählen';
-            return;
+        } else {
+            const cls = name.includes(' ') ? name : iconPrefix + name;
+            icon.className = cls + ' esse-icon-preview-glyph';
+            prev.title = name;
         }
-
-        const cls = name.includes(' ') ? name : iconPrefix + name;
-        prev.innerHTML = '<i class="' + cls + ' esse-icon-preview-glyph"></i>';
-        prev.title = name;
+        prev.appendChild(icon);
     };
 
     function setStatus(message) {

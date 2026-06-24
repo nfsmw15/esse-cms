@@ -38,7 +38,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Ungültige Anfrage.';
     } else {
         $title      = trim($_POST['title']      ?? '');
-        $icon       = trim($_POST['icon']       ?? '');
+        // Nur Icon-Klassen-Zeichen erlauben (gleiche Regel wie admin/pages/list.php) — sonst
+        // landet ein freier Wert direkt im class-Attribut des Preview-<i>-Tags.
+        $icon       = preg_replace('/[^a-z0-9\-]/', '', trim($_POST['icon'] ?? ''));
         $hideTitle  = !empty($_POST['hide_title']) ? 1 : 0;
         $slug       = trim($_POST['slug']       ?? '');
         $metaDesc   = trim($_POST['meta_description'] ?? '');

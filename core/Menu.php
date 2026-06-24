@@ -40,9 +40,25 @@ class Menu
     {
         return match ($item['type']) {
             'page'   => PageTargets::redirectUrl((string) ($item['page_slug'] ?? ''), '#'),
-            'url'    => $item['url'] ?? '#',
+            // Verteidigung in der Tiefe: die eigentliche Prüfung läuft bereits beim Speichern
+            // (admin/menus/form.php), hier zusätzlich abgesichert für Altdaten/andere Schreibwege.
+            'url'    => self::isAllowedUrl((string) ($item['url'] ?? '')) ? ($item['url'] ?: '#') : '#',
             default  => '#',
         };
+    }
+
+    // Externe Menülinks dürfen nur auf harmlose Schemes zeigen — sonst könnte z.B.
+    // "javascript:..." als Linkziel gespeichert und ausgeliefert werden. CSP entschärft das
+    // großteils, serverseitige Validierung ist aber die eigentliche Absicherung.
+    public static function isAllowedUrl(string $url): bool
+    {
+        if ($url === '') return true;
+        // Explizites Scheme am Anfang (z.B. "javascript:", "https:", "mailto:")?
+        if (preg_match('#^([a-zA-Z][a-zA-Z0-9+.\-]*):#', $url, $m)) {
+            return in_array(strtolower($m[1]), ['http', 'https', 'mailto', 'tel'], true);
+        }
+        // Kein Scheme -> relativer Pfad, Anker oder protokoll-relative URL (//host/pfad) -> erlaubt.
+        return true;
     }
 
     private static function isVisible(array $item): bool

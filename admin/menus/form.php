@@ -50,13 +50,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $url       = trim($_POST['url']   ?? '');
             $target    = $_POST['target']     ?? '_self';
             $parentId  = (int) ($_POST['parent_id'] ?? 0) ?: null;
-            $icon      = trim($_POST['icon']   ?? '');
+            $icon      = preg_replace('/[^a-z0-9\-]/', '', trim($_POST['icon'] ?? ''));
 
             if (!in_array($type,   ['page','url','header'], true)) $type   = 'page';
             if (!in_array($target, ['_self','_blank'],       true)) $target = '_self';
 
             if (!$label) {
                 $errors[] = 'Label ist Pflichtfeld.';
+                break;
+            }
+            if ($type === 'url' && !\Esse\Menu::isAllowedUrl($url)) {
+                $errors[] = 'Nicht erlaubtes URL-Schema. Erlaubt: relative Pfade, http, https, mailto, tel.';
                 break;
             }
 
@@ -87,13 +91,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $url      = trim($_POST['url']    ?? '');
             $target   = $_POST['target']      ?? '_self';
             $parentId = (int) ($_POST['parent_id'] ?? 0) ?: null;
-            $icon     = trim($_POST['icon']   ?? '');
+            $icon     = preg_replace('/[^a-z0-9\-]/', '', trim($_POST['icon'] ?? ''));
 
             if (!in_array($type,   ['page','url','header'], true)) $type   = 'page';
             if (!in_array($target, ['_self','_blank'],       true)) $target = '_self';
 
             // Prevent item from being its own parent
             if ($parentId === $itemId) $parentId = null;
+
+            if ($type === 'url' && !\Esse\Menu::isAllowedUrl($url)) {
+                $errors[] = 'Nicht erlaubtes URL-Schema. Erlaubt: relative Pfade, http, https, mailto, tel.';
+                header("Location: /admin/menus/edit/{$menuId}");
+                exit;
+            }
 
             if ($itemId && $label) {
                 DB::update($ti, [
