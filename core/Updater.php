@@ -83,6 +83,13 @@ class Updater
             $name  = $stat['name'];
             $isDir = str_ends_with($name, '/');
 
+            // Path-Traversal-Versuch ("..") lehnt das GESAMTE ZIP ab statt den Eintrag nur beim
+            // Entpacken zu übergehen (fail-closed) — apply()/restore() haben zusätzlich noch ihren
+            // eigenen Skip beim Schreiben als Verteidigung in der Tiefe.
+            if (str_contains($name, '..')) {
+                return 'ZIP enthält einen verdächtigen Pfad (Path-Traversal-Versuch): ' . basename($name);
+            }
+
             // Symlinks/Spezialdateien (Block-/Char-Devices, FIFOs, Sockets) — erkannt anhand des
             // Unix-Modes in den External Attributes — lehnen das GESAMTE ZIP ab, kein stilles
             // Uebersrpingen einzelner Eintraege.

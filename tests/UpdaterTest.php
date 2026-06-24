@@ -308,4 +308,50 @@ return [
             @unlink($zipPath);
         }
     },
+
+    // -- Path-Traversal: fail-closed statt einzelnen Eintrag beim Schreiben zu uebergehen --
+
+    'apply: lehnt Update-ZIP mit Path-Traversal-Eintrag komplett ab (fail-closed)' => function () {
+        $zipPath = tempnam(sys_get_temp_dir(), 'esse-test-apply-traversal-') . '.zip';
+        $zip = new \ZipArchive();
+        $zip->open($zipPath, \ZipArchive::CREATE);
+        $zip->addFromString('repo-abc123/__apply_test_marker__.txt', 'should not be written');
+        $zip->addFromString('repo-abc123/../../outside.txt', 'escape attempt');
+        $zip->close();
+        @unlink(applyMarkerPath());
+
+        $threw = false;
+        try {
+            Updater::apply($zipPath, fn() => null);
+        } catch (\RuntimeException $e) {
+            $threw = true;
+            Assert::true(str_contains($e->getMessage(), 'Traversal') || str_contains($e->getMessage(), 'verdächtigen Pfad'), "Fehlermeldung sollte Traversal nennen, war: {$e->getMessage()}");
+        } finally {
+            @unlink($zipPath);
+        }
+        Assert::true($threw, 'apply() sollte das gesamte ZIP ablehnen, nicht nur den Traversal-Eintrag uebergehen');
+        Assert::true(!file_exists(applyMarkerPath()), 'Bei abgelehntem Update darf ueberhaupt nichts geschrieben werden, auch nicht die unverdaechtigen Dateien daneben');
+    },
+
+    'restore: lehnt Backup-ZIP mit Path-Traversal-Eintrag komplett ab (fail-closed)' => function () {
+        $zipPath = tempnam(sys_get_temp_dir(), 'esse-test-restore-traversal-') . '.zip';
+        $zip = new \ZipArchive();
+        $zip->open($zipPath, \ZipArchive::CREATE);
+        $zip->addFromString('files/__restore_test_marker__.txt', 'should not be written');
+        $zip->addFromString('files/../../outside.txt', 'escape attempt');
+        $zip->close();
+        @unlink(restoreMarkerPath());
+
+        $threw = false;
+        try {
+            Updater::restore($zipPath, fn() => null);
+        } catch (\RuntimeException $e) {
+            $threw = true;
+            Assert::true(str_contains($e->getMessage(), 'Traversal') || str_contains($e->getMessage(), 'verdächtigen Pfad'), "Fehlermeldung sollte Traversal nennen, war: {$e->getMessage()}");
+        } finally {
+            @unlink($zipPath);
+        }
+        Assert::true($threw, 'restore() sollte das gesamte Backup-ZIP ablehnen, nicht nur den Traversal-Eintrag uebergehen');
+        Assert::true(!file_exists(restoreMarkerPath()), 'Bei abgelehntem Backup darf ueberhaupt nichts geschrieben werden, auch nicht die unverdaechtigen Dateien daneben');
+    },
 ];
