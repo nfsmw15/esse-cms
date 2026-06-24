@@ -30,6 +30,16 @@ final class Http
         return $this->request('POST', $path, http_build_query($data), $headers);
     }
 
+    // POST mit JSON-Body + X-CSRF-Token-Header, analog zu webauthn.js' postJson() — fuer Routen
+    // wie /admin/passkey/auth-verify, die den Body per file_get_contents('php://input') statt
+    // ueber $_POST lesen.
+    /** @return array{status:int, headers:array<string,list<string>>, body:string} */
+    public function postJson(string $path, string $csrfToken, array $data = []): array
+    {
+        $headers = ['Content-Type: application/json', 'X-CSRF-Token: ' . $csrfToken];
+        return $this->request('POST', $path, json_encode($data), $headers);
+    }
+
     // POST mit multipart/form-data (Datei-Uploads). $files: Feldname => ['path' => ..., 'name' => ..., 'type' => ...]
     /** @return array{status:int, headers:array<string,list<string>>, body:string} */
     public function postMultipart(string $path, array $data, array $files, array $headers = []): array

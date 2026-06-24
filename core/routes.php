@@ -188,6 +188,15 @@ Router::post('/admin/passkey/register-verify', function () {
 Router::post('/admin/passkey/auth-options', function () {
     header('Content-Type: application/json');
     if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); echo json_encode(['error' => 'Ungültige Anfrage.']); return; }
+
+    // Gleicher Bucket wie auth-verify — beide Endpunkte gehoeren zur selben Anmelde-Ceremony,
+    // wiederholte Fehlversuche ueber auth-verify bremsen damit auch neue auth-options-Anfragen
+    // von derselben IP aus.
+    $bucket = 'passkey_login:' . \Esse\RateLimit::clientIp();
+    if (\Esse\RateLimit::tooMany($bucket, 10, 600)) {
+        http_response_code(429); echo json_encode(['error' => 'Zu viele Versuche. Bitte kurz warten.']); return;
+    }
+
     try {
         echo json_encode(\Esse\WebAuthn::passwordlessAuthOptions());
     } catch (\Throwable $e) {
@@ -200,16 +209,30 @@ Router::post('/admin/passkey/auth-verify', function () {
     header('Content-Type: application/json');
     if (!\Esse\Auth::verifyCsrf()) { http_response_code(403); echo json_encode(['error' => 'Ungültige Anfrage.']); return; }
 
+    // Ohne Bremse liesse sich diese Route beliebig oft mit ungueltigen Credential-Daten
+    // aufrufen — kein Account-Takeover (Signatur-Pruefung schlaegt fehl), aber Audit-Log-/
+    // DB-Last durch automatisierte Fehlversuche. Bei Limit weder DB-Lookup noch Log-Eintrag,
+    // damit das Spammen selbst kein zusaetzliches Log-Spam erzeugt.
+    $bucket = 'passkey_login:' . \Esse\RateLimit::clientIp();
+    if (\Esse\RateLimit::tooMany($bucket, 10, 600)) {
+        http_response_code(429); echo json_encode(['error' => 'Zu viele Versuche. Bitte kurz warten.']); return;
+    }
+
     $body       = json_decode((string) file_get_contents('php://input'), true) ?: [];
     $credential = $body['credential'] ?? null;
-    if (!is_array($credential)) { echo json_encode(['error' => 'Ungültige Antwort des Browsers.']); return; }
+    if (!is_array($credential)) {
+        \Esse\RateLimit::hit($bucket);
+        echo json_encode(['error' => 'Ungültige Antwort des Browsers.']); return;
+    }
 
     $user = \Esse\WebAuthn::verifyPasswordlessAuth($credential);
     if (!$user) {
+        \Esse\RateLimit::hit($bucket);
         \Esse\AuditLog::record('passkey_login_failed', null, null, ['credential_id' => $credential['id'] ?? null]);
         echo json_encode(['error' => 'Passkey-Anmeldung fehlgeschlagen.']); return;
     }
 
+    \Esse\RateLimit::clear($bucket);
     \Esse\Auth::login($user);
     \Esse\AuditLog::record('login_success', (int) $user['id'], $user['email']);
 
