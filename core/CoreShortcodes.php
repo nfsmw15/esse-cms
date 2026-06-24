@@ -38,6 +38,11 @@ class CoreShortcodes
         foreach ($ids as $id) {
             $media = Media::find($id);
             if (!$media || ($media['type'] ?? '') !== 'image') continue;
+            // Private Dateien aus dem Shortcode auslassen statt ihren internen Pfad in eine
+            // öffentlich gerenderte Seite zu schreiben — die Datei selbst ist zwar weiterhin
+            // geschützt (kein servierbarer Pfad), aber der Pfad/Dateiname im HTML wäre trotzdem
+            // ein Informationsleck und ein kaputtes Bild für jeden Besucher.
+            if (($media['visibility'] ?? 'public') === 'private') continue;
             $slides[] = ['image' => $media['path'], 'alt' => $media['alt_text'] ?? ''];
         }
         if (!$slides) return '';
