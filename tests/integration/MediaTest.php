@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Esse\DB;
+
 return [
     'GET /admin/media: Gast wird zu /login umgeleitet' => function (Http $http) {
         $res = $http->get('/admin/media');
@@ -209,5 +211,47 @@ return [
         Assert::true(!is_file($diskPath), 'Datei sollte nach Mediathek-Löschen nicht mehr auf dem Server liegen');
 
         @unlink($diskPath); // Sicherheitsnetz, falls der Test fehlschlägt
+    },
+
+    // Regression: ein Plugin (z.B. eine Galerie) kann eigene Medien mit eigener Pfadkonvention
+    // registrieren und visibility='private' setzen, ohne je Media::setVisibility() zu nutzen.
+    // Solche Pfade matchen nicht /private-media/... — wuerden sie trotzdem auf den
+    // Mediathek-Endpoint umgeleitet, liefe der ins Leere (404), weil der Endpoint nur unter
+    // /private-media/ oder /public/ aufloesen kann. Pfad muss unveraendert bleiben.
+    'GET /admin/media/list: privates Medium mit Plugin-eigenem Pfad bleibt unveraendert (kein 404 ueber den Mediathek-Endpoint)' => function (Http $http) {
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $tm = DB::table('media');
+        $id = DB::insert($tm, [
+            'path' => '/gallery/img/999', 'filename' => 'gallery-private.jpg',
+            'mime_type' => 'image/jpeg', 'type' => 'image', 'size' => 1, 'visibility' => 'private', 'source' => 'plugin',
+        ]);
+
+        try {
+            $list = json_decode($http->get('/admin/media/list?visibility=private')['body'], true);
+            $item = null;
+            foreach ($list['items'] as $i) {
+                if ($i['id'] === $id) { $item = $i; break; }
+            }
+            Assert::true($item !== null, 'Medium sollte in der Liste auftauchen');
+            Assert::same('/gallery/img/999', $item['url'], 'Plugin-eigener Pfad darf nicht auf den Mediathek-Endpoint umgeleitet werden');
+        } finally {
+            DB::delete($tm, ['id' => $id]);
+        }
+    },
+
+    'GET /admin/media: Thumbnail eines privaten Mediums mit Plugin-eigenem Pfad zeigt den Originalpfad, nicht den Mediathek-Endpoint' => function (Http $http) {
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $tm = DB::table('media');
+        $id = DB::insert($tm, [
+            'path' => '/gallery/img/998', 'filename' => 'gallery-private-thumb.jpg',
+            'mime_type' => 'image/jpeg', 'type' => 'image', 'size' => 1, 'visibility' => 'private', 'source' => 'plugin',
+        ]);
+
+        try {
+            $res = $http->get('/admin/media');
+            Assert::true(str_contains($res['body'], 'src="/gallery/img/998"'), 'Thumbnail sollte direkt auf /gallery/img/998 zeigen');
+        } finally {
+            DB::delete($tm, ['id' => $id]);
+        }
     },
 ];

@@ -114,6 +114,17 @@ class Media
         return null;
     }
 
+    // True, wenn der Pfad tatsächlich über den geschützten Speicherort + den Ausliefer-Endpoint
+    // (/admin/media/file/{id}) laufen muss. NICHT dasselbe wie "visibility === 'private'" —
+    // andere Plugins (z.B. eine Galerie) registrieren ihre Medien mit eigenen, selbst
+    // zugriffsgeschützten Routen (z.B. /gallery/img/{id}) und setzen visibility ebenfalls auf
+    // 'private', ohne je die /private-media/-Konvention zu nutzen. Für solche Pfade liefe
+    // absolutePath() ins Leere (404) — sie müssen unverändert über ihre eigene Route laufen.
+    public static function usesControlledServing(string $path): bool
+    {
+        return str_starts_with($path, self::PRIVATE_PATH_PREFIX . '/');
+    }
+
     private static function privateDir(): string
     {
         // storage/uploads existiert bereits als ungenutztes Scaffolding (nur .gitkeep) — hier

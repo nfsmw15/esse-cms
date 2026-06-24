@@ -241,9 +241,12 @@ $flash = Flash::consume();
 
 function mediaThumb(array $item): string
 {
-    // Private Dateien liegen ausserhalb des Webroots — ueber den kontrollierten,
-    // berechtigungsgeprueften Endpoint statt des (fuer private Dateien nicht mehr aufloesbaren) Pfads.
-    $src  = $item['visibility'] === 'private' ? '/admin/media/file/' . $item['id'] : $item['path'];
+    // Private Dateien der eigenen Mediathek liegen ausserhalb des Webroots — ueber den
+    // kontrollierten, berechtigungsgeprueften Endpoint statt des intern gespeicherten Pfads.
+    // Andere Plugins (z.B. eine Galerie) registrieren ihre Medien mit eigenen, selbst
+    // zugriffsgeschuetzten Routen und setzen visibility ebenfalls auf 'private' — fuer deren
+    // Pfade waere der Endpoint nicht aufloesbar, sie muessen unveraendert bleiben.
+    $src  = Media::usesControlledServing($item['path']) ? '/admin/media/file/' . $item['id'] : $item['path'];
     $path = htmlspecialchars($src);
     if ($item['type'] === 'image') {
         return "<img src=\"{$path}\" class=\"media-thumb\" loading=\"lazy\" alt=\"\">";

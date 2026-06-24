@@ -47,10 +47,11 @@ class CoreShortcodes
             if (!$media || ($media['type'] ?? '') !== 'image') continue;
             $isPrivate = $media['visibility'] === 'private';
             if ($isPrivate && !$canViewPrivate) continue;
-            // $media['path'] ist für private Dateien kein echter Web-Pfad (Datei liegt außerhalb
-            // des Webroots) — auch für berechtigte Besucher muss der Ausliefer-Endpoint genutzt
-            // werden, nicht der interne Pfad.
-            $src = $isPrivate ? '/admin/media/file/' . $media['id'] : $media['path'];
+            // $media['path'] ist nur für private Dateien der eigenen Mediathek kein echter
+            // Web-Pfad (Datei liegt außerhalb des Webroots) — dann muss der Ausliefer-Endpoint
+            // genutzt werden. Plugin-eigene Pfadkonventionen (z.B. einer Galerie) bleiben
+            // unverändert, siehe Media::usesControlledServing().
+            $src = Media::usesControlledServing($media['path']) ? '/admin/media/file/' . $media['id'] : $media['path'];
             $slides[] = ['image' => $src, 'alt' => $media['alt_text'] ?? ''];
         }
         if (!$slides) return '';
