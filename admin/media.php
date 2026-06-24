@@ -87,12 +87,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $dest     = $uploadDir . $fileName;
 
                 if (move_uploaded_file($file['tmp_name'], $dest)) {
+                    // Serverseitiges Re-Encoding statt die Originalbytes zu uebernehmen —
+                    // entschaerft Polyglot-Dateien (gueltiges Bild laut getimagesize(), aber mit
+                    // zusaetzlich eingebetteten Bytes).
+                    if ($allowedExt[$ext] === 'image' && !Media::reencodeImage($dest, $ext)) {
+                        @unlink($dest);
+                        AuditLog::record('file_upload_rejected', Auth::id(), Auth::user()['email'] ?? null, ['reason' => 'reencode_failed', 'filename' => $file['name']]);
+                        Flash::set('danger', 'Bilddatei konnte nicht verarbeitet werden.');
+                        header('Location: /admin/media' . $returnQuery);
+                        exit;
+                    }
+                    $size = filesize($dest) ?: $file['size']; // Re-Encoding aendert i.d.R. die Dateigroesse
+
                     $uploadFolderId = ($_POST['folder_id'] ?? '') !== '' ? (int) $_POST['folder_id'] : null;
                     $mediaId = Media::register($registerPath . $fileName, [
                         'filename'    => $file['name'],
                         'mime_type'   => $mime,
                         'type'        => $allowedExt[$ext],
-                        'size'        => $file['size'],
+                        'size'        => $size,
                         'visibility'  => $visibility,
                         'uploaded_by' => Auth::id(),
                         'source'      => 'media',
@@ -103,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'path'       => $registerPath . $fileName,
                         'filename'   => $file['name'],
                         'mime_type'  => $mime,
-                        'size'       => $file['size'],
+                        'size'       => $size,
                         'visibility' => $visibility,
                     ]);
                     Flash::set('success', 'Datei hochgeladen.');

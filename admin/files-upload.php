@@ -77,12 +77,22 @@ if (!move_uploaded_file($file['tmp_name'], $dest)) {
     exit;
 }
 
+// Serverseitiges Re-Encoding statt die Originalbytes zu uebernehmen — entschaerft Polyglot-
+// Dateien (gueltiges Bild laut getimagesize(), aber mit zusaetzlich eingebetteten Bytes).
+if (!Media::reencodeImage($dest, $ext)) {
+    @unlink($dest);
+    AuditLog::record('file_upload_rejected', Auth::id(), Auth::user()['email'] ?? null, ['reason' => 'reencode_failed', 'filename' => $file['name']]);
+    echo json_encode(['error' => 'Bilddatei konnte nicht verarbeitet werden.']);
+    exit;
+}
+
 $path = '/public/uploads/' . $fileName;
+$size = filesize($dest) ?: $file['size']; // Re-Encoding aendert i.d.R. die Dateigroesse
 
 $mediaId = Media::register($path, [
     'filename'    => $file['name'],
     'mime_type'   => $mime,
-    'size'        => $file['size'],
+    'size'        => $size,
     'uploaded_by' => Auth::id(),
     'source'      => 'editor',
 ]);
@@ -92,7 +102,7 @@ AuditLog::record('media_uploaded', Auth::id(), Auth::user()['email'] ?? null, [
     'path'       => $path,
     'filename'   => $file['name'],
     'mime_type'  => $mime,
-    'size'       => $file['size'],
+    'size'       => $size,
     'visibility' => 'public',
 ]);
 

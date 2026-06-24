@@ -58,6 +58,47 @@ class Media
         }
     }
 
+    // Schreibt das Bild unter $path serverseitig per GD neu — ein "Polyglot"-Upload (gültiges
+    // Bild laut getimagesize(), aber mit zusätzlich eingebetteten Bytes, z.B. PHP-Code) besteht
+    // diese Prüfung nicht: GD dekodiert nur die tatsächlichen Bilddaten und schreibt eine neue
+    // Datei, alles andere geht dabei verloren. Aktuell nicht direkt ausführbar (kein bekannter
+    // Weg, eine .jpg/.png als PHP auszuführen), aber Verteidigung in der Tiefe statt sich allein
+    // auf "sieht aus wie ein Bild" zu verlassen.
+    // Rückgabe false bedeutet: GD konnte die Datei trotz erfolgreichem getimagesize() nicht
+    // dekodieren — verdächtig genug, um den Upload abzulehnen statt die Originaldatei zu behalten.
+    // Animierte GIFs werden dabei auf das erste Frame reduziert (GD unterstützt keine
+    // Multi-Frame-Ausgabe) — ein bewusster Kompromiss zugunsten der Härtung.
+    public static function reencodeImage(string $path, string $ext): bool
+    {
+        if (!extension_loaded('gd')) return true; // keine Härtung möglich, Upload aber nicht hart blockieren
+
+        $ext      = strtolower($ext);
+        $createFn = match ($ext) {
+            'jpg', 'jpeg' => 'imagecreatefromjpeg',
+            'png'         => 'imagecreatefrompng',
+            'gif'         => 'imagecreatefromgif',
+            'webp'        => 'imagecreatefromwebp',
+            default       => null,
+        };
+        if ($createFn === null || !function_exists($createFn)) return true; // Typ ohne GD-Unterstuetzung
+
+        $image = @$createFn($path);
+        if (!$image) return false;
+
+        if (in_array($ext, ['png', 'gif', 'webp'], true)) {
+            imagesavealpha($image, true);
+        }
+
+        $ok = match ($ext) {
+            'jpg', 'jpeg' => imagejpeg($image, $path, 90),
+            'png'         => imagepng($image, $path),
+            'gif'         => imagegif($image, $path),
+            'webp'        => function_exists('imagewebp') ? imagewebp($image, $path, 90) : true,
+        };
+        imagedestroy($image);
+        return $ok;
+    }
+
     // Löst den in `path` gespeicherten Wert in einen absoluten Dateisystempfad auf — je nach
     // Konvention im öffentlichen Webroot (/public/...) oder im geschützten Speicherort
     // (PRIVATE_PATH_PREFIX). Gibt null zurück, wenn der Pfad keiner bekannten Konvention
