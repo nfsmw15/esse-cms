@@ -36,6 +36,20 @@ const ESSE_PKG_TYPES = [
     ],
 ];
 
+// Prueft, ob der Owner aus "owner/repo" ein aktiver, konfigurierter Kanal ist
+// (core/Schema.php: repo_channels) — unabhaengig vom trusted-Flag, das nur die Darstellung im
+// "Verfuegbar"-Tab beeinflusst, nicht den Zugriff selbst. manage_plugins/manage_themes/
+// manage_repos sind getrennte Berechtigungen: ohne diese Pruefung liesse sich
+// install_from_repo mit jedem beliebigen GitHub-owner/repo aufrufen, auch wenn die
+// Kanalverwaltung (/admin/repos) fuer den aktuellen Nutzer gesperrt ist.
+function packageRepoChannelAllowed(string $fullName): bool
+{
+    $owner = explode('/', $fullName, 2)[0] ?? '';
+    if ($owner === '') return false;
+    $tr = \Esse\DB::table('repo_channels');
+    return \Esse\DB::fetch("SELECT id FROM `{$tr}` WHERE owner = ? AND active = 1", [$owner]) !== null;
+}
+
 function packageDeleteDir(string $dir): void
 {
     if (!is_dir($dir)) return;

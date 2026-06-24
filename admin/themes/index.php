@@ -89,6 +89,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'install_from_repo') {
         $fullName = trim($_POST['repo_full_name'] ?? '');
         if ($fullName && preg_match('#^[a-zA-Z0-9\-]+/[a-zA-Z0-9\-\.]+$#', $fullName)) {
+            // manage_themes erlaubt die Installation, ersetzt aber nicht die Kanalverwaltung
+            // (manage_repos) — ohne diese Pruefung koennte ein Nutzer mit nur manage_themes
+            // jedes beliebige GitHub-Repo installieren, auch ausserhalb der konfigurierten Kanaele.
+            if (!packageRepoChannelAllowed($fullName)) {
+                AuditLog::record('theme_install_failed', Auth::id(), Auth::user()['email'] ?? null, ['source' => 'repo', 'repo' => $fullName, 'reason' => 'channel_not_allowed']);
+                Flash::set('danger', 'Dieser Kanal ist nicht konfiguriert oder deaktiviert.');
+                header('Location: /admin/themes?tab=available');
+                exit;
+            }
             $release = GitHubApi::latestRelease($fullName);
             if ($release && $release['download_url']) {
                 $tmpFile = ESSE_PRIVATE_PATH . '/storage/update_tmp/theme_' . uniqid() . '.zip';

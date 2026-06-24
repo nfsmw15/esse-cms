@@ -216,4 +216,134 @@ return [
         $res  = $http->post('/admin/iconpacks', ['_csrf' => $csrf, '_action' => 'totally_made_up_action']);
         Assert::same(403, $res['status']);
     },
+
+    // Regression: manage_plugins/manage_themes/manage_repos sind getrennte Berechtigungen.
+    // install_from_repo prüfte bisher nur das owner/repo-Format per Regex, nicht ob der Owner
+    // ueberhaupt ein konfigurierter Kanal ist — ein Nutzer ohne manage_repos (/admin/repos
+    // liefert fuer ihn 403) konnte trotzdem jedes beliebige GitHub-Repo als Installationsquelle
+    // angeben. Pruefung: die Aktion muss am Kanal-Check scheitern (channel_not_allowed), bevor
+    // ueberhaupt GitHub kontaktiert wird (kein no_release/download_failed im Log).
+    'POST /admin/plugins (_action=install_from_repo): Admin mit manage_plugins ohne manage_repos kann keinen unbekannten Kanal installieren' => function (Http $http) {
+        $tu   = DB::table('users');
+        $tl   = DB::table('audit_log');
+        $user = makeTempAdmin('plugin-channel-admin');
+        grantPermission($user['id'], 'manage_plugins');
+
+        try {
+            loginAs($http, $user['email'], $user['password']);
+            Assert::same(403, $http->get('/admin/repos')['status'], 'Testnutzer sollte keinen Zugriff auf die Kanalverwaltung haben');
+
+            $csrf = extractCsrf($http->get('/admin/plugins')['body']);
+            $res  = $http->post('/admin/plugins', [
+                '_csrf' => $csrf, '_action' => 'install_from_repo',
+                'repo_full_name' => 'not-a-channel-probe/no-release-424242',
+            ]);
+            Assert::same(302, $res['status']);
+
+            $row = DB::fetch("SELECT * FROM `{$tl}` WHERE event = 'plugin_install_failed' ORDER BY id DESC LIMIT 1");
+            Assert::true($row !== null, 'Es sollte ein plugin_install_failed-Eintrag existieren');
+            Assert::true(str_contains((string) $row['details'], 'channel_not_allowed'), 'Grund sollte channel_not_allowed sein, nicht erst beim GitHub-Aufruf scheitern');
+        } finally {
+            DB::delete($tu, ['id' => $user['id']]);
+        }
+    },
+
+    'POST /admin/themes (_action=install_from_repo): Admin mit manage_themes ohne manage_repos kann keinen unbekannten Kanal installieren' => function (Http $http) {
+        $tu   = DB::table('users');
+        $tl   = DB::table('audit_log');
+        $user = makeTempAdmin('theme-channel-admin');
+        grantPermission($user['id'], 'manage_themes');
+
+        try {
+            loginAs($http, $user['email'], $user['password']);
+            Assert::same(403, $http->get('/admin/repos')['status'], 'Testnutzer sollte keinen Zugriff auf die Kanalverwaltung haben');
+
+            $csrf = extractCsrf($http->get('/admin/themes')['body']);
+            $res  = $http->post('/admin/themes', [
+                '_csrf' => $csrf, '_action' => 'install_from_repo',
+                'repo_full_name' => 'not-a-channel-probe/no-release-424242',
+            ]);
+            Assert::same(302, $res['status']);
+
+            $row = DB::fetch("SELECT * FROM `{$tl}` WHERE event = 'theme_install_failed' ORDER BY id DESC LIMIT 1");
+            Assert::true($row !== null, 'Es sollte ein theme_install_failed-Eintrag existieren');
+            Assert::true(str_contains((string) $row['details'], 'channel_not_allowed'), 'Grund sollte channel_not_allowed sein, nicht erst beim GitHub-Aufruf scheitern');
+        } finally {
+            DB::delete($tu, ['id' => $user['id']]);
+        }
+    },
+
+    'POST /admin/iconpacks (_action=install_from_repo): Admin mit manage_settings ohne manage_repos kann keinen unbekannten Kanal installieren' => function (Http $http) {
+        $tu   = DB::table('users');
+        $tl   = DB::table('audit_log');
+        $user = makeTempAdmin('iconpack-channel-admin');
+        grantPermission($user['id'], 'manage_settings');
+
+        try {
+            loginAs($http, $user['email'], $user['password']);
+            Assert::same(403, $http->get('/admin/repos')['status'], 'Testnutzer sollte keinen Zugriff auf die Kanalverwaltung haben');
+
+            $csrf = extractCsrf($http->get('/admin/iconpacks')['body']);
+            $res  = $http->post('/admin/iconpacks', [
+                '_csrf' => $csrf, '_action' => 'install_from_repo',
+                'repo_full_name' => 'not-a-channel-probe/no-release-424242',
+            ]);
+            Assert::same(302, $res['status']);
+
+            $row = DB::fetch("SELECT * FROM `{$tl}` WHERE event = 'iconpack_install_failed' ORDER BY id DESC LIMIT 1");
+            Assert::true($row !== null, 'Es sollte ein iconpack_install_failed-Eintrag existieren');
+            Assert::true(str_contains((string) $row['details'], 'channel_not_allowed'), 'Grund sollte channel_not_allowed sein, nicht erst beim GitHub-Aufruf scheitern');
+        } finally {
+            DB::delete($tu, ['id' => $user['id']]);
+        }
+    },
+
+    'POST /admin/plugins (_action=install_from_repo): Kanal aus konfiguriertem (aber inaktivem) Kanal wird ebenfalls abgelehnt' => function (Http $http) {
+        $tu    = DB::table('users');
+        $tr    = DB::table('repo_channels');
+        $tl    = DB::table('audit_log');
+        $owner = 'inactive-owner-' . bin2hex(random_bytes(3));
+        DB::insert($tr, ['owner' => $owner, 'label' => 'Inactive', 'trusted' => 0, 'active' => 0]);
+        $user  = makeTempAdmin('plugin-inactive-admin');
+        grantPermission($user['id'], 'manage_plugins');
+
+        try {
+            loginAs($http, $user['email'], $user['password']);
+            $csrf = extractCsrf($http->get('/admin/plugins')['body']);
+            $res  = $http->post('/admin/plugins', [
+                '_csrf' => $csrf, '_action' => 'install_from_repo',
+                'repo_full_name' => $owner . '/some-repo',
+            ]);
+            Assert::same(302, $res['status']);
+
+            $row = DB::fetch("SELECT * FROM `{$tl}` WHERE event = 'plugin_install_failed' ORDER BY id DESC LIMIT 1");
+            Assert::true($row !== null && str_contains((string) $row['details'], 'channel_not_allowed'), 'Deaktivierter Kanal darf nicht als erlaubt durchgehen');
+        } finally {
+            DB::delete($tu, ['id' => $user['id']]);
+            DB::delete($tr, ['owner' => $owner]);
+        }
+    },
+
+    // Gegenstueck zu den obigen Tests: ein konfigurierter, aktiver Kanal darf weiterhin
+    // funktionieren — der Kanal-Check soll nur unbekannte Owner blocken, nicht legitime
+    // Installationen aus dem offiziellen Kanal verhindern. "no-such-repo" existiert nicht unter
+    // nfsmw15, das Scheitern muss also am GitHub-Aufruf liegen (no_release/download_failed),
+    // nicht am Kanal-Check (channel_not_allowed).
+    'POST /admin/plugins (_action=install_from_repo): konfigurierter aktiver Kanal (nfsmw15) wird nicht vom Kanal-Check geblockt' => function (Http $http) {
+        $tl = DB::table('audit_log');
+        $tr = DB::table('repo_channels');
+        Assert::true(DB::fetch("SELECT id FROM `{$tr}` WHERE owner = 'nfsmw15' AND active = 1") !== null, 'Offizieller Kanal sollte aktiv konfiguriert sein');
+
+        loginAs($http, TEST_FORGE_EMAIL, TEST_FORGE_PASSWORD);
+        $csrf = extractCsrf($http->get('/admin/plugins')['body']);
+        $res  = $http->post('/admin/plugins', [
+            '_csrf' => $csrf, '_action' => 'install_from_repo',
+            'repo_full_name' => 'nfsmw15/no-such-repo-xyz-12345',
+        ]);
+        Assert::same(302, $res['status']);
+
+        $row = DB::fetch("SELECT * FROM `{$tl}` WHERE event = 'plugin_install_failed' ORDER BY id DESC LIMIT 1");
+        Assert::true($row !== null, 'Es sollte ein plugin_install_failed-Eintrag existieren');
+        Assert::true(!str_contains((string) $row['details'], 'channel_not_allowed'), 'Konfigurierter aktiver Kanal darf nicht am Kanal-Check scheitern');
+    },
 ];
