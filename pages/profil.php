@@ -122,6 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Passwort falsch.';
             } elseif ($credId > 0 && $label !== '') {
                 WebAuthn::renameCredential((int) Auth::id(), $credId, $label);
+                AuditLog::record('passkey_renamed', Auth::id(), Auth::user()['email'] ?? null, ['credential_id' => $credId, 'label' => $label]);
                 $flash = ['type' => 'success', 'message' => 'Passkey umbenannt.'];
             }
             break;

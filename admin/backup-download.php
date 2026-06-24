@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 
 // Only Forge or users with manage_backups
 if (!Auth::meetsRole('forge') && !Auth::can('manage_backups')) {
@@ -20,6 +21,10 @@ if (!$file || !str_ends_with($file, '.zip') || !file_exists($path)
     echo '404 — Backup nicht gefunden.';
     exit;
 }
+
+// Backups enthalten den vollen DB-Dump inkl. Zugangsdaten — wer eines herunterlaedt, sollte
+// nachvollziehbar sein, genauso wie backup_created/backup_deleted bereits geloggt werden.
+AuditLog::record('backup_downloaded', Auth::id(), Auth::user()['email'] ?? null, ['file' => $file]);
 
 // Stream the file securely
 header('Content-Type: application/zip');

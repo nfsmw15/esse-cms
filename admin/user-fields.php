@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 use Esse\Flash;
 use Esse\UserFields;
@@ -20,8 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['_action'] ?? 'save';
 
     if ($action === 'delete') {
-        $id = (int) ($_POST['id'] ?? 0);
+        $id    = (int) ($_POST['id'] ?? 0);
+        $field = DB::fetch("SELECT * FROM `{$t}` WHERE id = ?", [$id]);
         DB::query("DELETE FROM `{$t}` WHERE id = ?", [$id]);
+        if ($field) {
+            AuditLog::record('user_field_deleted', Auth::id(), Auth::user()['email'] ?? null, ['field_id' => $id, 'field_key' => $field['field_key'], 'label' => $field['label']]);
+        }
         Flash::set('success', 'Feld gelöscht.');
         header('Location: /admin/user-fields');
         exit;
@@ -38,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($idx !== null && isset($all[$swapWith])) {
             DB::update($t, ['sort_order' => $swapWith], ['id' => $all[$idx]['id']]);
             DB::update($t, ['sort_order' => $idx], ['id' => $all[$swapWith]['id']]);
+            AuditLog::record('user_field_updated', Auth::id(), Auth::user()['email'] ?? null, ['field_id' => $id, 'action' => $action]);
         }
         header('Location: /admin/user-fields');
         exit;
@@ -67,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($id > 0) {
                 DB::update($t, $data, ['id' => $id]);
+                AuditLog::record('user_field_updated', Auth::id(), Auth::user()['email'] ?? null, ['field_id' => $id, 'label' => $label]);
                 Flash::set('success', 'Feld gespeichert.');
             } else {
                 $key = strtolower(preg_replace('/[^a-z0-9]+/', '_', $label));
@@ -79,7 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $maxOrder = (int) (DB::value("SELECT MAX(sort_order) FROM `{$t}`") ?? 0);
                 $data['field_key']  = $key;
                 $data['sort_order'] = $maxOrder + 1;
-                DB::insert($t, $data);
+                $newFieldId = DB::insert($t, $data);
+                AuditLog::record('user_field_created', Auth::id(), Auth::user()['email'] ?? null, ['field_id' => $newFieldId, 'field_key' => $key, 'label' => $label]);
                 Flash::set('success', "Feld '{$label}' erstellt.");
             }
 

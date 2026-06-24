@@ -72,11 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'activate') {
         $name = $_POST['theme_name'] ?? '';
         if (isset($themes[$name])) {
+            $previousTheme = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'active_theme'");
             DB::query(
                 "INSERT INTO `{$ts}` (`key`, `value`) VALUES ('active_theme', ?)
                  ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
                 [$name]
             );
+            AuditLog::record('theme_activated', Auth::id(), Auth::user()['email'] ?? null, ['theme' => $name, 'previous' => $previousTheme]);
             Flash::set('success', "Theme '{$name}' aktiviert.");
         }
         header('Location: /admin/themes');
@@ -148,14 +150,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $meta      = $themes[$themeName] ?? null;
         if ($meta) {
             // Save menu positions
+            $changes = [];
             foreach (array_keys($meta['menus'] ?? []) as $pos) {
                 $key   = 'theme_' . $themeName . '_menu_' . $pos;
                 $value = trim($_POST[$key] ?? '');
+                $old   = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = ?", [$key]);
                 DB::query(
                     "INSERT INTO `{$ts}` (`key`, `value`) VALUES (?, ?)
                      ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
                     [$key, $value]
                 );
+                if (($old ?? '') !== $value) {
+                    $changes[$pos] = ['old' => $old, 'new' => $value];
+                }
+            }
+            if ($changes) {
+                AuditLog::record('theme_menu_changed', Auth::id(), Auth::user()['email'] ?? null, ['theme' => $themeName, 'changes' => $changes]);
             }
         }
         Flash::set('success', 'Theme-Einstellungen gespeichert.');

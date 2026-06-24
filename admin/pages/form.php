@@ -131,9 +131,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($isEdit) {
                 DB::update($t, $data, ['id' => $page['id']]);
+                AuditLog::record('page_updated', Auth::id(), Auth::user()['email'] ?? null, ['page_id' => $page['id'], 'slug' => $slug, 'title' => $title]);
                 Flash::set('success', 'Seite gespeichert.');
             } else {
-                DB::insert($t, $data);
+                $newPageId = DB::insert($t, $data);
+                AuditLog::record('page_created', Auth::id(), Auth::user()['email'] ?? null, ['page_id' => $newPageId, 'slug' => $slug, 'title' => $title]);
                 Flash::set('success', "Seite '{$title}' erstellt.");
             }
 

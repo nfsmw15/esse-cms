@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 use Esse\Flash;
 use Esse\PageTargets;
@@ -36,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     DB::update($tm, ['name' => $name, 'slug' => $slug], ['id' => $menuId]);
                     $menu = DB::fetch("SELECT * FROM `{$tm}` WHERE id = ?", [$menuId]);
+                    AuditLog::record('menu_updated', Auth::id(), Auth::user()['email'] ?? null, ['menu_id' => $menuId, 'name' => $name, 'slug' => $slug]);
                     Flash::set('success', 'Menü gespeichert.');
                     header("Location: /admin/menus/edit/{$menuId}");
                     exit;

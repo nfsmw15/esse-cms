@@ -183,7 +183,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($name === '') {
             Flash::set('danger', 'Ordnername darf nicht leer sein.');
         } else {
-            Media::createFolder($name, $returnFolderId);
+            $folderId = Media::createFolder($name, $returnFolderId);
+            AuditLog::record('media_folder_created', Auth::id(), Auth::user()['email'] ?? null, ['folder_id' => $folderId, 'name' => $name]);
             Flash::set('success', 'Ordner erstellt.');
         }
         header('Location: /admin/media' . $returnQuery);
@@ -193,8 +194,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'rename_folder') {
         $id   = (int) ($_POST['id'] ?? 0);
         $name = trim($_POST['name'] ?? '');
-        if ($name !== '' && Media::findFolder($id)) {
+        $folder = Media::findFolder($id);
+        if ($name !== '' && $folder) {
             Media::renameFolder($id, $name);
+            AuditLog::record('media_folder_renamed', Auth::id(), Auth::user()['email'] ?? null, ['folder_id' => $id, 'old_name' => $folder['name'], 'new_name' => $name]);
             Flash::set('success', 'Ordner umbenannt.');
         } else {
             Flash::set('danger', 'Ordner konnte nicht umbenannt werden.');
@@ -205,7 +208,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'delete_folder') {
         $id = (int) ($_POST['id'] ?? 0);
+        $folder = Media::findFolder($id);
         if (Media::deleteFolder($id)) {
+            if ($folder) {
+                AuditLog::record('media_folder_deleted', Auth::id(), Auth::user()['email'] ?? null, ['folder_id' => $id, 'name' => $folder['name']]);
+            }
             Flash::set('success', 'Ordner gelöscht.');
         } else {
             Flash::set('danger', 'Ordner ist nicht leer und kann nicht gelöscht werden.');

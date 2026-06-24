@@ -81,6 +81,22 @@ class AuditLog
         'repo_trust_changed'               => 'Repo-Kanal-Vertrauensstufe geändert',
         'repo_cache_refreshed'            => 'Repo-Cache aktualisiert',
         'repo_action_forbidden'           => 'Repo-Kanal-Aktion ohne Berechtigung versucht',
+        'page_created'                      => 'Seite erstellt',
+        'page_updated'                      => 'Seite bearbeitet',
+        'page_deleted'                      => 'Seite gelöscht',
+        'menu_created'                      => 'Menü erstellt',
+        'menu_updated'                      => 'Menü umbenannt',
+        'menu_deleted'                      => 'Menü gelöscht',
+        'user_field_created'               => 'Profilfeld erstellt',
+        'user_field_updated'               => 'Profilfeld bearbeitet',
+        'user_field_deleted'               => 'Profilfeld gelöscht',
+        'media_folder_created'            => 'Medienordner erstellt',
+        'media_folder_renamed'            => 'Medienordner umbenannt',
+        'media_folder_deleted'            => 'Medienordner gelöscht',
+        'backup_downloaded'                => 'Backup herunterladen',
+        'passkey_renamed'                  => 'Passkey umbenannt',
+        'theme_activated'                  => 'Theme aktiviert',
+        'theme_menu_changed'               => 'Theme-Menüzuordnung geändert',
     ];
 
     public static function migrateDb(): void

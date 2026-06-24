@@ -300,6 +300,7 @@ Router::post('/admin/pages/delete/{slug}', function (string $slug) {
             @unlink(ESSE_ROOT . '/pages/' . basename((string)$page['file_path']));
         }
         \Esse\DB::delete($t, ['id' => $page['id']]);
+        \Esse\AuditLog::record('page_deleted', \Esse\Auth::id(), \Esse\Auth::user()['email'] ?? null, ['page_id' => $page['id'], 'slug' => $slug, 'title' => $page['title']]);
         \Esse\Flash::set('success', "Seite '{$page['title']}' gelöscht.");
     }
 

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Esse\Auth;
+use Esse\AuditLog;
 use Esse\DB;
 use Esse\Flash;
 
@@ -31,8 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'crea
         if ($existing) {
             $flash = ['type' => 'danger', 'message' => "Slug '{$slug}' ist bereits vergeben."];
         } else {
-            DB::insert($tm, ['name' => $name, 'slug' => $slug]);
-            $id = DB::fetch("SELECT id FROM `{$tm}` WHERE slug = ?", [$slug])['id'];
+            $id = DB::insert($tm, ['name' => $name, 'slug' => $slug]);
+            AuditLog::record('menu_created', Auth::id(), Auth::user()['email'] ?? null, ['menu_id' => $id, 'name' => $name, 'slug' => $slug]);
             header("Location: /admin/menus/edit/{$id}");
             exit;
         }
@@ -44,7 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'dele
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
     $id = (int) ($_POST['menu_id'] ?? 0);
     if ($id) {
+        $menu = DB::fetch("SELECT * FROM `{$tm}` WHERE id = ?", [$id]);
         DB::delete($tm, ['id' => $id]);
+        if ($menu) {
+            AuditLog::record('menu_deleted', Auth::id(), Auth::user()['email'] ?? null, ['menu_id' => $id, 'name' => $menu['name'], 'slug' => $menu['slug']]);
+        }
         Flash::set('success', 'Menü gelöscht.');
     }
     header('Location: /admin/menus');
