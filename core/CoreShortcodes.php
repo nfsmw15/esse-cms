@@ -38,12 +38,14 @@ class CoreShortcodes
         foreach ($ids as $id) {
             $media = Media::find($id);
             if (!$media || ($media['type'] ?? '') !== 'image') continue;
-            // Private Dateien aus dem Shortcode auslassen statt ihren internen Pfad in eine
-            // öffentlich gerenderte Seite zu schreiben — die Datei selbst ist zwar weiterhin
-            // geschützt (kein servierbarer Pfad), aber der Pfad/Dateiname im HTML wäre trotzdem
-            // ein Informationsleck und ein kaputtes Bild für jeden Besucher.
-            if (($media['visibility'] ?? 'public') === 'private') continue;
-            $slides[] = ['image' => $media['path'], 'alt' => $media['alt_text'] ?? ''];
+            // Private Dateien über den berechtigungsgeprüften Endpoint statt des internen Pfads
+            // einbinden — der Pfad selbst (z.B. /private-media/<dateiname>) wäre ein Informations-
+            // leck und für jeden Besucher ein kaputtes Bild. Der Endpoint prüft die Berechtigung
+            // pro Besucher beim tatsächlichen Bildabruf: eingeloggte Nutzer mit Mediathek-Zugriff
+            // sehen das Bild, alle anderen bekommen dort 403 (= kein Bild) — nicht beim Rendern
+            // dieser Seite hier, sondern beim Laden des <img>-Tags im jeweiligen Browser.
+            $src = $media['visibility'] === 'private' ? '/admin/media/file/' . $media['id'] : $media['path'];
+            $slides[] = ['image' => $src, 'alt' => $media['alt_text'] ?? ''];
         }
         if (!$slides) return '';
 
