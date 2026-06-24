@@ -4,6 +4,8 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+## [0.9.0-alpha] - 2026-06-24
+
 ### Added
 
 - **Zentrale, paket-typ-unabhängige Repo-Kanäle**: Bisher hatte nur Plugins eine Kanalverwaltung (`plugin_repos`), Themes durchsuchten hartkodiert immer nur `nfsmw15`, Icon-Packs hatten gar keine "Verfügbar"-Suche. Ein Kanal ist jetzt einfach "ein vertrauenswürdiger GitHub-Account" — was er anbietet ergibt sich allein aus den Topic-Tags (`esse-plugin`/`esse-theme`/`esse-iconpack`) auf seinen Repos, nicht aus einem Feld am Kanal. Tabelle `plugin_repos` umbenannt in `repo_channels` (bestehende Kanäle bleiben beim Update erhalten, Migration läuft unconditional bei jedem Request — siehe Lehre aus der `manage_repos`-Migration in 0.8.7).
