@@ -123,4 +123,27 @@ return [
         $tu = DB::table('users');
         DB::update($tu, ['password' => password_hash(TEST_MEMBER_PASSWORD, PASSWORD_BCRYPT)], ['email' => TEST_MEMBER_EMAIL]);
     },
+
+    'GET /admin/reset-password: wiederholte ungueltige Tokens werden ab dem Limit nicht mehr geloggt' => function (Http $http) {
+        $bucket = 'reset_password_view:127.0.0.1';
+        \Esse\RateLimit::clear($bucket);
+
+        $tl     = DB::table('audit_log');
+        $before = (int) DB::value("SELECT COUNT(*) FROM `{$tl}` WHERE event = 'password_reset_invalid_token'");
+
+        try {
+            // 20 ist das aktuelle Limit (siehe admin/reset-password.php) - alle 25 Versuche
+            // kommen von derselben Test-IP (127.0.0.1), zaehlen also in denselben Bucket.
+            for ($i = 0; $i < 25; $i++) {
+                $http->get('/admin/reset-password?token=rate-limit-spam-test-' . $i);
+            }
+
+            $after    = (int) DB::value("SELECT COUNT(*) FROM `{$tl}` WHERE event = 'password_reset_invalid_token'");
+            $newCount = $after - $before;
+            Assert::true($newCount < 25, "Es sollten nicht alle 25 Versuche geloggt worden sein, waren aber {$newCount}");
+            Assert::true($newCount > 0, 'Die ersten Versuche unterhalb des Limits sollten weiterhin geloggt werden');
+        } finally {
+            \Esse\RateLimit::clear($bucket);
+        }
+    },
 ];

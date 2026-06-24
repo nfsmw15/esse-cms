@@ -6,23 +6,37 @@ use Esse\Auth;
 use Esse\AuditLog;
 use Esse\DB;
 use Esse\Hooks;
+use Esse\RateLimit;
 
 if (Auth::check()) {
     header('Location: /admin');
     exit;
 }
 
+// Diese Seite ist öffentlich per GET mit beliebigem ?token= aufrufbar — ohne Bremse könnte
+// jemand sie mit zufälligen Tokens durchprobieren und dabei das Audit-Log mit
+// password_reset_invalid_token-Einträgen zuspammen (kein Account-Takeover möglich, aber
+// DoS/Logspam). Eigener, großzügiger Bucket getrennt von /admin/forgot-password — ein echter
+// Nutzer ruft diese Seite höchstens ein paar Mal pro Reset-Versuch auf.
+$rateLimitBucket = 'reset_password_view:' . RateLimit::clientIp();
+$rateLimited      = RateLimit::tooMany($rateLimitBucket, 20, 600);
+
 $token   = trim($_GET['token'] ?? $_POST['token'] ?? '');
 $errors  = [];
 $success = false;
 
-// Validate token
+// Validate token — bei Rate-Limit weder DB-Lookup noch Audit-Log-Eintrag, der Token wird dann
+// wie ungueltig behandelt (gleiche Fehlermeldung, kein Hinweis auf das Rate-Limit selbst).
 $tr      = DB::table('password_resets');
-$reset   = $token ? DB::fetch("SELECT * FROM `{$tr}` WHERE token = ?", [$token]) : null;
+$reset   = ($token && !$rateLimited) ? DB::fetch("SELECT * FROM `{$tr}` WHERE token = ?", [$token]) : null;
 $expired = $reset && (strtotime($reset['created_at']) < time() - 3600);
 $valid   = $reset && !$expired;
 
-if ($token && !$reset) {
+if ($token && !$rateLimited) {
+    RateLimit::hit($rateLimitBucket);
+}
+
+if ($token && !$reset && !$rateLimited) {
     AuditLog::record('password_reset_invalid_token', null, null, ['reason' => 'not_found']);
 }
 
