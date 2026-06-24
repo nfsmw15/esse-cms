@@ -455,34 +455,38 @@ Router::post('/admin/user-fields', fn() => require ESSE_ROOT . '/admin/user-fiel
     'auth' => 'manage_settings',
 ]);
 
+// 'auth' hier nur die erste Huerde — die Handler selbst prüfen die tatsächlich erforderlichen
+// (engeren) Forge-only-Permissions manage_backups/manage_updates. War zuvor auf das viel breiter
+// vergebene manage_settings gesetzt; nicht direkt ausnutzbar (Handler blockten korrekt), aber
+// inkonsistent und ein Risiko, falls der Handler-Check je entfernt/abgeschwächt wird.
 Router::get('/admin/backup', fn() => require ESSE_ROOT . '/admin/backup.php', [
     'name' => 'admin.backup',
-    'auth' => 'manage_settings',
+    'auth' => 'manage_backups',
 ]);
 
 Router::post('/admin/backup', fn() => require ESSE_ROOT . '/admin/backup.php', [
     'name' => 'admin.backup.post',
-    'auth' => 'manage_settings',
+    'auth' => 'manage_backups',
 ]);
 
 Router::get('/admin/backup/download/{file}', function (string $file) {
     $fileParam = $file;
     require ESSE_ROOT . '/admin/backup-download.php';
-}, ['name' => 'admin.backup.download', 'auth' => 'manage_settings']);
+}, ['name' => 'admin.backup.download', 'auth' => 'manage_backups']);
 
 Router::get('/admin/update', fn() => require ESSE_ROOT . '/admin/updater.php', [
     'name' => 'admin.update',
-    'auth' => 'manage_settings',
+    'auth' => ['manage_updates', 'manage_backups'],
 ]);
 
 Router::post('/admin/update', fn() => require ESSE_ROOT . '/admin/updater.php', [
     'name' => 'admin.update.post',
-    'auth' => 'manage_settings',
+    'auth' => ['manage_updates', 'manage_backups'],
 ]);
 
 Router::get('/admin/update/run', fn() => require ESSE_ROOT . '/admin/updater-run.php', [
     'name' => 'admin.update.run',
-    'auth' => 'manage_settings',
+    'auth' => ['manage_updates', 'manage_backups'],
 ]);
 
 // -- Installer --
