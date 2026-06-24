@@ -10,6 +10,7 @@ All notable changes to ESSE CMS will be documented in this file.
 - **Neue Seite `/admin/repos`**: Zentrale Verwaltung aller Kanäle (Hinzufügen/Entfernen, jetzt für alle drei Pakettypen gemeinsam). Forge kann zusätzlich die Vertrauensstufe eines Kanals nachträglich umschalten (`repo_trust_changed`-Event) — bewusst Forge-only, da ein Admin mit `manage_repos` einen selbst hinzugefügten Kanal nicht auch selbst als vertrauenswürdig markieren darf. `admin/plugins`/`admin/themes`/`admin/iconpacks` verlinken jetzt hierhin statt eigener Kanal-Verwaltung; die bisherige "Kanäle"-Card auf `/admin/plugins` entfällt.
 - **Themes durchsuchen jetzt alle aktiven Kanäle** statt nur `nfsmw15` fest im Code — Community-Kanäle funktionieren für Themes jetzt genau wie für Plugins.
 - **Icon-Packs bekommen einen vollen "Verfügbar"-Tab**: Installiert/Verfügbar-Tabs analog zu Plugins/Themes, inkl. `install_from_repo` (nutzt die bestehende gehärtete `packageInstallZip()`), Cache und `GitHubApi::searchIconPacks()` (Topic `esse-iconpack`).
+- **Lightbox + Download-Button in der Mediathek**: Klick auf ein Bild-Thumbnail öffnet jetzt eine Vorschau in voller Größe (`#mediaLightboxModal`) statt nichts zu tun; die Karten-Aktionen haben neben Bearbeiten/Löschen jetzt einen eigenen Download-Button (`<a download>`), der für öffentliche wie private Dateien gleich funktioniert.
 
 ### Fixed
 

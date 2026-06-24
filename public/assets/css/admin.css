@@ -493,6 +493,14 @@ body {
     object-fit: cover;
 }
 
+.media-card-thumb-clickable {
+    cursor: pointer;
+}
+
+.media-card-thumb-clickable:hover .media-thumb {
+    opacity: .85;
+}
+
 .media-thumb-file {
     display: flex;
     align-items: center;

@@ -239,15 +239,19 @@ $allFolders = Media::allFolders();
 
 $flash = Flash::consume();
 
-function mediaThumb(array $item): string
+function mediaUrl(array $item): string
 {
     // Private Dateien der eigenen Mediathek liegen ausserhalb des Webroots — ueber den
     // kontrollierten, berechtigungsgeprueften Endpoint statt des intern gespeicherten Pfads.
     // Andere Plugins (z.B. eine Galerie) registrieren ihre Medien mit eigenen, selbst
     // zugriffsgeschuetzten Routen und setzen visibility ebenfalls auf 'private' — fuer deren
     // Pfade waere der Endpoint nicht aufloesbar, sie muessen unveraendert bleiben.
-    $src  = Media::usesControlledServing($item['path']) ? '/admin/media/file/' . $item['id'] : $item['path'];
-    $path = htmlspecialchars($src);
+    return Media::usesControlledServing($item['path']) ? '/admin/media/file/' . $item['id'] : $item['path'];
+}
+
+function mediaThumb(array $item): string
+{
+    $path = htmlspecialchars(mediaUrl($item));
     if ($item['type'] === 'image') {
         return "<img src=\"{$path}\" class=\"media-thumb\" loading=\"lazy\" alt=\"\">";
     }
@@ -357,7 +361,13 @@ ob_start();
     <?php endforeach ?>
     <?php foreach ($items as $item): ?>
     <div class="media-card">
-        <div class="media-card-thumb">
+        <div class="media-card-thumb<?= $item['type'] === 'image' ? ' media-card-thumb-clickable' : '' ?>"
+             <?php if ($item['type'] === 'image'): ?>
+             role="button" tabindex="0"
+             data-bs-toggle="modal" data-bs-target="#mediaLightboxModal"
+             data-url="<?= htmlspecialchars(mediaUrl($item), ENT_QUOTES) ?>"
+             data-name="<?= htmlspecialchars($item['filename'], ENT_QUOTES) ?>"
+             <?php endif ?>>
             <?= mediaThumb($item) ?>
             <?php if ($item['visibility'] === 'private'): ?>
             <span class="badge bg-secondary media-private-badge"><i class="bi bi-lock-fill"></i> Privat</span>
@@ -371,6 +381,11 @@ ob_start();
             </div>
         </div>
         <div class="media-card-actions">
+            <a class="btn btn-sm btn-outline-secondary" title="Herunterladen"
+               href="<?= htmlspecialchars(mediaUrl($item), ENT_QUOTES) ?>"
+               download="<?= htmlspecialchars($item['filename'], ENT_QUOTES) ?>">
+                <i class="bi bi-download"></i>
+            </a>
             <button type="button" class="btn btn-sm btn-outline-secondary"
                     data-bs-toggle="modal" data-bs-target="#editMediaModal"
                     data-id="<?= $item['id'] ?>"
@@ -480,6 +495,26 @@ ob_start();
                     <button class="btn btn-primary">Speichern</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- ── Lightbox-Modal ───────────────────────────────────────────────────────── -->
+<div class="modal fade" id="mediaLightboxModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-truncate" id="lb-name"></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="lb-image" src="" alt="" class="img-fluid">
+            </div>
+            <div class="modal-footer border-secondary">
+                <a id="lb-download" href="" download class="btn btn-primary">
+                    <i class="bi bi-download"></i> Herunterladen
+                </a>
+            </div>
         </div>
     </div>
 </div>

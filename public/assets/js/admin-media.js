@@ -32,6 +32,33 @@
         });
     }
 
+    const lightboxModal = document.getElementById('mediaLightboxModal');
+    if (lightboxModal) {
+        lightboxModal.addEventListener('show.bs.modal', function (event) {
+            const btn = event.relatedTarget;
+            if (!btn) return;
+
+            const url = btn.dataset.url || '';
+            const name = btn.dataset.name || '';
+
+            document.getElementById('lb-image').src = url;
+            document.getElementById('lb-name').textContent = name;
+
+            const downloadLink = document.getElementById('lb-download');
+            downloadLink.href = url;
+            downloadLink.setAttribute('download', name);
+        });
+    }
+
+    document.querySelectorAll('.media-card-thumb-clickable').forEach(function (el) {
+        el.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                el.click();
+            }
+        });
+    });
+
     const renameFolderModal = document.getElementById('renameFolderModal');
     if (renameFolderModal) {
         renameFolderModal.addEventListener('show.bs.modal', function (event) {
