@@ -248,7 +248,7 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.login.render'))
     <script type="application/json" id="passkey-login-config"><?= json_encode([
         'csrf' => Auth::csrfToken(),
         'redirect' => $_GET['redirect'] ?? '',
-    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?></script>
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
     <script src="/public/assets/js/webauthn.js"></script>
     <script src="/public/assets/js/passkey-login.js"></script>
 </body>

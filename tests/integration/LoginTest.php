@@ -74,4 +74,19 @@ return [
         $res = $http->post('/abmelden', []);
         Assert::same(403, $res['status']);
     },
+
+    // Regression: ?redirect=... landet ungefiltert im JSON-Block #passkey-login-config.
+    // JSON_UNESCAPED_SLASHES bedeutet, dass "/" nicht zu "\/" wird - ohne JSON_HEX_TAG
+    // konnte ein redirect-Wert wie "/</script><script>alert(1)</script>" das script-Tag
+    // schliessen und beliebiges HTML/Script danach einschleusen (Reflected XSS).
+    'GET /login?redirect=...</script>...: JSON-Block bricht nicht aus dem script-Tag aus' => function (Http $http) {
+        $payload = '/</script><script>alert(4242)</script>';
+        $res = $http->get('/login?redirect=' . rawurlencode($payload));
+
+        $escaped = '\u003Cscript\u003Ealert(4242)';
+
+        Assert::same(200, $res['status']);
+        Assert::true(!str_contains($res['body'], '</script><script>alert(4242)'), 'Roher Payload darf das script-Tag nicht schliessen');
+        Assert::true(str_contains($res['body'], $escaped), 'redirect-Wert sollte \\u-escaped im JSON-Block auftauchen, nicht stillschweigend verschwinden');
+    },
 ];

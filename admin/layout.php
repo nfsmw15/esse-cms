@@ -184,7 +184,7 @@ if (defined('ESSE_DB_NAME')) {
 
 <?php if (!empty($extraScriptConfig ?? [])): ?>
 <?php foreach ($extraScriptConfig as $id => $data): ?>
-<script type="application/json" id="<?= htmlspecialchars((string) $id) ?>"><?= json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?></script>
+<script type="application/json" id="<?= htmlspecialchars((string) $id) ?>"><?= json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 <?php endforeach ?>
 <?php endif ?>
 <script src="/public/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
