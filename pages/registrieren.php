@@ -6,6 +6,7 @@ use Esse\Captcha;
 use Esse\DB;
 use Esse\EmailVerification;
 use Esse\Hooks;
+use Esse\PasswordPolicy;
 use Esse\RateLimit;
 use Esse\UserFields;
 
@@ -46,7 +47,7 @@ if ($enabled === '1' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         if (!$displayName)                               $errors[] = 'Anzeigename ist Pflichtfeld.';
         if (!filter_var($email, FILTER_VALIDATE_EMAIL))  $errors[] = 'Ungültige E-Mail-Adresse.';
-        if (strlen($password) < 10)                      $errors[] = 'Passwort muss mindestens 10 Zeichen haben.';
+        foreach (PasswordPolicy::validate($password) as $pwError) $errors[] = $pwError;
         if ($password !== $passwordC)                    $errors[] = 'Passwörter stimmen nicht überein.';
         if (!Captcha::verify($captchaA, $honeypot))      $errors[] = 'Sicherheitsfrage falsch beantwortet oder zu schnell abgeschickt. Bitte erneut versuchen.';
 

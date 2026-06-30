@@ -6,6 +6,7 @@ use Esse\Auth;
 use Esse\AuditLog;
 use Esse\DB;
 use Esse\Flash;
+use Esse\PasswordPolicy;
 use Esse\UserFields;
 
 $userId ??= null;
@@ -107,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!array_key_exists($role, $availableRoles)) $errors[] = 'Ungültige Rolle.';
 
         if (!$isEdit && !$password) $errors[] = 'Passwort ist Pflichtfeld.';
-        if ($password && strlen($password) < 10) $errors[] = 'Passwort muss mindestens 10 Zeichen haben.';
+        if ($password) foreach (PasswordPolicy::validate($password, $isEdit ? $userId : null) as $pwError) $errors[] = $pwError;
         if ($password && $password !== $passwordC) $errors[] = 'Passwörter stimmen nicht überein.';
 
         // Forge-Warnung: Promoting to forge requires confirmation

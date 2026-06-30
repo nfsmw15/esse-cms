@@ -6,6 +6,7 @@ use Esse\Auth;
 use Esse\AuditLog;
 use Esse\DB;
 use Esse\Hooks;
+use Esse\PasswordPolicy;
 use Esse\RateLimit;
 
 if (Auth::check()) {
@@ -52,12 +53,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
     $password = $_POST['password']         ?? '';
     $confirm  = $_POST['password_confirm'] ?? '';
 
-    if (strlen($password) < 10) {
-        $errors[] = 'Passwort muss mindestens 10 Zeichen haben.';
+    $tu = DB::table('users');
+    $resetTargetId = (int) (DB::value("SELECT id FROM `{$tu}` WHERE email = ?", [$reset['email']]) ?: 0);
+    $pwErrors = PasswordPolicy::validate($password, $resetTargetId ?: null);
+
+    if ($pwErrors) {
+        $errors = array_merge($errors, $pwErrors);
     } elseif ($password !== $confirm) {
         $errors[] = 'Passwörter stimmen nicht überein.';
     } else {
-        $tu   = DB::table('users');
         $hash = password_hash($password, PASSWORD_BCRYPT);
         DB::update($tu, ['password' => $hash, 'password_changed_at' => date('Y-m-d H:i:s')], ['email' => $reset['email']]);
         DB::delete($tr, ['token' => $token]);

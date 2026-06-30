@@ -11,6 +11,7 @@ use Esse\Auth;
 use Esse\AuditLog;
 use Esse\Crypto;
 use Esse\DB;
+use Esse\PasswordPolicy;
 use Esse\QrCode;
 use Esse\Totp;
 use Esse\TwoFactor;
@@ -150,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!$displayName)                          $errors[] = 'Anzeigename ist Pflichtfeld.';
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Ungültige E-Mail-Adresse.';
-            if ($password && strlen($password) < 10)    $errors[] = 'Passwort muss mindestens 10 Zeichen haben.';
+            if ($password) foreach (PasswordPolicy::validate($password, Auth::id()) as $pwError) $errors[] = $pwError;
             if ($password && $password !== $passwordC)  $errors[] = 'Passwörter stimmen nicht überein.';
 
             // E-Mail uniqueness (excluding own account)

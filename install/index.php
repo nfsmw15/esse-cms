@@ -86,8 +86,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Anzeigename: 2–100 Zeichen.';
             } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $errors[] = 'Ungültige E-Mail-Adresse.';
-            } elseif (strlen($password) < 10) {
-                $errors[] = 'Passwort muss mindestens 10 Zeichen lang sein.';
+            } elseif (($pwErrors = \Esse\PasswordPolicy::check($password, 'custom', 10, 3))) {
+                // DB ist hier noch nicht verbunden (erst in runSetup()) — daher direkt die reine
+                // Logik mit denselben Defaults aufrufen, die PasswordPolicy::validate() auch ohne
+                // konfigurierte Settings verwenden würde, statt der DB-lesenden Fassade.
+                $errors = array_merge($errors, $pwErrors);
             } elseif ($password !== $passwordConfirm) {
                 $errors[] = 'Passwörter stimmen nicht überein.';
             } else {

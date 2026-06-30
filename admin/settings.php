@@ -33,6 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'registration_requires_approval' => isset($_POST['registration_requires_approval']) ? '1' : '0',
         'mfa_enforcement_level' => in_array($_POST['mfa_enforcement_level'] ?? 'off', ['off', '2fa', 'passkey'], true)
             ? $_POST['mfa_enforcement_level'] : 'off',
+        'password_policy_mode' => in_array($_POST['password_policy_mode'] ?? 'custom', ['custom', 'bsi'], true)
+            ? $_POST['password_policy_mode'] : 'custom',
+        'password_min_length'  => (string) max(6, min(64, (int) ($_POST['password_min_length'] ?? 10))),
+        'password_min_classes' => (string) max(1, min(4, (int) ($_POST['password_min_classes'] ?? 3))),
         'smtp_host'        => trim($_POST['smtp_host']        ?? ''),
         'smtp_port'        => trim($_POST['smtp_port']        ?? '587'),
         'smtp_user'        => trim($_POST['smtp_user']        ?? ''),
@@ -58,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         // Sicherheitsrelevante Änderungen erfassen, bevor die neuen Werte geschrieben werden
         $changes = [];
-        foreach (['registration_enabled', 'registration_requires_approval', 'mfa_enforcement_level', 'audit_log_retention_days', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_encryption', 'smtp_from'] as $key) {
+        foreach (['registration_enabled', 'registration_requires_approval', 'mfa_enforcement_level', 'password_policy_mode', 'password_min_length', 'password_min_classes', 'audit_log_retention_days', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_encryption', 'smtp_from'] as $key) {
             $old = $settings[$key] ?? null;
             if ($old !== $save[$key]) {
                 $changes[$key] = ['old' => $old, 'new' => $save[$key]];
@@ -220,6 +224,33 @@ ob_start();
                     </select>
                     <div class="form-text">
                         Ohne eingerichteten zweiten Faktor wird ein Nutzer direkt nach dem Passwort zur Einrichtung gezwungen, bevor er die Seite nutzen kann.
+                    </div>
+
+                    <hr class="border-secondary my-3">
+                    <label class="form-label">Passwort-Richtlinie</label>
+                    <select name="password_policy_mode" class="form-select mb-2" style="max-width: 20rem">
+                        <option value="custom" <?= ($settings['password_policy_mode'] ?? 'custom') === 'custom' ? 'selected' : '' ?>>Eigene Werte</option>
+                        <option value="bsi"    <?= ($settings['password_policy_mode'] ?? 'custom') === 'bsi'    ? 'selected' : '' ?>>BSI-Empfehlung</option>
+                    </select>
+                    <div class="form-text mb-3">
+                        BSI-Empfehlung: mind. 8 Zeichen mit allen 4 Zeichenarten, oder mind. 25 Zeichen (beliebig), oder
+                        — bei bereits aktiver 2FA/Passkey des jeweiligen Accounts — mind. 8 Zeichen mit 3 Zeichenarten.
+                        Bei "Eigene Werte" gelten die beiden Felder unten.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label">Mindestlänge</label>
+                            <input type="number" name="password_min_length" class="form-control" min="6" max="64"
+                                   value="<?= htmlspecialchars($settings['password_min_length'] ?? '10') ?>">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Zeichenarten (von 4)</label>
+                            <select name="password_min_classes" class="form-select">
+                                <?php foreach ([1 => 'Keine Anforderung', 2 => 'mind. 2', 3 => 'mind. 3', 4 => 'alle 4'] as $n => $label): ?>
+                                <option value="<?= $n ?>" <?= (int) ($settings['password_min_classes'] ?? 3) === $n ? 'selected' : '' ?>><?= $label ?></option>
+                                <?php endforeach ?>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
