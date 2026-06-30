@@ -37,6 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ? $_POST['password_policy_mode'] : 'custom',
         'password_min_length'  => (string) max(6, min(64, (int) ($_POST['password_min_length'] ?? 10))),
         'password_min_classes' => (string) max(1, min(4, (int) ($_POST['password_min_classes'] ?? 3))),
+        'password_history_count'  => (string) max(0, min(50, (int) ($_POST['password_history_count'] ?? 0))),
+        'password_max_sequential' => (string) max(0, min(20, (int) ($_POST['password_max_sequential'] ?? 0))),
         'smtp_host'        => trim($_POST['smtp_host']        ?? ''),
         'smtp_port'        => trim($_POST['smtp_port']        ?? '587'),
         'smtp_user'        => trim($_POST['smtp_user']        ?? ''),
@@ -62,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         // Sicherheitsrelevante Änderungen erfassen, bevor die neuen Werte geschrieben werden
         $changes = [];
-        foreach (['registration_enabled', 'registration_requires_approval', 'mfa_enforcement_level', 'password_policy_mode', 'password_min_length', 'password_min_classes', 'audit_log_retention_days', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_encryption', 'smtp_from'] as $key) {
+        foreach (['registration_enabled', 'registration_requires_approval', 'mfa_enforcement_level', 'password_policy_mode', 'password_min_length', 'password_min_classes', 'password_history_count', 'password_max_sequential', 'audit_log_retention_days', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_encryption', 'smtp_from'] as $key) {
             $old = $settings[$key] ?? null;
             if ($old !== $save[$key]) {
                 $changes[$key] = ['old' => $old, 'new' => $save[$key]];
@@ -250,6 +252,20 @@ ob_start();
                                 <option value="<?= $n ?>" <?= (int) ($settings['password_min_classes'] ?? 3) === $n ? 'selected' : '' ?>><?= $label ?></option>
                                 <?php endforeach ?>
                             </select>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-6">
+                            <label class="form-label">Passwort-Historie (0 = aus)</label>
+                            <input type="number" name="password_history_count" class="form-control" min="0" max="50"
+                                   value="<?= htmlspecialchars($settings['password_history_count'] ?? '0') ?>">
+                            <div class="form-text">Neues Passwort darf nicht mit einem der letzten N Passwörter übereinstimmen. Nur im Modus "Eigene Werte" wirksam.</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Max. aufeinanderfolgende Zeichen (0 = aus)</label>
+                            <input type="number" name="password_max_sequential" class="form-control" min="0" max="20"
+                                   value="<?= htmlspecialchars($settings['password_max_sequential'] ?? '0') ?>">
+                            <div class="form-text">Z.B. bei 3: "abcd"/"4321" abgelehnt, "abc" weiterhin erlaubt. Nur im Modus "Eigene Werte" wirksam.</div>
                         </div>
                     </div>
                 </div>

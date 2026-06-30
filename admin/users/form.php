@@ -164,6 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ['target_user_id' => $userId, 'target_email' => $email, 'old_role' => $user['role'], 'new_role' => $role]
                     );
                 }
+                if ($password) PasswordPolicy::recordHistory($userId, (string) $user['password']);
                 DB::update($tu, $data, ['id' => $userId]);
                 UserFields::save($userId, $customFields, $customValues);
 

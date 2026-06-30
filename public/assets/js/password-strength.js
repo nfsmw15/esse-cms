@@ -15,6 +15,29 @@
         };
     }
 
+    // Spiegelt PasswordPolicy::hasLongSequential() — Laeufe von mehr als maxRun auf- oder
+    // absteigenden Zeichen derselben Klasse. Richtungswechsel brechen den Lauf ab.
+    function hasLongSequential(password, maxRun) {
+        function classOf(ch) {
+            if (/[a-z]/.test(ch)) return 'lower';
+            if (/[A-Z]/.test(ch)) return 'upper';
+            if (/[0-9]/.test(ch)) return 'digit';
+            return null;
+        }
+        let run = 1, dir = 0;
+        for (let i = 1; i < password.length; i++) {
+            const prev = password[i - 1], cur = password[i];
+            const sameClass = classOf(prev) !== null && classOf(prev) === classOf(cur);
+            const delta = sameClass ? (cur.charCodeAt(0) - prev.charCodeAt(0)) : 0;
+            const curDir = delta === 1 ? 1 : (delta === -1 ? -1 : 0);
+            if (curDir !== 0 && curDir === dir) run++;
+            else if (curDir !== 0) { run = 2; dir = curDir; }
+            else { run = 1; dir = 0; }
+            if (run > maxRun) return true;
+        }
+        return false;
+    }
+
     function evaluate(password, cfg) {
         const c = classesOf(password);
         const count = Object.values(c).filter(Boolean).length;
@@ -29,7 +52,11 @@
             targetLength = cfg.minLength;
         }
 
-        return { c, length, targetLength, lengthOk: length >= targetLength };
+        const sequentialOk = cfg.mode === 'bsi' || !cfg.maxSequential
+            ? true
+            : !hasLongSequential(password, cfg.maxSequential);
+
+        return { c, length, targetLength, lengthOk: length >= targetLength, sequentialOk };
     }
 
     function setRow(li, ok, label) {
@@ -59,6 +86,7 @@
             lower: container.querySelector('[data-check="lower"]'),
             digit: container.querySelector('[data-check="digit"]'),
             special: container.querySelector('[data-check="special"]'),
+            sequential: container.querySelector('[data-check="sequential"]'),
         };
 
         function update() {
@@ -68,6 +96,7 @@
             setRow(rows.lower, r.c.lower, 'Kleinbuchstaben');
             setRow(rows.digit, r.c.digit, 'Ziffern');
             setRow(rows.special, r.c.special, 'Sonderzeichen');
+            setRow(rows.sequential, r.sequentialOk, 'Keine ' + (cfg.maxSequential + 1) + '+ aufeinanderfolgenden Zeichen');
         }
 
         field.addEventListener('input', update);

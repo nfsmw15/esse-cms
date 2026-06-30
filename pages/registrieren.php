@@ -152,6 +152,7 @@ if ($enabled !== '1') {
                                value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
                                autocomplete="email" required>
                     </div>
+                    <?php $pwPolicyCfg = \Esse\PasswordPolicy::clientConfig(null); ?>
                     <div class="mb-3">
                         <label class="form-label">Passwort</label>
                         <input type="password" name="password" id="password" class="form-control"
@@ -164,9 +165,12 @@ if ($enabled !== '1') {
                             <li data-check="lower"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Kleinbuchstaben</span></li>
                             <li data-check="digit"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Ziffern</span></li>
                             <li data-check="special"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Sonderzeichen</span></li>
+                            <?php if ($pwPolicyCfg['mode'] !== 'bsi' && $pwPolicyCfg['maxSequential'] > 0): ?>
+                            <li data-check="sequential"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Keine langen Zeichenfolgen</span></li>
+                            <?php endif ?>
                         </ul>
                         <script type="application/json" id="pw-strength-config-registrieren"><?= json_encode(
-                            \Esse\PasswordPolicy::clientConfig(null),
+                            $pwPolicyCfg,
                             JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
                         ) ?></script>
                     </div>

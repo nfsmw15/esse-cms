@@ -166,6 +166,75 @@ return [
         }
     },
 
+    'POST /profil: Passwort-Historie verhindert Wiederverwendung kuerzlich genutzter Passwoerter' => function (Http $http) {
+        $oldHistory = setPasswordPolicyTestSetting('password_history_count', '0');
+        $oldMode    = setPasswordPolicyTestSetting('password_policy_mode', 'custom');
+        $email = 'pwpolicy-history-test@example.test';
+        $tu    = DB::table('users');
+        $th    = DB::table('password_history');
+        $p0    = 'ErstesPasswort1!';
+        $p1    = 'ZweitesPasswort2!';
+
+        try {
+            DB::delete($tu, ['email' => $email]);
+            $userId = DB::insert($tu, [
+                'display_name'      => 'Policy History Test',
+                'email'              => $email,
+                'password'           => password_hash($p0, PASSWORD_BCRYPT),
+                'role'               => 'member',
+                'active'             => 1,
+                'email_verified_at'  => date('Y-m-d H:i:s'),
+                'approved_at'        => date('Y-m-d H:i:s'),
+            ]);
+
+            $loginPage = $http->get('/login');
+            $csrf      = extractCsrf($loginPage['body']);
+            $loginRes  = $http->post('/login', [
+                '_csrf' => $csrf, '_form' => 'admin_login',
+                'login' => $email, 'password' => $p0,
+            ]);
+            Assert::same(302, $loginRes['status'], 'Login sollte funktionieren');
+
+            // Bei historyCount=0 (aus) wird P0 -> P1 ohne Historie-Pruefung akzeptiert, schreibt
+            // P0 aber bereits unconditional in die Historie (recordHistory laeuft immer).
+            $profilPage = $http->get('/profil');
+            $profilCsrf = extractCsrf($profilPage['body']);
+            $res1 = $http->post('/profil', [
+                '_csrf' => $profilCsrf, '_action' => 'update_profile',
+                'display_name' => 'Policy History Test', 'email' => $email,
+                'password' => $p1, 'password_confirm' => $p1,
+                'confirm_password' => $p0,
+            ]);
+            Assert::true(str_contains($res1['body'], 'Profil gespeichert'), 'Erste Aenderung sollte funktionieren');
+
+            $historyRows = DB::fetchAll("SELECT * FROM `{$th}` WHERE user_id = ?", [$userId]);
+            Assert::true(count($historyRows) > 0, 'recordHistory sollte das alte Passwort gespeichert haben, auch bei historyCount=0');
+
+            // Historie-Pruefung einschalten und versuchen, zu P0 zurueckzuwechseln — sollte jetzt
+            // abgelehnt werden, weil P0 in der Historie steht.
+            setPasswordPolicyTestSetting('password_history_count', '2');
+            $profilPage2 = $http->get('/profil');
+            $profilCsrf2 = extractCsrf($profilPage2['body']);
+            $res2 = $http->post('/profil', [
+                '_csrf' => $profilCsrf2, '_action' => 'update_profile',
+                'display_name' => 'Policy History Test', 'email' => $email,
+                'password' => $p0, 'password_confirm' => $p0,
+                'confirm_password' => $p1,
+            ]);
+            Assert::true(
+                str_contains($res2['body'], 'darf nicht mit einem der letzten'),
+                'Wiederverwendung von P0 sollte bei aktiver Historie-Pruefung abgelehnt werden'
+            );
+
+            $user = DB::fetch("SELECT password FROM `{$tu}` WHERE id = ?", [$userId]);
+            Assert::true(password_verify($p1, $user['password']), 'Passwort sollte weiterhin P1 sein, P0 wurde abgelehnt');
+        } finally {
+            restorePasswordPolicyTestSetting('password_history_count', $oldHistory);
+            restorePasswordPolicyTestSetting('password_policy_mode', $oldMode);
+            DB::delete($tu, ['email' => $email]);
+        }
+    },
+
     'GET /registrieren: Live-Checkliste bekommt die aktuelle Richtlinie als JSON-Konfiguration mit' => function (Http $http) {
         $oldReg     = setPasswordPolicyTestSetting('registration_enabled', '1');
         $oldLength  = setPasswordPolicyTestSetting('password_min_length', '12');

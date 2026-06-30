@@ -174,6 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $oldEmail = Auth::user()['email'] ?? null;
                 $data = ['display_name' => $displayName, 'email' => $email];
                 if ($password) {
+                    PasswordPolicy::recordHistory((int) Auth::id(), (string) (Auth::user()['password'] ?? ''));
                     $data['password']             = password_hash($password, PASSWORD_BCRYPT);
                     $data['password_changed_at']  = date('Y-m-d H:i:s');
                 }
@@ -236,6 +237,7 @@ $csrf         = Auth::csrfToken();
             <?php endif ?>
             <hr class="border-secondary my-4">
             <p class="text-secondary small">Passwort ändern — leer lassen um es beizubehalten</p>
+            <?php $pwPolicyCfg = PasswordPolicy::clientConfig(Auth::id()); ?>
             <div class="mb-3">
                 <label class="form-label">Neues Passwort</label>
                 <input type="password" name="password" id="password" class="form-control"
@@ -249,9 +251,15 @@ $csrf         = Auth::csrfToken();
                     <li data-check="lower"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Kleinbuchstaben</span></li>
                     <li data-check="digit"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Ziffern</span></li>
                     <li data-check="special"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Sonderzeichen</span></li>
+                    <?php if ($pwPolicyCfg['mode'] !== 'bsi' && $pwPolicyCfg['maxSequential'] > 0): ?>
+                    <li data-check="sequential"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Keine langen Zeichenfolgen</span></li>
+                    <?php endif ?>
                 </ul>
+                <?php if ($pwPolicyCfg['mode'] !== 'bsi' && $pwPolicyCfg['historyCount'] > 0): ?>
+                <div class="form-text">Muss sich von den letzten <?= (int) $pwPolicyCfg['historyCount'] ?> Passwörtern unterscheiden (wird beim Speichern geprüft).</div>
+                <?php endif ?>
                 <script type="application/json" id="pw-strength-config-profil"><?= json_encode(
-                    PasswordPolicy::clientConfig(Auth::id()),
+                    $pwPolicyCfg,
                     JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
                 ) ?></script>
                 <script src="/public/assets/js/password-strength.js"></script>

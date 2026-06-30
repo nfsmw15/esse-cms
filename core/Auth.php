@@ -342,7 +342,9 @@ class Auth
             // unten).
             $pPrefix = defined('ESSE_DB_PREFIX') ? \ESSE_DB_PREFIX : 'esse_';
             foreach (Schema::tables($pPrefix) as $sql) {
-                if (str_contains($sql, "`{$pPrefix}email_verifications`")) {
+                if (str_contains($sql, "`{$pPrefix}email_verifications`")
+                    || str_contains($sql, "`{$pPrefix}password_history`")
+                ) {
                     DB::query($sql);
                 }
             }

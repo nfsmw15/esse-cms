@@ -49,4 +49,34 @@ return [
         $errors = PasswordPolicy::check('Abcdefg1', 'bsi', 10, 3, hasMfa: true);
         Assert::true($errors === [], 'Erwartet: keine Fehler (Stufe 3, MFA-Bonus)');
     },
+
+    'check (custom): "abcd" mit Sequenz-Limit 3 wird abgelehnt' => function () {
+        $errors = PasswordPolicy::check('abcd', 'custom', 1, 1, maxSequential: 3);
+        Assert::true(count($errors) > 0, 'Erwartet: Fehlermeldung wegen Zeichenfolge');
+    },
+
+    'check (custom): "abc" mit Sequenz-Limit 3 ist erlaubt (Lauf von genau 3)' => function () {
+        $errors = PasswordPolicy::check('abc', 'custom', 1, 1, maxSequential: 3);
+        Assert::true($errors === [], 'Lauf von genau 3 sollte noch erlaubt sein');
+    },
+
+    'check (custom): "abcba" mit Sequenz-Limit 3 ist erlaubt (Richtungswechsel bricht Lauf ab)' => function () {
+        $errors = PasswordPolicy::check('abcba', 'custom', 1, 1, maxSequential: 3);
+        Assert::true($errors === [], 'Richtungswechsel sollte den Lauf unterbrechen, kein 4er-Lauf');
+    },
+
+    'check (custom): "12345678" mit Sequenz-Limit 3 wird abgelehnt' => function () {
+        $errors = PasswordPolicy::check('12345678', 'custom', 1, 1, maxSequential: 3);
+        Assert::true(count($errors) > 0, 'Erwartet: Fehlermeldung wegen Zeichenfolge bei Ziffern');
+    },
+
+    'check (custom): Sequenz-Limit 0 bedeutet keine Pruefung' => function () {
+        $errors = PasswordPolicy::check('abcdefgh', 'custom', 1, 1, maxSequential: 0);
+        Assert::true($errors === [], 'Bei maxSequential=0 sollte die Zeichenfolge nicht geprueft werden');
+    },
+
+    'check (bsi): Sequenz-Limit wird im BSI-Modus ignoriert' => function () {
+        $errors = PasswordPolicy::check('Abcdefgh1!', 'bsi', 10, 3, hasMfa: false, maxSequential: 3);
+        Assert::true($errors === [], 'BSI-Modus prueft kein Sequenz-Limit, auch wenn "bcdefgh" eine lange Folge waere');
+    },
 ];
