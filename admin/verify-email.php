@@ -17,6 +17,7 @@ if (Auth::check()) {
 
 $tv = DB::table('email_verifications');
 $tu = DB::table('users');
+$ts = DB::table('settings');
 
 // --- GET ?token=... : direkte Verifizierung, kein Formular/CSRF noetig (der Klick auf den
 // Mail-Link IST die Aktion). Rate-Limit vor DB-Lookup und Audit-Log, analog zu
@@ -47,11 +48,17 @@ if ($verification && $expired) {
 }
 
 $verifiedNow = false;
+$pendingApprovalAfterVerify = false;
 if ($token !== '' && $valid) {
     DB::update($tu, ['email_verified_at' => date('Y-m-d H:i:s')], ['id' => $verification['user_id']]);
     DB::delete($tv, ['token' => $token]);
     AuditLog::record('email_verified', (int) $verification['user_id'], $verification['email']);
     $verifiedNow = true;
+
+    if (DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'registration_requires_approval'") === '1') {
+        $freshUser = DB::fetch("SELECT approved_at FROM `{$tu}` WHERE id = ?", [$verification['user_id']]);
+        $pendingApprovalAfterVerify = empty($freshUser['approved_at'] ?? null);
+    }
 }
 
 $tokenInvalid = $token !== '' && !$verifiedNow;
@@ -102,7 +109,6 @@ $captchaQuestion = ($sent || $verifiedNow) ? '' : Captcha::challenge();
 $brandName   = 'ESSE CMS';
 $brandSlogan = '';
 if (defined('ESSE_DB_NAME')) {
-    $ts        = DB::table('settings');
     $brandRows = array_column(
         DB::fetchAll("SELECT `key`, `value` FROM `{$ts}` WHERE `key` IN ('site_name', 'site_slogan')"),
         'value', 'key'
@@ -117,6 +123,7 @@ $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
 if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.verify_email.render')) {
     Hooks::fire('auth.verify_email.render', [
         'verifiedNow'     => $verifiedNow,
+        'pendingApprovalAfterVerify' => $pendingApprovalAfterVerify,
         'tokenInvalid'    => $tokenInvalid,
         'sent'            => $sent,
         'errors'          => $errors,
@@ -150,7 +157,13 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.verify_email.re
         <small class="text-secondary">E-Mail-Adresse bestätigen</small>
     </div>
 
-    <?php if ($verifiedNow): ?>
+    <?php if ($verifiedNow && $pendingApprovalAfterVerify): ?>
+    <div class="alert alert-success">
+        E-Mail-Adresse bestätigt! Dein Account wartet jetzt zusätzlich auf Freigabe durch einen
+        Administrator. Du wirst per E-Mail informiert, sobald du dich einloggen kannst.
+    </div>
+
+    <?php elseif ($verifiedNow): ?>
     <div class="alert alert-success">
         E-Mail-Adresse bestätigt! Du kannst dich jetzt anmelden.
     </div>

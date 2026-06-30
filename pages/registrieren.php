@@ -60,12 +60,14 @@ if ($enabled === '1' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($existing) {
                 $errors[] = 'Diese E-Mail-Adresse ist bereits registriert.';
             } else {
+                $approvalRequired = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'registration_requires_approval'") === '1';
                 $newUserId = DB::insert($tu, [
                     'display_name' => $displayName,
                     'email'        => $email,
                     'password'     => password_hash($password, PASSWORD_BCRYPT),
                     'role'         => 'member',
                     'active'       => 1,
+                    'approved_at'  => $approvalRequired ? null : date('Y-m-d H:i:s'),
                 ]);
                 UserFields::save($newUserId, $customFields, $customValues);
 

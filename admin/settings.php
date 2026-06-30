@@ -30,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'site_url'         => rtrim(trim($_POST['site_url']   ?? ''), '/'),
         'admin_email'           => trim($_POST['admin_email']           ?? ''),
         'registration_enabled'  => isset($_POST['registration_enabled']) ? '1' : '0',
+        'registration_requires_approval' => isset($_POST['registration_requires_approval']) ? '1' : '0',
         'smtp_host'        => trim($_POST['smtp_host']        ?? ''),
         'smtp_port'        => trim($_POST['smtp_port']        ?? '587'),
         'smtp_user'        => trim($_POST['smtp_user']        ?? ''),
@@ -55,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         // Sicherheitsrelevante Änderungen erfassen, bevor die neuen Werte geschrieben werden
         $changes = [];
-        foreach (['registration_enabled', 'audit_log_retention_days', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_encryption', 'smtp_from'] as $key) {
+        foreach (['registration_enabled', 'registration_requires_approval', 'audit_log_retention_days', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_encryption', 'smtp_from'] as $key) {
             $old = $settings[$key] ?? null;
             if ($old !== $save[$key]) {
                 $changes[$key] = ['old' => $old, 'new' => $save[$key]];
@@ -195,6 +196,18 @@ ob_start();
                     </div>
                     <div class="form-text">
                         Wenn aktiviert, können sich Besucher unter <code>/registrieren</code> einen Member-Account erstellen.
+                    </div>
+
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" name="registration_requires_approval"
+                               value="1" id="reg-requires-approval"
+                               <?= ($settings['registration_requires_approval'] ?? '0') === '1' ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="reg-requires-approval">
+                            Admin-Freigabe für neue Registrierungen erforderlich
+                        </label>
+                    </div>
+                    <div class="form-text">
+                        Zusätzlich zur E-Mail-Bestätigung muss ein Admin neue Accounts in <code>/admin/users</code> freigeben, bevor sie sich einloggen können.
                     </div>
                 </div>
             </div>

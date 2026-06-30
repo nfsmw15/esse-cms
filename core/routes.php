@@ -384,6 +384,11 @@ Router::get('/admin/users', fn() => require ESSE_ROOT . '/admin/users/list.php',
     'auth' => 'manage_users',
 ]);
 
+Router::post('/admin/users', fn() => require ESSE_ROOT . '/admin/users/list.php', [
+    'name' => 'admin.users.post',
+    'auth' => 'manage_users',
+]);
+
 Router::get('/admin/users/create', fn() => require ESSE_ROOT . '/admin/users/form.php', [
     'name' => 'admin.users.create',
     'auth' => 'manage_users',

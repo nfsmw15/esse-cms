@@ -122,6 +122,18 @@ class Auth
             return false;
         }
 
+        // Admin-Freigabe-Gate (optional, per Settings-Schalter): greift nur, wenn die
+        // Einstellung aktuell aktiv ist — bewusst die LIVE Einstellung pruefen statt nur die
+        // Spalte, damit das Ausschalten der Pflicht-Freigabe bereits wartende Accounts sofort
+        // entsperrt, ohne dass jemand sie einzeln nachtraeglich freigeben muss.
+        $ts = DB::table('settings');
+        if (DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'registration_requires_approval'") === '1'
+            && empty($user['approved_at'])
+        ) {
+            $_SESSION['esse_pending_approval'] = $user['email'];
+            return false;
+        }
+
         // Klassisches 2FA-Gate: TOTP ist ein zweiter Faktor zum Passwort — der Login ist
         // nach korrektem Passwort noch nicht abgeschlossen, sondern wartet auf den TOTP-/
         // Backup-Code-Schritt in admin/verify-2fa.php (Passkeys laufen unabhängig davon,
@@ -301,6 +313,10 @@ class Auth
                 // werden — nur die zum Zeitpunkt des ALTER bereits existierenden NULL-Zeilen
                 // werden befuellt, dieser Block laeuft (per $cols-Gate oben) nur einmalig.
                 DB::query("UPDATE `{$tu}` SET `email_verified_at` = NOW() WHERE `email_verified_at` IS NULL");
+            }
+            if (!in_array('approved_at', $cols, true)) {
+                DB::query("ALTER TABLE `{$tu}` ADD COLUMN `approved_at` DATETIME NULL");
+                DB::query("UPDATE `{$tu}` SET `approved_at` = NOW() WHERE `approved_at` IS NULL");
             }
 
             // email_verifications-Tabelle nachziehen (Bestandsinstallationen vor dieser Funktion

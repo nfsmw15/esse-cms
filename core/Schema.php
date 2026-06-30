@@ -23,6 +23,7 @@ class Schema
                 `totp_backup_codes` TEXT NULL,
                 `password_changed_at` DATETIME NULL,
                 `email_verified_at` DATETIME NULL,
+                `approved_at` DATETIME NULL,
                 `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `updated_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 UNIQUE KEY `uq_email` (`email`)

@@ -85,6 +85,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             RateLimit::clear($rateLimitBucket);
             AuditLog::record('login_blocked_unverified', null, $unverifiedEmail);
             $error = 'Bitte bestätige zuerst deine E-Mail-Adresse.';
+        } elseif (!empty($_SESSION['esse_pending_approval'])) {
+            // Passwort korrekt und E-Mail bestaetigt, aber noch keine Admin-Freigabe — ebenfalls
+            // kein Fehlversuch. Kein Resend-Link noetig (nichts, das der Nutzer selbst tun kann).
+            $pendingEmail = $_SESSION['esse_pending_approval'];
+            unset($_SESSION['esse_pending_approval']);
+            RateLimit::clear($rateLimitBucket);
+            AuditLog::record('login_blocked_pending_approval', null, $pendingEmail);
+            $error = 'Dein Account wartet auf Freigabe durch einen Administrator. Du wirst per E-Mail informiert, sobald du dich einloggen kannst.';
         } else {
             RateLimit::hit($rateLimitBucket);
             AuditLog::record('login_failed', null, $login);

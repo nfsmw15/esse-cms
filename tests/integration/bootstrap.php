@@ -90,7 +90,7 @@ function seed(\PDO $pdo): void
     $stmt->execute(['site_url', TEST_BASE_URL]);
 
     $userStmt = $pdo->prepare(
-        "INSERT INTO `{$p}users` (display_name, email, password, role, email_verified_at) VALUES (?, ?, ?, ?, NOW())"
+        "INSERT INTO `{$p}users` (display_name, email, password, role, email_verified_at, approved_at) VALUES (?, ?, ?, ?, NOW(), NOW())"
     );
     $userStmt->execute(['Forge Test', TEST_FORGE_EMAIL, password_hash(TEST_FORGE_PASSWORD, PASSWORD_BCRYPT), 'forge']);
     $userStmt->execute(['Member Test', TEST_MEMBER_EMAIL, password_hash(TEST_MEMBER_PASSWORD, PASSWORD_BCRYPT), 'member']);
