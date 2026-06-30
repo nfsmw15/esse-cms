@@ -110,6 +110,18 @@ class Auth
             DB::update($t, ['password' => password_hash($password, PASSWORD_BCRYPT)], ['id' => $user['id']]);
         }
 
+        // E-Mail-Verifizierungs-Gate: greift nur fuer Self-Registrierungen (admin-angelegte und
+        // der Installer-Forge-Account bekommen email_verified_at sofort gesetzt). Bewusst vor
+        // dem 2FA-Gate, da TOTP erst nach dem ersten erfolgreichen Login eingerichtet werden
+        // kann — fuer einen unverifizierten Account ist der 2FA-Branch ohnehin nie relevant,
+        // aber "Account ueberhaupt nutzbar" ist die logisch vorgelagerte Bedingung. Kein
+        // RateLimit::hit()/login_failed-Audit hier — admin/login.php unterscheidet diesen Fall
+        // ueber das Session-Flag, genau wie es das beim 2FA-Fall schon tut.
+        if (empty($user['email_verified_at'])) {
+            $_SESSION['esse_unverified_email'] = $user['email'];
+            return false;
+        }
+
         // Klassisches 2FA-Gate: TOTP ist ein zweiter Faktor zum Passwort — der Login ist
         // nach korrektem Passwort noch nicht abgeschlossen, sondern wartet auf den TOTP-/
         // Backup-Code-Schritt in admin/verify-2fa.php (Passkeys laufen unabhängig davon,
@@ -282,6 +294,24 @@ class Auth
             $cols = array_column(DB::fetchAll("SHOW COLUMNS FROM `{$tu}`"), 'Field');
             if (!in_array('password_changed_at', $cols, true)) {
                 DB::query("ALTER TABLE `{$tu}` ADD COLUMN `password_changed_at` DATETIME NULL");
+            }
+            if (!in_array('email_verified_at', $cols, true)) {
+                DB::query("ALTER TABLE `{$tu}` ADD COLUMN `email_verified_at` DATETIME NULL");
+                // Bestandsnutzer duerfen durch diese neue Spalte nicht rueckwirkend ausgesperrt
+                // werden — nur die zum Zeitpunkt des ALTER bereits existierenden NULL-Zeilen
+                // werden befuellt, dieser Block laeuft (per $cols-Gate oben) nur einmalig.
+                DB::query("UPDATE `{$tu}` SET `email_verified_at` = NOW() WHERE `email_verified_at` IS NULL");
+            }
+
+            // email_verifications-Tabelle nachziehen (Bestandsinstallationen vor dieser Funktion
+            // haben sie noch nicht). CREATE TABLE IF NOT EXISTS ist idempotent, daher unkritisch,
+            // dass dieser Loop bei jedem Request erneut laeuft (gleiches Muster wie repo_channels
+            // unten).
+            $pPrefix = defined('ESSE_DB_PREFIX') ? \ESSE_DB_PREFIX : 'esse_';
+            foreach (Schema::tables($pPrefix) as $sql) {
+                if (str_contains($sql, "`{$pPrefix}email_verifications`")) {
+                    DB::query($sql);
+                }
             }
 
             // Einmalige Bereinigung: manage_repos wurde früher per DEFAULT_ROLE_PERMISSIONS an

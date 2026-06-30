@@ -166,7 +166,7 @@ function runSetup(array $data, string $displayName, string $email, string $passw
     $exists->execute([$email]);
     if (!$exists->fetch()) {
         $hash = password_hash($password, PASSWORD_BCRYPT);
-        $pdo->prepare("INSERT INTO `{$p}users` (display_name, email, password, role) VALUES (?, ?, ?, 'forge')")
+        $pdo->prepare("INSERT INTO `{$p}users` (display_name, email, password, role, email_verified_at) VALUES (?, ?, ?, 'forge', NOW())")
             ->execute([$displayName, $email, $hash]);
     }
 

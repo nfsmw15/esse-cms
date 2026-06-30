@@ -134,6 +134,24 @@ Router::post('/admin/reset-password', fn() => require ESSE_ROOT . '/admin/reset-
     'auth' => 'public',
 ]);
 
+Router::get('/email-bestaetigen', fn() => require ESSE_ROOT . '/admin/verify-email.php', [
+    'name' => 'verify_email',
+    'auth' => 'public',
+]);
+Router::post('/email-bestaetigen', fn() => require ESSE_ROOT . '/admin/verify-email.php', [
+    'name' => 'verify_email.post',
+    'auth' => 'public',
+]);
+
+Router::get('/admin/verify-email', fn() => require ESSE_ROOT . '/admin/verify-email.php', [
+    'name' => 'admin.verify_email',
+    'auth' => 'public',
+]);
+Router::post('/admin/verify-email', fn() => require ESSE_ROOT . '/admin/verify-email.php', [
+    'name' => 'admin.verify_email.post',
+    'auth' => 'public',
+]);
+
 // Klassisches 2FA-Gate (TOTP + Backup-Codes) — Zwischenschritt nach korrektem Passwort
 Router::get('/admin/verify-2fa', fn() => require ESSE_ROOT . '/admin/verify-2fa.php', [
     'name' => 'admin.verify_2fa',

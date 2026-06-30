@@ -4,6 +4,7 @@ use Esse\Auth;
 use Esse\AuditLog;
 use Esse\Captcha;
 use Esse\DB;
+use Esse\EmailVerification;
 use Esse\Hooks;
 use Esse\RateLimit;
 use Esse\UserFields;
@@ -67,6 +68,11 @@ if ($enabled === '1' && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     'active'       => 1,
                 ]);
                 UserFields::save($newUserId, $customFields, $customValues);
+
+                $verifyToken = EmailVerification::createToken($newUserId, $email);
+                AuditLog::record('email_verification_requested', $newUserId, $email);
+                EmailVerification::sendMail($email, $displayName, $verifyToken);
+
                 $done = true;
             }
         }
@@ -91,6 +97,7 @@ if (Hooks::has('auth.register.render')) {
     Hooks::fire('auth.register.render', [
         'registrationEnabled' => $enabled === '1',
         'done'                => $done,
+        'requiresVerification' => $done,
         'errors'              => $errors,
         'csrfToken'           => Auth::csrfToken(),
         'captchaQuestion'     => $captchaQuestion,
@@ -115,8 +122,10 @@ if ($enabled !== '1') {
     <div class="col-lg-5">
         <?php if ($done): ?>
         <div class="alert alert-success">
-            Account erstellt! Du kannst dich jetzt <a href="/login">anmelden</a>.
+            Account erstellt! Wir haben dir eine E-Mail zur Bestätigung deiner Adresse gesendet.
+            Bitte prüfe deinen Posteingang und klicke den Link, um dein Konto zu aktivieren.
         </div>
+        <a href="/login" class="text-secondary small">Zurück zum Login</a>
         <?php else: ?>
 
         <?php if ($errors): ?>

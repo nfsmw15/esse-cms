@@ -214,7 +214,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 Flash::set('success', 'Benutzer gespeichert.');
             } else {
-                $newId = DB::insert($tu, array_merge($data, ['active' => 1]));
+                $newId = DB::insert($tu, array_merge($data, [
+                    'active'            => 1,
+                    'email_verified_at' => date('Y-m-d H:i:s'),
+                ]));
                 UserFields::save($newId, $customFields, $customValues);
                 AuditLog::record(
                     'user_created',

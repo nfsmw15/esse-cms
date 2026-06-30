@@ -102,6 +102,7 @@ Security is a first-class design goal in ESSE — not an afterthought.
 - Uploaded files (non-PHP) are served through a controller, not directly from disk
 
 **Authentication:**
+- Self-registered accounts must verify their e-mail address (time-limited link, resend supported) before they can log in — admin-created accounts are exempt, since the admin already vouches for the address
 - Optional two-factor authentication (TOTP / authenticator app) with one-time backup codes — classic second factor on top of the password, including a self-hosted, pure-PHP QR code generator (no JS vendoring, no CDN)
 - Passwordless login via Passkeys (WebAuthn/FIDO2, discoverable credentials) — a standalone login method that replaces password *and* TOTP entirely (Touch ID, Windows Hello, security keys)
 - Both are optional and per-user; WebAuthn cryptography (attestation/assertion verification, CBOR decoding) is handled by the vendored `report-uri/passkeys-php` library rather than custom crypto code

@@ -22,6 +22,7 @@ class Schema
                 `totp_enabled` TINYINT(1)   NOT NULL DEFAULT 0,
                 `totp_backup_codes` TEXT NULL,
                 `password_changed_at` DATETIME NULL,
+                `email_verified_at` DATETIME NULL,
                 `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `updated_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 UNIQUE KEY `uq_email` (`email`)
@@ -126,6 +127,15 @@ class Schema
                 `email`      VARCHAR(255) NOT NULL,
                 `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 KEY `idx_email` (`email`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS `{$p}email_verifications` (
+                `token`      VARCHAR(64)  NOT NULL PRIMARY KEY,
+                `user_id`    INT UNSIGNED NOT NULL,
+                `email`      VARCHAR(255) NOT NULL,
+                `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                KEY `idx_user` (`user_id`),
+                FOREIGN KEY (`user_id`) REFERENCES `{$p}users`(`id`) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
             "CREATE TABLE IF NOT EXISTS `{$p}user_fields` (

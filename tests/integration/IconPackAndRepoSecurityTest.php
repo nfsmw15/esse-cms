@@ -10,11 +10,12 @@ function makeTempAdmin(string $rolePrefix = 'admin-test'): array
     $email = $rolePrefix . '-' . bin2hex(random_bytes(4)) . '@example.test';
     $pass  = 'Temp-Admin-Pass1';
     $id    = DB::insert($tu, [
-        'display_name' => 'Temp Admin',
-        'email'        => $email,
-        'password'     => password_hash($pass, PASSWORD_BCRYPT),
-        'role'         => 'admin',
-        'active'       => 1,
+        'display_name'      => 'Temp Admin',
+        'email'             => $email,
+        'password'          => password_hash($pass, PASSWORD_BCRYPT),
+        'role'              => 'admin',
+        'active'            => 1,
+        'email_verified_at' => date('Y-m-d H:i:s'),
     ]);
     return ['id' => $id, 'email' => $email, 'password' => $pass];
 }

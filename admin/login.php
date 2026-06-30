@@ -33,7 +33,8 @@ if (Auth::check()) {
     exit;
 }
 
-$error = '';
+$error           = '';
+$unverifiedEmail = '';
 $rateLimitBucket = 'login:' . RateLimit::clientIp();
 
 // Load footer menu from active theme settings
@@ -75,17 +76,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        RateLimit::hit($rateLimitBucket);
-        AuditLog::record('login_failed', null, $login);
-        // If the login came from the navbar dropdown (not the admin login page), go back with error param
-        $redirect   = sanitizeRedirect($_POST['redirect'] ?? '/');
-        $fromAdmin  = ($_POST['_form'] ?? '') === 'admin_login'
-                      || str_starts_with($redirect, '/admin');
-        if (!$fromAdmin) {
-            header('Location: ' . $redirect . (str_contains($redirect, '?') ? '&' : '?') . 'login_error=1#navbar-login-form');
-            exit;
+        // Passwort korrekt, aber E-Mail noch nicht bestaetigt — kein Fehlversuch (kein
+        // Rate-Limit-Hit, kein login_failed), sondern eigener Audit-Event + Hinweis mit Link
+        // zum erneuten Anfordern der Bestaetigungs-Mail.
+        if (!empty($_SESSION['esse_unverified_email'])) {
+            $unverifiedEmail = $_SESSION['esse_unverified_email'];
+            unset($_SESSION['esse_unverified_email']);
+            RateLimit::clear($rateLimitBucket);
+            AuditLog::record('login_blocked_unverified', null, $unverifiedEmail);
+            $error = 'Bitte bestätige zuerst deine E-Mail-Adresse.';
+        } else {
+            RateLimit::hit($rateLimitBucket);
+            AuditLog::record('login_failed', null, $login);
+            // If the login came from the navbar dropdown (not the admin login page), go back with error param
+            $redirect   = sanitizeRedirect($_POST['redirect'] ?? '/');
+            $fromAdmin  = ($_POST['_form'] ?? '') === 'admin_login'
+                          || str_starts_with($redirect, '/admin');
+            if (!$fromAdmin) {
+                header('Location: ' . $redirect . (str_contains($redirect, '?') ? '&' : '?') . 'login_error=1#navbar-login-form');
+                exit;
+            }
+            $error = 'E-Mail oder Passwort falsch.';
         }
-        $error = 'E-Mail oder Passwort falsch.';
     }
 }
 
@@ -113,6 +125,7 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.login.render'))
 
     Hooks::fire('auth.login.render', [
         'error'               => $error,
+        'unverifiedEmail'     => $unverifiedEmail,
         'redirect'            => trim($_GET['redirect'] ?? $_POST['redirect'] ?? ''),
         'csrfToken'           => Auth::csrfToken(),
         'brandName'           => $brandName,
@@ -157,7 +170,12 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.login.render'))
     <?php endif ?>
 
     <?php if ($error): ?>
-    <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+    <div class="alert alert-danger">
+        <?= htmlspecialchars($error) ?>
+        <?php if ($unverifiedEmail): ?>
+        <a href="/email-bestaetigen?email=<?= rawurlencode($unverifiedEmail) ?>">Neue Bestätigungs-Mail anfordern</a>
+        <?php endif ?>
+    </div>
     <?php endif ?>
 
     <div class="card">

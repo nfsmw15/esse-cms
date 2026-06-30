@@ -35,11 +35,12 @@ return [
         $email = 'plugin-admin-' . bin2hex(random_bytes(4)) . '@example.test';
         $pass  = 'Plugin-Admin-Pass1';
         $userId = DB::insert($tu, [
-            'display_name' => 'Plugin Admin Test',
-            'email'        => $email,
-            'password'     => password_hash($pass, PASSWORD_BCRYPT),
-            'role'         => 'admin',
-            'active'       => 1,
+            'display_name'      => 'Plugin Admin Test',
+            'email'             => $email,
+            'password'          => password_hash($pass, PASSWORD_BCRYPT),
+            'role'              => 'admin',
+            'active'            => 1,
+            'email_verified_at' => date('Y-m-d H:i:s'),
         ]);
 
         $slug = 'test-plugin-' . bin2hex(random_bytes(3));

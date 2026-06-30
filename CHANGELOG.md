@@ -4,6 +4,10 @@ All notable changes to ESSE CMS will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **E-Mail-Verifikation bei Registrierung**: Self-registrierte Accounts (`/registrieren`) waren bisher sofort aktiv und einloggbar, ohne dass die angegebene E-Mail-Adresse jemals geprüft wurde. Neue Spalte `users.email_verified_at` (NULL = unverifiziert) gated jetzt `Auth::attempt()` zusätzlich zum bestehenden 2FA-Gate — ein unverifizierter Account kann sich nicht einloggen, bekommt aber (anders als ein deaktivierter Account) einen eigenen, hilfreichen Hinweis samt Link zum erneuten Anfordern der Bestätigungs-Mail (`/email-bestaetigen`, neue Klasse `core/EmailVerification.php`, Token-Tabelle `email_verifications`, 24h gültig, gleiches Rate-Limit-/Anti-Enumeration-Muster wie der bestehende Passwort-Reset-Flow). Admin-angelegte Nutzer (`/admin/users/new`) und der Installer-Forge-Account sind davon ausgenommen, da hier bereits für die Adresse gebürgt wird. Bestandsinstallationen: alle existierenden Nutzer werden beim Schema-Update automatisch als verifiziert markiert, niemand wird rückwirkend ausgesperrt.
+
 ## [0.9.0-alpha] - 2026-06-24
 
 ### Added
