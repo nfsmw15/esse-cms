@@ -154,9 +154,21 @@ if ($enabled !== '1') {
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Passwort</label>
-                        <input type="password" name="password" class="form-control"
+                        <input type="password" name="password" id="password" class="form-control"
                                autocomplete="new-password" required>
-                        <div class="form-text">Mindestens 10 Zeichen</div>
+                        <ul class="pw-strength" id="pw-strength-registrieren" data-target="password"
+                            data-config="pw-strength-config-registrieren"
+                            style="list-style:none;padding:0;margin:.4rem 0 0;font-size:.85rem;">
+                            <li data-check="length"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Mindestens Zeichen</span></li>
+                            <li data-check="upper"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Großbuchstaben</span></li>
+                            <li data-check="lower"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Kleinbuchstaben</span></li>
+                            <li data-check="digit"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Ziffern</span></li>
+                            <li data-check="special"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Sonderzeichen</span></li>
+                        </ul>
+                        <script type="application/json" id="pw-strength-config-registrieren"><?= json_encode(
+                            \Esse\PasswordPolicy::clientConfig(null),
+                            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+                        ) ?></script>
                     </div>
                     <div class="mb-4">
                         <label class="form-label">Passwort bestätigen</label>
@@ -183,6 +195,7 @@ if ($enabled !== '1') {
         <div class="text-center mt-3">
             <a href="/login" class="text-secondary small">Bereits registriert? Anmelden</a>
         </div>
+        <script src="/public/assets/js/password-strength.js"></script>
         <?php endif ?>
     </div>
 </div>

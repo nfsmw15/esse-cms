@@ -43,13 +43,21 @@ class PasswordPolicy
     // (null bei Registrierung/Installer, wo es noch keinen Account gibt).
     public static function validate(string $password, ?int $forUserId = null): array
     {
-        $ts = DB::table('settings');
-        $mode       = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'password_policy_mode'") ?: 'custom';
-        $minLength  = (int) (DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'password_min_length'") ?: 10);
-        $minClasses = (int) (DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'password_min_classes'") ?: 3);
-        $hasMfa     = $forUserId !== null && self::accountHasMfa($forUserId);
+        $cfg = self::clientConfig($forUserId);
+        return self::check($password, $cfg['mode'], $cfg['minLength'], $cfg['minClasses'], $cfg['hasMfa']);
+    }
 
-        return self::check($password, $mode, $minLength, $minClasses, $hasMfa);
+    // Aktuelle Richtlinie als Array, z.B. fuer die Live-Checkliste im Frontend (JSON-Export).
+    // $forUserId: bekannter Account fuer den BSI-MFA-Bonus (null bei Registrierung/Installer).
+    public static function clientConfig(?int $forUserId = null): array
+    {
+        $ts = DB::table('settings');
+        return [
+            'mode'       => DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'password_policy_mode'") ?: 'custom',
+            'minLength'  => (int) (DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'password_min_length'") ?: 10),
+            'minClasses' => (int) (DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'password_min_classes'") ?: 3),
+            'hasMfa'     => $forUserId !== null && self::accountHasMfa($forUserId),
+        ];
     }
 
     private static function countClasses(string $password): int

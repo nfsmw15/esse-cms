@@ -47,14 +47,17 @@ if ($reset && $expired) {
     $reset = null;
 }
 
+// Fuer die Live-Checkliste UND die Server-Validierung gleichermassen gebraucht — einmal
+// ermitteln, sobald ein gueltiger Token vorliegt (nicht erst im POST-Zweig).
+$tu = DB::table('users');
+$resetTargetId = $valid ? (int) (DB::value("SELECT id FROM `{$tu}` WHERE email = ?", [$reset['email']]) ?: 0) : 0;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid) {
     if (!Auth::verifyCsrf()) { http_response_code(403); exit; }
 
     $password = $_POST['password']         ?? '';
     $confirm  = $_POST['password_confirm'] ?? '';
 
-    $tu = DB::table('users');
-    $resetTargetId = (int) (DB::value("SELECT id FROM `{$tu}` WHERE email = ?", [$reset['email']]) ?: 0);
     $pwErrors = PasswordPolicy::validate($password, $resetTargetId ?: null);
 
     if ($pwErrors) {
@@ -148,9 +151,21 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.reset_password.
                 <input type="hidden" name="token"  value="<?= htmlspecialchars($token) ?>">
                 <div class="mb-3">
                     <label class="form-label">Neues Passwort</label>
-                    <input type="password" name="password" class="form-control"
+                    <input type="password" name="password" id="password" class="form-control"
                            autocomplete="new-password" autofocus required>
-                    <div class="form-text">Mindestens 10 Zeichen</div>
+                    <ul class="pw-strength" id="pw-strength-reset" data-target="password"
+                        data-config="pw-strength-config-reset"
+                        style="list-style:none;padding:0;margin:.4rem 0 0;font-size:.85rem;">
+                        <li data-check="length"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Mindestens Zeichen</span></li>
+                        <li data-check="upper"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Großbuchstaben</span></li>
+                        <li data-check="lower"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Kleinbuchstaben</span></li>
+                        <li data-check="digit"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Ziffern</span></li>
+                        <li data-check="special"><span class="pw-strength-mark">✗</span> <span class="pw-strength-text">Sonderzeichen</span></li>
+                    </ul>
+                    <script type="application/json" id="pw-strength-config-reset"><?= json_encode(
+                        PasswordPolicy::clientConfig($resetTargetId ?: null),
+                        JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+                    ) ?></script>
                 </div>
                 <div class="mb-4">
                     <label class="form-label">Passwort bestätigen</label>
@@ -161,6 +176,7 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.reset_password.
             </form>
         </div>
     </div>
+    <script src="/public/assets/js/password-strength.js"></script>
     <?php endif ?>
 </div>
 </body>

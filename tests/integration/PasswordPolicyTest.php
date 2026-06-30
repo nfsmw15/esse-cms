@@ -165,4 +165,25 @@ return [
             DB::delete($tu, ['email' => $email]);
         }
     },
+
+    'GET /registrieren: Live-Checkliste bekommt die aktuelle Richtlinie als JSON-Konfiguration mit' => function (Http $http) {
+        $oldReg     = setPasswordPolicyTestSetting('registration_enabled', '1');
+        $oldLength  = setPasswordPolicyTestSetting('password_min_length', '12');
+        $oldClasses = setPasswordPolicyTestSetting('password_min_classes', '2');
+        $oldMode    = setPasswordPolicyTestSetting('password_policy_mode', 'custom');
+
+        try {
+            $page = $http->get('/registrieren');
+            Assert::true(str_contains($page['body'], 'id="pw-strength-config-registrieren"'), 'Config-Script-Block erwartet');
+            Assert::true(str_contains($page['body'], '"minLength":12'), 'Aktuelle Mindestlaenge sollte im JSON stehen');
+            Assert::true(str_contains($page['body'], '"minClasses":2'), 'Aktuelle Zeichenklassen-Anzahl sollte im JSON stehen');
+            Assert::true(str_contains($page['body'], '"mode":"custom"'), 'Aktueller Modus sollte im JSON stehen');
+            Assert::true(str_contains($page['body'], 'password-strength.js'), 'JS-Datei sollte eingebunden sein');
+        } finally {
+            restorePasswordPolicyTestSetting('registration_enabled', $oldReg);
+            restorePasswordPolicyTestSetting('password_min_length', $oldLength);
+            restorePasswordPolicyTestSetting('password_min_classes', $oldClasses);
+            restorePasswordPolicyTestSetting('password_policy_mode', $oldMode);
+        }
+    },
 ];
