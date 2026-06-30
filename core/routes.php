@@ -162,6 +162,66 @@ Router::post('/admin/verify-2fa', fn() => require ESSE_ROOT . '/admin/verify-2fa
     'auth' => 'public',
 ]);
 
+// Pflicht-2FA/Passkey-Einrichtung (Settings-Schalter mfa_enforcement_level) — Zwischenschritt
+// analog zu /admin/verify-2fa, nur dass hier eingerichtet statt nur verifiziert wird.
+Router::get('/admin/setup-mfa', fn() => require ESSE_ROOT . '/admin/setup-mfa.php', [
+    'name' => 'admin.setup_mfa',
+    'auth' => 'public',
+]);
+Router::post('/admin/setup-mfa', fn() => require ESSE_ROOT . '/admin/setup-mfa.php', [
+    'name' => 'admin.setup_mfa.post',
+    'auth' => 'public',
+]);
+
+// Pflicht-Passkey-Registrierung waehrend des Setup-Zwischenstands (esse_mfa_setup_uid) — bewusst
+// eigene Routen statt der bestehenden /admin/passkey/register-* (die haengen an Auth::check() +
+// Passwort-Re-Auth, hier ist das Passwort bereits durch den Login-Versuch selbst bewiesen).
+Router::post('/admin/mfa-setup/passkey-options', function () {
+    header('Content-Type: application/json');
+    $uid = $_SESSION['esse_mfa_setup_uid'] ?? null;
+    if (!$uid || !\Esse\Auth::verifyCsrf()) { http_response_code(403); echo json_encode(['error' => 'Nicht erlaubt.']); return; }
+    $user = \Esse\DB::fetch("SELECT * FROM `" . \Esse\DB::table('users') . "` WHERE id = ?", [$uid]);
+    if (!$user) { http_response_code(403); echo json_encode(['error' => 'Nicht erlaubt.']); return; }
+    try {
+        echo json_encode(\Esse\WebAuthn::registrationOptions($user));
+    } catch (\Throwable $e) {
+        http_response_code(500); echo json_encode(['error' => 'Passkey-Registrierung momentan nicht möglich.']);
+    }
+}, ['name' => 'admin.mfa_setup.passkey_options', 'auth' => 'public']);
+
+Router::post('/admin/mfa-setup/passkey-verify', function () {
+    header('Content-Type: application/json');
+    $uid = $_SESSION['esse_mfa_setup_uid'] ?? null;
+    if (!$uid || !\Esse\Auth::verifyCsrf()) { http_response_code(403); echo json_encode(['error' => 'Nicht erlaubt.']); return; }
+    $user = \Esse\DB::fetch("SELECT * FROM `" . \Esse\DB::table('users') . "` WHERE id = ?", [$uid]);
+    if (!$user) { http_response_code(403); echo json_encode(['error' => 'Nicht erlaubt.']); return; }
+
+    $body       = json_decode((string) file_get_contents('php://input'), true) ?: [];
+    $credential = $body['credential'] ?? null;
+    $label      = trim((string) ($body['label'] ?? ''));
+    if (!is_array($credential)) { echo json_encode(['error' => 'Ungültige Antwort des Browsers.']); return; }
+
+    try {
+        \Esse\WebAuthn::verifyRegistration($user, $credential, $label);
+    } catch (\Throwable $e) {
+        echo json_encode(['error' => 'Registrierung fehlgeschlagen. Bitte erneut versuchen.']); return;
+    }
+
+    unset($_SESSION['esse_mfa_setup_uid'], $_SESSION['esse_mfa_setup_at'], $_SESSION['esse_mfa_setup_level']);
+    \Esse\AuditLog::record('passkey_added', (int) $user['id'], $user['email']);
+    \Esse\Auth::login($user);
+    \Esse\AuditLog::record('login_success', (int) $user['id'], $user['email']);
+
+    $redirect = trim((string) ($body['redirect'] ?? ''));
+    $target   = ($redirect !== '' && str_starts_with($redirect, '/') && !str_starts_with($redirect, '//')) ? $redirect : null;
+    if (!$target) {
+        $ts   = \Esse\DB::table('settings');
+        $slug = \Esse\DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'login_homepage_slug'") ?: '/';
+        $target = \Esse\PageTargets::redirectUrl((string) $slug, '/');
+    }
+    echo json_encode(['ok' => true, 'redirect' => $target]);
+}, ['name' => 'admin.mfa_setup.passkey_verify', 'auth' => 'public']);
+
 // -- Passkey/WebAuthn JSON-Endpunkte (Muster siehe admin/files-upload.php) --
 // 'auth' => 'public': Registrierung wird intern per Auth::check() abgesichert (Nutzer muss
 // eingeloggt sein, um einen Passkey hinzuzufügen); die passwortlose Anmeldung kennt den Nutzer

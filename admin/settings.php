@@ -31,6 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'admin_email'           => trim($_POST['admin_email']           ?? ''),
         'registration_enabled'  => isset($_POST['registration_enabled']) ? '1' : '0',
         'registration_requires_approval' => isset($_POST['registration_requires_approval']) ? '1' : '0',
+        'mfa_enforcement_level' => in_array($_POST['mfa_enforcement_level'] ?? 'off', ['off', '2fa', 'passkey'], true)
+            ? $_POST['mfa_enforcement_level'] : 'off',
         'smtp_host'        => trim($_POST['smtp_host']        ?? ''),
         'smtp_port'        => trim($_POST['smtp_port']        ?? '587'),
         'smtp_user'        => trim($_POST['smtp_user']        ?? ''),
@@ -56,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         // Sicherheitsrelevante Änderungen erfassen, bevor die neuen Werte geschrieben werden
         $changes = [];
-        foreach (['registration_enabled', 'registration_requires_approval', 'audit_log_retention_days', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_encryption', 'smtp_from'] as $key) {
+        foreach (['registration_enabled', 'registration_requires_approval', 'mfa_enforcement_level', 'audit_log_retention_days', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_encryption', 'smtp_from'] as $key) {
             $old = $settings[$key] ?? null;
             if ($old !== $save[$key]) {
                 $changes[$key] = ['old' => $old, 'new' => $save[$key]];
@@ -208,6 +210,16 @@ ob_start();
                     </div>
                     <div class="form-text">
                         Zusätzlich zur E-Mail-Bestätigung muss ein Admin neue Accounts in <code>/admin/users</code> freigeben, bevor sie sich einloggen können.
+                    </div>
+
+                    <label class="form-label mt-3">Starke Authentifizierung erzwingen</label>
+                    <select name="mfa_enforcement_level" class="form-select" style="max-width: 20rem">
+                        <option value="off"     <?= ($settings['mfa_enforcement_level'] ?? 'off') === 'off'     ? 'selected' : '' ?>>Aus</option>
+                        <option value="2fa"     <?= ($settings['mfa_enforcement_level'] ?? 'off') === '2fa'     ? 'selected' : '' ?>>2FA-Pflicht (TOTP oder Passkey)</option>
+                        <option value="passkey" <?= ($settings['mfa_enforcement_level'] ?? 'off') === 'passkey' ? 'selected' : '' ?>>Passkey-Pflicht (nur Passkey gilt)</option>
+                    </select>
+                    <div class="form-text">
+                        Ohne eingerichteten zweiten Faktor wird ein Nutzer direkt nach dem Passwort zur Einrichtung gezwungen, bevor er die Seite nutzen kann.
                     </div>
                 </div>
             </div>

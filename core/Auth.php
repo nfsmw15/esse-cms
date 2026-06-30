@@ -134,6 +134,23 @@ class Auth
             return false;
         }
 
+        // Pflicht-2FA/Passkey-Gate (optional, per Settings-Schalter mit drei Stufen): greift nur,
+        // wenn der Account die geforderte Stufe noch nicht erfuellt. Bewusst VOR dem klassischen
+        // TOTP-Verifikations-Gate — bei Stufe "passkey" reicht vorhandenes TOTP nicht, der Nutzer
+        // muss trotzdem zur Einrichtung. Faellt dieser Block durch (Account ist bereits konform),
+        // greift das bestehende TOTP-Gate unten unveraendert weiter.
+        $mfaLevel = DB::value("SELECT `value` FROM `{$ts}` WHERE `key` = 'mfa_enforcement_level'") ?: 'off';
+        if ($mfaLevel !== 'off') {
+            $hasPasskey = !empty(WebAuthn::credentialsForUser((int) $user['id']));
+            $compliant  = $mfaLevel === 'passkey' ? $hasPasskey : ($hasPasskey || TwoFactor::isEnabled($user));
+            if (!$compliant) {
+                $_SESSION['esse_mfa_setup_uid']   = $user['id'];
+                $_SESSION['esse_mfa_setup_at']    = time();
+                $_SESSION['esse_mfa_setup_level'] = $mfaLevel;
+                return false;
+            }
+        }
+
         // Klassisches 2FA-Gate: TOTP ist ein zweiter Faktor zum Passwort — der Login ist
         // nach korrektem Passwort noch nicht abgeschlossen, sondern wartet auf den TOTP-/
         // Backup-Code-Schritt in admin/verify-2fa.php (Passkeys laufen unabhängig davon,

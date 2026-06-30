@@ -105,6 +105,24 @@
         });
     }
 
+    // Registrierungs-Ceremony waehrend der Pflicht-2FA/Passkey-Einrichtung (von
+    // /admin/setup-mfa aus, vor einer vollstaendigen Session) — kein Passwort-Feld noetig,
+    // das Passwort wurde bereits durch den Login-Versuch selbst bewiesen. Liefert bei Erfolg
+    // { redirect } zurück, der Aufrufer leitet selbst weiter (der Server hat dabei bereits
+    // Auth::login() aufgerufen).
+    async function registerForSetup(csrfToken, label) {
+        const options   = await postJson('/admin/mfa-setup/passkey-options', csrfToken, {});
+        const publicKey = decodeOptions(options.publicKey);
+
+        const credential = await navigator.credentials.create({ publicKey });
+        if (!credential) throw new Error('Registrierung abgebrochen.');
+
+        return postJson('/admin/mfa-setup/passkey-verify', csrfToken, {
+            label:      label || '',
+            credential: encodeCredential(credential),
+        });
+    }
+
     // Authentifizierungs-Ceremony: passwortlose Anmeldung (von der Login-Seite aus).
     // Liefert bei Erfolg { redirect } zurück — der Aufrufer leitet selbst weiter.
     async function login(csrfToken, redirect) {
@@ -120,5 +138,5 @@
         });
     }
 
-    global.EsseWebAuthn = { isSupported, register, login };
+    global.EsseWebAuthn = { isSupported, register, login, registerForSetup };
 })(window);

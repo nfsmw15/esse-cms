@@ -76,6 +76,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+        // Passwort korrekt, aber Pflicht-2FA/Passkey noch nicht eingerichtet — Auth::attempt()
+        // hat das in der Session vermerkt. Kein Fehlversuch, sondern Weiterleitung zur Einrichtung.
+        if (!empty($_SESSION['esse_mfa_setup_uid'])) {
+            RateLimit::clear($rateLimitBucket);
+            AuditLog::record('login_blocked_mfa_setup_required', (int) $_SESSION['esse_mfa_setup_uid'], $login);
+            $redirect = trim($_POST['redirect'] ?? $_GET['redirect'] ?? '');
+            $target   = '/admin/setup-mfa';
+            if ($redirect !== '') $target .= '?redirect=' . rawurlencode(sanitizeRedirect($redirect));
+            header('Location: ' . $target);
+            exit;
+        }
+
         // Passwort korrekt, aber E-Mail noch nicht bestaetigt — kein Fehlversuch (kein
         // Rate-Limit-Hit, kein login_failed), sondern eigener Audit-Event + Hinweis mit Link
         // zum erneuten Anfordern der Bestaetigungs-Mail.
