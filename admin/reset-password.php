@@ -90,18 +90,23 @@ if (defined('ESSE_DB_NAME')) {
     $brandSlogan = $brandRows['site_slogan'] ?? '';
 }
 
+// Policy-Konfiguration frühzeitig ermitteln — wird sowohl vom Hook-Payload als auch vom
+// Default-Rendering benötigt. $resetTargetId ist bereits gesetzt (auch fuer GET-Requests).
+$pwPolicyCfg = PasswordPolicy::clientConfig($resetTargetId ?: null);
+
 // Themes dürfen diese Seite im eigenen Design rendern (analog zu auth.login.render).
 // /admin/reset-password bleibt IMMER beim Standard-Rendering (Fail-Safe-Notausgang).
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
 if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.reset_password.render')) {
     Hooks::fire('auth.reset_password.render', [
-        'success'     => $success,
-        'errors'      => $errors,
-        'token'       => $token,
-        'valid'       => (bool) ($token && $reset),
-        'csrfToken'   => Auth::csrfToken(),
-        'brandName'   => $brandName,
-        'brandSlogan' => $brandSlogan,
+        'success'      => $success,
+        'errors'       => $errors,
+        'token'        => $token,
+        'valid'        => (bool) ($token && $reset),
+        'csrfToken'    => Auth::csrfToken(),
+        'brandName'    => $brandName,
+        'brandSlogan'  => $brandSlogan,
+        'pwPolicyCfg'  => $pwPolicyCfg,
     ]);
     return;
 }
@@ -157,7 +162,6 @@ if (!str_starts_with($requestPath, '/admin') && Hooks::has('auth.reset_password.
                     <label class="form-label">Neues Passwort</label>
                     <input type="password" name="password" id="password" class="form-control"
                            autocomplete="new-password" autofocus required>
-                    <?php $pwPolicyCfg = PasswordPolicy::clientConfig($resetTargetId ?: null); ?>
                     <ul class="pw-strength" id="pw-strength-reset" data-target="password"
                         data-config="pw-strength-config-reset"
                         style="list-style:none;padding:0;margin:.4rem 0 0;font-size:.85rem;">
